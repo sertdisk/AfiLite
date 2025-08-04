@@ -1,0 +1,12 @@
+Tam olarak netleştiremediğin yerleri sormayı ihmal etme
+
+Beraber çalışırken şunlara dikkat et:
+1-İnşaa felsefemiz: Beklenen işlevlerin tamamını yerine getiren, kararlı çalışan, modern teknolojiler kullanan, günümüz yazılım standartlarına uygun, güvenlik standartlarını karşılayan, Backendi mümkün olduğunca sade ve minimal, ön yüzü çağdaş görünümlü ve kullanıcı dostu minimal bir uygulama yapıyoruz
+2-inşaa felsefemiz: Teknik dökümana bağlı kal. En fazla anlık 500 kullanıcı hedefliyoruz, yük hesabını daha yüksek yapma. Hız önceliğimiz değil, kararlılık ve güvenlik daha önemli. yapıyı mümkün olduğu kadar minimal tut.
+3-Kodlama standartımız: Modern ve global standartlarda bir şema kullan. semantik bir yapıda ilerle. kod yazarken isimlendirme vb için global dil (ingilizce) kullanırken yorum ve açıklamaları türkçe yap. Her dosyanın ne işe yaradığını ve neler yaptığını en başında yine türkçe açıkla. her scope için kısa türkçe açıklamalar eklemeye çalış. Yorum satırlarında sade, kolay anlaşılabilir bir türkçe dil kullan. Bu proje bir okulda yazılım dersinde oluşturuluyor ve öğrenciler gerçek bir proje üzerinden yazılım inşaasının her aşamasını deneyimliyormuş gibi düşün.
+teknik dökümana bağlılık: projenin her aşamasında teknik dökümana tam bağlı ilerle
+
+
+1000 aktif kullanıcı değil en fazla 500 aktif kullanıcı bizim limitimiz. Hız yerine kararlılık, sağlamlık hedefliyoruz. Makul yavaşlıklar kabul edilebilir. 
+
+Nihai hedef: kararlı, sağlam, mümkün olan en minimal uygulama

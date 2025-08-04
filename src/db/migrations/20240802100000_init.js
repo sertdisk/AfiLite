@@ -8,11 +8,15 @@ exports.up = function (knex) {
       t.string('phone').notNullable();
       t.string('email').notNullable().unique();
       t.string('iban').notNullable();
-      t.text('socials'); // JSON string
+      t.text('social_media'); // JSON string
       t.text('about');
       t.text('message');
       t.enum('status', ['pending', 'approved', 'rejected']).defaultTo('pending');
+      t.integer('followers').defaultTo(0);
+      t.string('password_hash');
+      t.enum('role', ['admin', 'user']).defaultTo('user');
       t.datetime('created_at').defaultTo(knex.fn.now());
+      t.datetime('updated_at').defaultTo(knex.fn.now());
     })
     .createTable('discount_codes', (t) => {
       t.increments('id').primary();
