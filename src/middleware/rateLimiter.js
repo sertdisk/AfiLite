@@ -1,3 +1,10 @@
+/**
+ * Türkçe: Rate limiter tanımları.
+ * Notlar:
+ * - Test ortamında limiter'lar skip edilir.
+ * - Üretimde Redis kullanımı zorunlu olmalıdır (yorum). Redis yoksa bellek içi store kullanılır.
+ * - Rota-bazlı kısa/uzun pencere kombinasyonları eklenmiştir.
+ */
 const rateLimit = require('express-rate-limit');
 const RedisStore = require('rate-limit-redis');
 const Redis = require('ioredis');
@@ -87,18 +94,39 @@ const apiLimiter = rateLimit(buildLimiterOptions({
   skip: (req) => req.path === '/health' || req.path === '/api/health' || isTestEnvironment,
 }));
 
-// Auth endpointleri için limiter
+// Auth endpointleri için global limiter (mevcut)
+// Geliştirme sürecinde (NODE_ENV=development) devreye alınmasın (geçici olarak dev ortamında devre dışı)
 const authLimiter = rateLimit(buildLimiterOptions({
   prefix: 'auth',
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: process.env.NODE_ENV === 'development' ? 10_000 : 5,
   message: {
     error: 'Too many authentication attempts, please try again later.',
-    retryAfter: '15 minutes'
+    retryAfter: process.env.NODE_ENV === 'development' ? 'dev-disabled' : '15 minutes'
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTestEnvironment,
+  skip: () => isTestEnvironment || process.env.NODE_ENV === 'development',
+}));
+
+// Ek auth login kısa/uzun pencere limiter'ları (rota bazlı birlikte kullanılacak)
+const authShortLimiter = rateLimit(buildLimiterOptions({
+  prefix: 'authShort',
+  windowMs: 60 * 1000, // 1 dakika
+  max: process.env.NODE_ENV === 'development' ? 10_000 : 5,
+  message: { error: 'Çok fazla giriş denemesi, lütfen kısa bir süre sonra tekrar deneyin.', retryAfter: process.env.NODE_ENV === 'development' ? 'dev-disabled' : '1 minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTestEnvironment || process.env.NODE_ENV === 'development',
+}));
+const authLongLimiter = rateLimit(buildLimiterOptions({
+  prefix: 'authLong',
+  windowMs: 15 * 60 * 1000, // 15 dakika
+  max: process.env.NODE_ENV === 'development' ? 100_000 : 20,
+  message: { error: 'Çok fazla giriş denemesi, lütfen daha sonra tekrar deneyin.', retryAfter: process.env.NODE_ENV === 'development' ? 'dev-disabled' : '15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTestEnvironment || process.env.NODE_ENV === 'development',
 }));
 
 // Influencer oluşturma limiter
@@ -115,6 +143,17 @@ const influencerLimiter = rateLimit(buildLimiterOptions({
   skip: () => isTestEnvironment,
 }));
 
+// Apply POST için uzun pencere limiter (1 saat / 20)
+const influencerLongLimiter = rateLimit(buildLimiterOptions({
+  prefix: 'influencerLong',
+  windowMs: 60 * 60 * 1000, // 1 saat
+  max: 20,
+  message: { error: 'Çok fazla başvuru denemesi, lütfen daha sonra tekrar deneyin.', retryAfter: '1 hour' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTestEnvironment,
+}));
+
 // Satış raporu limiter
 const saleReportLimiter = rateLimit(buildLimiterOptions({
   prefix: 'saleReport',
@@ -124,6 +163,26 @@ const saleReportLimiter = rateLimit(buildLimiterOptions({
     error: 'Too many sale report submissions, please try again later.',
     retryAfter: '5 minutes'
   },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTestEnvironment,
+}));
+
+// Sale POST için kısa ve uzun pencere limiter'ları
+const saleShortLimiter = rateLimit(buildLimiterOptions({
+  prefix: 'saleShort',
+  windowMs: 60 * 1000, // 1 dakika
+  max: 10,
+  message: { error: 'Çok fazla istek, lütfen kısa bir süre sonra tekrar deneyin.', retryAfter: '1 minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => isTestEnvironment,
+}));
+const saleLongLimiter = rateLimit(buildLimiterOptions({
+  prefix: 'saleLong',
+  windowMs: 60 * 60 * 1000, // 1 saat
+  max: 200,
+  message: { error: 'Çok fazla istek, lütfen daha sonra tekrar deneyin.', retryAfter: '1 hour' },
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment,
@@ -145,8 +204,13 @@ module.exports = {
   generalLimiter,
   apiLimiter,
   authLimiter,
+  authShortLimiter,
+  authLongLimiter,
   influencerLimiter,
+  influencerLongLimiter,
   saleReportLimiter,
+  saleShortLimiter,
+  saleLongLimiter,
   closeRedisConnection,
   isRedisAvailable
 };

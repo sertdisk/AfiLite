@@ -1,4 +1,4 @@
-Tam olarak netleştiremediğin yerleri sormayı ihmal etme
+Görünüm çağdaş, Tam olarak netleştiremediğin yerleri sormayı ihmal etme
 
 Beraber çalışırken şunlara dikkat et:
 1-İnşaa felsefemiz: Beklenen işlevlerin tamamını yerine getiren, kararlı çalışan, modern teknolojiler kullanan, günümüz yazılım standartlarına uygun, güvenlik standartlarını karşılayan, Backendi mümkün olduğunca sade ve minimal, ön yüzü çağdaş görünümlü ve kullanıcı dostu minimal bir uygulama yapıyoruz
@@ -9,4 +9,17 @@ teknik dökümana bağlılık: projenin her aşamasında teknik dökümana tam b
 
 1000 aktif kullanıcı değil en fazla 500 aktif kullanıcı bizim limitimiz. Hız yerine kararlılık, sağlamlık hedefliyoruz. Makul yavaşlıklar kabul edilebilir. 
 
-Nihai hedef: kararlı, sağlam, mümkün olan en minimal uygulama
+Nihai hedef: kararlı, sağlam, headless çalışabilen, mümkün olan en minimal uygulama
+
+IU felsefemiz: "
+Modern UI Trendleri: Glassmorphism, neumorphism, gradient efektler.
+Dashboard: Kullanıcı istatistikleri ve öngörüler.
+Kullanıcı Girişi: Animasyonlu bir karşılama ekranı.
+Lüks Hissi: Karanlık mod (dark theme)
+Özel Logo Animasyonu: Arayüz açılışında marka kimliğini vurgulayan bir animasyon.
+Veri Görselleştirme: Şık grafikler ve dashboard’larla kullanıcıya bilgi sunma.
+Tipografi: Okunabilir, modern 
+Animasyonlar: Mikro-interaksiyonlar (hover efekti, geçişler) ile kullanıcı deneyimini zenginleştirme.
+Renk Paleti: premium hissi veren renkler 
+Minimalist ve Şık: Temiz, sade ve kullanıcı dostu bir arayüz.
+"

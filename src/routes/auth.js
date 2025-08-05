@@ -1,100 +1,104 @@
+/*
+  Bu dosya: Kimlik doğrulama uçları (admin ve influencer login, token doğrulama, kurulum).
+  Güvenlik: Access token süresi 15 dakika; bcrypt cost sabit 11.
+  Ek: Girdi doğrulama (Türkçe hata mesajları) ve merkezi hata yakalama kullanılır.
+*/
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const knex = require('../db/sqlite');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { authenticateToken, requireAdmin, JWT_SECRET } = require('../middleware/auth');
+const { validateAuthLogin } = require('../middleware/validation');
 
-// Admin login endpoint
-router.post('/login', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+// Şifreleme ve token ömrü sabitleri (sertleştirme)
+const BCRYPT_SALT_ROUNDS = 11; // bcrypt cost=11
+const ACCESS_TOKEN_TTL = '15m'; // access token 15 dakika
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email ve şifre gerekli' });
-  }
+// Admin login endpoint (kimlik doğrulama)
+router.post('/login', validateAuthLogin, asyncHandler(async (req, res) => {
+ const { email, password } = req.body;
 
-  // Admin kullanıcıyı bul
-  const user = await knex('influencers')
-    .where('email', email)
-    .where('role', 'admin')
-    .first();
+ const user = await knex('influencers')
+   .where('email', email)
+   .where('role', 'admin')
+   .first();
 
-  if (!user) {
-    return res.status(401).json({ error: 'Geçersiz email veya şifre' });
-  }
+ if (!user) {
+   const err = new Error('Geçersiz email veya şifre');
+   err.status = 401;
+   throw err;
+ }
 
-  // Şifre kontrolü
-  const isValidPassword = await bcrypt.compare(password, user.password_hash);
-  if (!isValidPassword) {
-    return res.status(401).json({ error: 'Geçersiz email veya şifre' });
-  }
+ const isValidPassword = await bcrypt.compare(password, user.password_hash);
+ if (!isValidPassword) {
+   const err = new Error('Geçersiz email veya şifre');
+   err.status = 401;
+   throw err;
+ }
 
-  // JWT token oluştur
-  const token = jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
+ const token = jwt.sign(
+   { userId: user.id, email: user.email, role: user.role },
+   JWT_SECRET,
+   { expiresIn: ACCESS_TOKEN_TTL }
+ );
 
-  res.json({
-    message: 'Giriş başarılı',
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    }
-  });
+ res.json({
+   message: 'Giriş başarılı',
+   token,
+   user: {
+     id: user.id,
+     email: user.email,
+     role: user.role
+   }
+ });
 }));
 
-// Influencer login endpoint (onaylanmış influencer'lar için)
-router.post('/influencer/login', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+// Influencer login endpoint (onaylanmış influencer'lar için, kimlik doğrulama)
+router.post('/influencer/login', validateAuthLogin, asyncHandler(async (req, res) => {
+ const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email ve şifre gerekli' });
-  }
+ const influencer = await knex('influencers')
+   .where('email', email)
+   .where('status', 'approved')
+   .first();
 
-  // Onaylanmış influencer'ı bul
-  const influencer = await knex('influencers')
-    .where('email', email)
-    .where('status', 'approved')
-    .first();
+ if (!influencer) {
+   const err = new Error('Onaylanmış influencer bulunamadı');
+   err.status = 401;
+   throw err;
+ }
 
-  if (!influencer) {
-    return res.status(401).json({ error: 'Onaylanmış influencer bulunamadı' });
-  }
+ const isValidPassword = await bcrypt.compare(password, influencer.password_hash);
+ if (!isValidPassword) {
+   const err = new Error('Geçersiz email veya şifre');
+   err.status = 401;
+   throw err;
+ }
 
-  // Şifre kontrolü
-  const isValidPassword = await bcrypt.compare(password, influencer.password_hash);
-  if (!isValidPassword) {
-    return res.status(401).json({ error: 'Geçersiz email veya şifre' });
-  }
+ const token = jwt.sign(
+   {
+     userId: influencer.id,
+     email: influencer.email,
+     role: 'influencer'
+   },
+   JWT_SECRET,
+   { expiresIn: ACCESS_TOKEN_TTL }
+ );
 
-  // JWT token oluştur
-  const token = jwt.sign(
-    {
-      userId: influencer.id,
-      email: influencer.email,
-      role: 'influencer'
-    },
-    JWT_SECRET,
-    { expiresIn: '24h' }
-  );
-
-  res.json({
-    message: 'Influencer girişi başarılı',
-    token,
-    user: {
-      id: influencer.id,
-      email: influencer.email,
-      role: 'influencer',
-      full_name: influencer.full_name
-    }
-  });
+ res.json({
+   message: 'Influencer girişi başarılı',
+   token,
+   user: {
+     id: influencer.id,
+     email: influencer.email,
+     role: 'influencer',
+     full_name: influencer.full_name
+   }
+ });
 }));
 
-// Token doğrulama endpoint
+// Token doğrulama endpoint (geçerlilik kontrolü)
 router.get('/verify', authenticateToken, asyncHandler(async (req, res) => {
   res.json({
     valid: true,
@@ -106,38 +110,33 @@ router.get('/verify', authenticateToken, asyncHandler(async (req, res) => {
   });
 }));
 
-// Admin kullanıcı oluşturma (ilk kurulum için)
-router.post('/setup-admin', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+// Admin kullanıcı oluşturma (ilk kurulum için, bcrypt cost=11)
+router.post('/setup-admin', validateAuthLogin, asyncHandler(async (req, res) => {
+ const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email ve şifre gerekli' });
-  }
+ const existingAdmin = await knex('influencers')
+   .where('role', 'admin')
+   .first();
 
-  // Admin zaten var mı kontrol et
-  const existingAdmin = await knex('influencers')
-    .where('role', 'admin')
-    .first();
+ if (existingAdmin) {
+   const err = new Error('Admin kullanıcı zaten mevcut');
+   err.status = 409;
+   throw err;
+ }
 
-  if (existingAdmin) {
-    return res.status(409).json({ error: 'Admin kullanıcı zaten mevcut' });
-  }
+ const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-  // Şifreyi hashle
-  const passwordHash = await bcrypt.hash(password, 10);
+ const [userId] = await knex('influencers').insert({
+   email,
+   password_hash: passwordHash,
+   role: 'admin',
+   created_at: new Date()
+ });
 
-  // Admin kullanıcı oluştur
-  const [userId] = await knex('influencers').insert({
-    email,
-    password_hash: passwordHash,
-    role: 'admin',
-    created_at: new Date()
-  });
-
-  res.status(201).json({
-    message: 'Admin kullanıcı başarıyla oluşturuldu',
-    user_id: userId
-  });
+ res.status(201).json({
+   message: 'Admin kullanıcı başarıyla oluşturuldu',
+   user_id: userId
+ });
 }));
 
 module.exports = router;

@@ -1,0 +1,13 @@
+{
+  "root": true,
+  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    // Kısa açıklama: Proje için minimal ESLint ayarları. Türkçe yorumlar bilgilendiricidir.
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^ignored" }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }]
+  }
+}
