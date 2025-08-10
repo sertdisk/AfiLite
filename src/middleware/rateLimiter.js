@@ -77,7 +77,7 @@ const generalLimiter = rateLimit(buildLimiterOptions({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => isTestEnvironment, // Test ortamında tamamen atla
+  skip: () => isTestEnvironment || process.env.NODE_ENV === 'development', // Test ve development ortamında tamamen atla
 }));
 
 // API rate limiter
@@ -91,7 +91,7 @@ const apiLimiter = rateLimit(buildLimiterOptions({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/health' || req.path === '/api/health' || isTestEnvironment,
+  skip: (req) => req.path === '/health' || req.path === '/api/health' || isTestEnvironment || process.env.NODE_ENV === 'development',
 }));
 
 // Auth endpointleri için global limiter (mevcut)

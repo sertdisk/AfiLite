@@ -5,7 +5,7 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
+    "dev": "NODE_ENV=development nodemon src/app.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:load": "jest tests/load.test.js --detectOpenHandles --runInBand --testTimeout=120000",

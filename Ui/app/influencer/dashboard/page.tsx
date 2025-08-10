@@ -7,10 +7,7 @@ import {
   createMyDiscountCode,
   getMyBalance,
   getMySettlements,
-  getMySales,
-  getUnreadAlerts,
-  markAlertRead,
-  SystemAlert
+  getMySales
 } from '@/lib/api';
 import { Line } from 'react-chartjs-2';
 import {
@@ -39,7 +36,6 @@ export default function InfluencerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<{ status: string; created_at: string; days_since_application: number } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<SystemAlert[]>([]); // Sistem uyarıları state'i
 
   // Kodlar bölümü durumu
   const [codes, setCodes] = useState<MyCode[]>([]);
@@ -62,9 +58,6 @@ export default function InfluencerDashboardPage() {
         const s = await getInfluencerSummary();
         setSummary(s);
 
-        // Sistem uyarılarını çek
-        const unreadAlerts = await getUnreadAlerts();
-        setAlerts(unreadAlerts);
 
         // Influencer'ın kodlarını çek
         // Backend'de GET /codes/me uç noktası varsa listMyCodesUnsafe kullanılabilir.
@@ -100,17 +93,6 @@ export default function InfluencerDashboardPage() {
     })();
   }, [codes.length, currentPage, itemsPerPage]); // codes.length, currentPage, itemsPerPage değiştiğinde tekrar çalıştır
 
-  const handleDismissAlert = async (alertId: number) => {
-    try {
-      // Uyarıyı okundu olarak işaretle
-      await markAlertRead(alertId);
-      
-      // Yerel state'ten kaldır
-      setAlerts(prev => prev.filter(a => a.id !== alertId));
-    } catch (e) {
-      console.error('Uyarı kapatma hatası:', e);
-    }
-  };
 
   const weeklySalesData = useMemo(() => {
     // Örnek performans verisi (ileride gerçek API ile değiştirilecek)
@@ -199,43 +181,10 @@ export default function InfluencerDashboardPage() {
           <p className="text-lg text-gray-400">Genel durumunuzu ve temel performans özetini tek bakışta görün.</p>
         </header>
 
-        {/* Sistem Uyarıları */}
-        {alerts.map(alert => (
-          <aside key={alert.id} className="p-6 border border-yellow-600 rounded-xl bg-yellow-900/20 text-yellow-100 shadow-xl space-y-4 animate-fade-in">
-            <p className="font-bold text-xl flex items-center text-yellow-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Sistem Uyarısı
-            </p>
-            <p className="text-base leading-relaxed text-gray-200">{alert.message}</p>
-            <button
-              onClick={() => handleDismissAlert(alert.id)}
-              className="mt-4 px-6 py-2 rounded-lg bg-yellow-700 text-white font-semibold hover:bg-yellow-600 transition-colors duration-300 ease-in-out shadow-md transform hover:scale-105"
-            >
-              Okudum Anladım
-            </button>
-          </aside>
-        ))}
 
         {serverError && (
           <div role="alert" className="text-sm bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-300 shadow-md">{serverError}</div>
         )}
-
-        <section id="application-status-section" className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
-            <div className="text-xs text-gray-400 mb-2">Başvuru Durumu</div>
-            <div className="text-xl font-semibold text-white">{loading ? 'Yükleniyor…' : (summary?.status ?? '—')}</div>
-          </div>
-          <div className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
-            <div className="text-xs text-gray-400 mb-2">Başvuru Tarihi</div>
-            <div className="text-xl font-semibold text-white">{loading ? 'Yükleniyor…' : (summary?.created_at ? new Date(summary.created_at).toLocaleDateString() : '—')}</div>
-          </div>
-          <div className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
-            <div className="text-xs text-gray-400 mb-2">Gün</div>
-            <div className="text-xl font-semibold text-white">{loading ? 'Yükleniyor…' : (summary?.days_since_application ?? '—')}</div>
-          </div>
-        </section>
 
         <section id="code-management-section" className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700 space-y-6">
           {codeMessage && <div className="text-sm bg-emerald-900/30 border border-emerald-700 rounded-lg p-3 text-emerald-300 shadow-md">{codeMessage}</div>}

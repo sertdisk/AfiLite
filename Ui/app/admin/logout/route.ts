@@ -9,14 +9,21 @@ import type { NextRequest } from 'next/server';
  */
 export async function GET(req: NextRequest) {
   const res = NextResponse.redirect(new URL('/admin/login', req.url), { status: 302 });
-  res.cookies.set({
-    name: 'jwt',
-    value: '',
-    httpOnly: true,
-    secure: String(process.env.COOKIE_SECURE).toLowerCase() === 'true',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: 0
+  
+  // Clear all possible auth cookies
+  const cookiesToClear = ['jwt', 'access_token', 'influencer_jwt', 'admin_jwt'];
+  
+  cookiesToClear.forEach(cookieName => {
+    res.cookies.set({
+      name: cookieName,
+      value: '',
+      httpOnly: true,
+      secure: String(process.env.COOKIE_SECURE).toLowerCase() === 'true',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 0
+    });
   });
+  
   return res;
 }

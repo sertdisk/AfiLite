@@ -614,7 +614,7 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
         <h2 className="text-xl font-semibold mb-4">Sözleşmeler</h2>
         <p className="text-sm text-muted">
           <a href="/docs/API_DOKUMANTASYON.md" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
-            Güncel Sözleşme Metni (Örnek)
+            Güncel Sözleşme
           </a>
         </p>
       </section>
