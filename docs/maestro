@@ -12,6 +12,7 @@ teknik dökümana bağlılık: projenin her aşamasında teknik dökümana tam b
 Nihai hedef: kararlı, sağlam, headless çalışabilen, mümkün olan en minimal uygulama
 
 IU felsefemiz: "
+Semantik etiket yapısı ve biçimlendirmelerde kodun temsil ettiği yeri anlamaya yardımcı ID kulalnımı.
 Modern UI Trendleri: Glassmorphism, neumorphism, gradient efektler.
 Dashboard: Kullanıcı istatistikleri ve öngörüler.
 Kullanıcı Girişi: Animasyonlu bir karşılama ekranı.

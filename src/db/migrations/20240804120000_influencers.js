@@ -27,7 +27,36 @@ exports.up = async function(knex) {
       table.index(['status', 'created_at'], 'idx_influencers_status_created_at');
     });
   } else {
-    // tablo varsa eksik indexleri güvence altına al
+    // tablo varsa eksik kolonları ve indexleri güvence altına al
+    // bio kolonu
+    const hasBio = await knex.schema.hasColumn('influencers', 'bio');
+    if (!hasBio) {
+      await knex.schema.table('influencers', (table) => {
+        table.text('bio').nullable();
+      });
+    }
+    
+    // website kolonu
+    const hasWebsite = await knex.schema.hasColumn('influencers', 'website');
+    if (!hasWebsite) {
+      await knex.schema.table('influencers', (table) => {
+        table.string('website', 512).nullable();
+      });
+    }
+    
+    // user_id index
+    const hasUserIdIndex = await knex.schema.hasColumn('influencers', 'user_id');
+    if (hasUserIdIndex) {
+      const indexes = await knex.raw("PRAGMA index_list('influencers')");
+      const hasUserIdIdx = indexes.find(idx => idx.name === 'influencers_user_id_index');
+      if (!hasUserIdIdx) {
+        await knex.schema.table('influencers', (table) => {
+          table.index('user_id');
+        });
+      }
+    }
+    
+    // status + created_at index
     const hasStatusCreatedIdx = await knex.schema.hasColumn('influencers', 'status');
     if (hasStatusCreatedIdx) {
       try {
@@ -36,6 +65,8 @@ exports.up = async function(knex) {
         // SQLite bazı sürümlerde IF NOT EXISTS desteklemeyebilir, hata güvenli biçimde yoksay
       }
     }
+    
+    // email unique index
     try {
       await knex.schema.raw('CREATE UNIQUE INDEX IF NOT EXISTS idx_influencers_email_unique ON influencers (email)');
     } catch (e) {

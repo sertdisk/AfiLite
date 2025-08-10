@@ -14,7 +14,7 @@ exports.up = function (knex) {
       t.enum('status', ['pending', 'approved', 'rejected']).defaultTo('pending');
       t.integer('followers').defaultTo(0);
       t.string('password_hash');
-      t.enum('role', ['admin', 'user']).defaultTo('user');
+      t.enum('role', ['admin', 'influencer']).defaultTo('influencer');
       t.datetime('created_at').defaultTo(knex.fn.now());
       t.datetime('updated_at').defaultTo(knex.fn.now());
     })

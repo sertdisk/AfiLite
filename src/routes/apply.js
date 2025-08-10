@@ -32,6 +32,8 @@ router.post('/apply', influencerLimiter, influencerLongLimiter, validateInfluenc
    throw err;
  }
 
+ // Otomatik onay: yeni başvurular doğrudan approved olarak kaydedilir
+ const now = new Date();
  const [influencerId] = await knex('influencers').insert({
    full_name,
    email,
@@ -42,15 +44,15 @@ router.post('/apply', influencerLimiter, influencerLongLimiter, validateInfluenc
    tax_type,
    about,
    message,
-   status: 'pending',
-   created_at: new Date(),
-   updated_at: new Date()
+   status: 'approved',
+   created_at: now,
+   updated_at: now
  });
 
  res.status(201).json({
-   message: 'Başvurunuz başarıyla alındı',
+   message: 'Başvurunuz otomatik olarak onaylandı',
    influencer_id: influencerId,
-   status: 'pending'
+   status: 'approved'
  });
 }));
 
@@ -112,6 +114,10 @@ router.get('/apply/:id', requireAdmin, asyncHandler(async (req, res) => {
      'status',
      'about',
      'message',
+     'niche',
+     'channels',
+     'country',
+     'website',
      'created_at',
      'updated_at'
    )

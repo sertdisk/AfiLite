@@ -8,8 +8,31 @@
 const router = require('express').Router();
 const knex = require('../db/sqlite');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, authenticateToken } = require('../middleware/auth');
 const { validateDiscountCode } = require('../middleware/validation');
+
+/**
+* Influencer kendi kodlarını listeler (AUTH gerekli)
+* Not: Sadece kendi influencer_id'si ile ilişkilendirilmiş kodlar döner
+*/
+router.get('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
+ const userId = (req.user && (req.user.user_id || req.user.id)) || null;
+ if (!userId) {
+   const err = new Error('Kimlik doğrulama gerekli');
+   err.status = 401;
+   throw err;
+ }
+ const infl = await knex('influencers').where('user_id', userId).first();
+ if (!infl) {
+   const err = new Error('Influencer kaydı bulunamadı');
+   err.status = 404;
+   throw err;
+ }
+ const codes = await knex('discount_codes')
+   .where('influencer_id', infl.id)
+   .orderBy('created_at', 'desc');
+ res.json({ codes });
+}));
 
 // Tüm indirim kodlarını listele
 router.get('/codes', asyncHandler(async (req, res) => {
@@ -51,41 +74,140 @@ router.get('/codes/:id', asyncHandler(async (req, res) => {
  res.json({ code });
 }));
 
-// Yeni indirim kodu oluştur
+// Yeni indirim kodu oluştur (ADMIN) - Admin bir influencere sınırsız sayıda ek kod ekleyebilir
 router.post('/codes', requireAdmin, validateDiscountCode, asyncHandler(async (req, res) => {
- const { influencer_id, code, discount_percentage, commission_pct = 10 } = req.body;
+const { influencer_id, code, discount_percentage, commission_pct = 10 } = req.body;
 
- // Influencer kontrolü
- const influencer = await knex('influencers').where('id', influencer_id).first();
- if (!influencer) {
-   const err = new Error('Influencer bulunamadı');
-   err.status = 404;
-   throw err;
- }
+// Influencer kontrolü
+const influencer = await knex('influencers').where('id', influencer_id).first();
+if (!influencer) {
+  const err = new Error('Influencer bulunamadı');
+  err.status = 404;
+  throw err;
+}
 
- const [id] = await knex('discount_codes').insert({
-   influencer_id,
-   code: code.toUpperCase(),
-   discount_pct: discount_percentage,
-   commission_pct,
-   is_active: true
- });
- 
- const newCode = await knex('discount_codes')
-   .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
-   .select(
-     'discount_codes.*',
-     'influencers.full_name as influencer_name'
-   )
-   .where('discount_codes.id', id)
-   .first();
- 
- res.status(201).json({
-   message: 'İndirim kodu oluşturuldu',
-   code_id: id,
-   code: newCode
- });
+// Benzersiz kod zorunluluğu
+const normalized = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+if (normalized.length < 4 || normalized.length > 16) {
+  const err = new Error('Kod 4-16 karakter arasında A-Z veya 0-9 olmalıdır');
+  err.status = 400;
+  throw err;
+}
+const exists = await knex('discount_codes').where('code', normalized).first();
+if (exists) {
+  const err = new Error('Kod zaten kullanılıyor');
+  err.status = 409;
+  throw err;
+}
+
+const [id] = await knex('discount_codes').insert({
+  influencer_id,
+  code: normalized,
+  discount_pct: discount_percentage,
+  commission_pct,
+  is_active: true
+});
+
+const newCode = await knex('discount_codes')
+  .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+  .select(
+    'discount_codes.*',
+    'influencers.full_name as influencer_name'
+  )
+  .where('discount_codes.id', id)
+  .first();
+
+res.status(201).json({
+  message: 'İndirim kodu oluşturuldu',
+  code_id: id,
+  code: newCode
+});
 }));
+
+/**
+* Influencer'ın kendi adına kod oluşturması
+* Kurallar:
+* - Auth gerekli
+* - Influencer status = approved olmalı
+* - Influencer başına en az 1 kod hakkı var; eğer hiç kodu yoksa bir tane ücretsiz oluşturabilir
+* - Eğer influencer daha önce kod oluşturmuşsa 409 döner (ek kodlar yalnızca admin ile eklenebilir)
+* - Kod formatı: A-Z0-9, 4-16 karakter arası, DB'de benzersiz
+*/
+router.post('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
+const userId = (req.user && (req.user.user_id || req.user.id)) || null;
+if (!userId) {
+  const err = new Error('Kimlik doğrulama gerekli');
+  err.status = 401;
+  throw err;
+}
+
+// Kullanıcının influencer kaydını getir
+const influencer = await knex('influencers').where('user_id', userId).first();
+if (!influencer) {
+  const err = new Error('Influencer kaydı bulunamadı');
+  err.status = 404;
+  throw err;
+}
+if (influencer.status !== 'approved') {
+  const err = new Error('Başvurunuz onaylı değil');
+  err.status = 403;
+  throw err;
+}
+
+// Mevcut kod var mı?
+const existingCount = await knex('discount_codes').where('influencer_id', influencer.id).count({ c: '*' }).first();
+const countVal = Number(existingCount?.c || existingCount?.count || 0);
+if (countVal >= 1) {
+  const err = new Error('Zaten bir indirim kodunuz var');
+  err.status = 409;
+  throw err;
+}
+
+// İstek gövdesinden opsiyonel kod/parametreleri al
+let { code, discount_pct = 10, commission_pct = 10 } = req.body || {};
+// Kod yoksa otomatik üret
+if (!code || typeof code !== 'string') {
+  code = generateCode(influencer.name || influencer.email || 'CODE');
+}
+code = String(code).toUpperCase().replace(/[^A-Z0-9]/g, '');
+if (code.length < 4 || code.length > 16) {
+  const err = new Error('Kod 4-16 karakter arasında A-Z veya 0-9 olmalıdır');
+  err.status = 400;
+  throw err;
+}
+
+// Benzersizlik kontrolü
+const exists = await knex('discount_codes').where('code', code).first();
+if (exists) {
+  const err = new Error('Kod zaten kullanılıyor');
+  err.status = 409;
+  throw err;
+}
+
+const [id] = await knex('discount_codes').insert({
+  influencer_id: influencer.id,
+  code,
+  discount_pct: Number(discount_pct) || 10,
+  commission_pct: Number(commission_pct) || 10,
+  is_active: true
+});
+
+const newCode = await knex('discount_codes').where('id', id).first();
+
+res.status(201).json({
+  message: 'İndirim kodunuz oluşturuldu',
+  code_id: id,
+  code: newCode
+});
+}));
+
+// Basit kod üretici
+function generateCode(seed) {
+const base = String(seed).toUpperCase().replace(/[^A-Z0-9]/g, '');
+const prefix = (base.slice(0, 6) || 'INFLU');
+const rand = Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+return (prefix + rand).slice(0, 12);
+}
 
 // Kod güncelle
 router.put('/codes/:id', requireAdmin, asyncHandler(async (req, res) => {

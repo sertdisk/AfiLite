@@ -5,11 +5,12 @@
 const jwt = require('jsonwebtoken');
 const knex = require('../db/sqlite');
 
-// JWT secret sadece environment'tan gelir; fallback yok (sertleştirme)
-const JWT_SECRET = process.env.JWT_SECRET;
+// JWT secret geçici olarak sabit bir değer atanıyor
+const JWT_SECRET = process.env.JWT_SECRET || 'geciciSecretKey123!';
 
 // Token doğrulama middleware'i (erişim kontrolü)
 const authenticateToken = async (req, res, next) => {
+  console.log('[AUTH DEBUG] authenticateToken middleware çalışıyor, URL:', req.url); // DEBUG LOG
   try {
     // Öncelik: Authorization: Bearer
     const authHeader = req.headers['authorization'];
@@ -21,9 +22,13 @@ const authenticateToken = async (req, res, next) => {
     if (!token) {
       // Express'te cookie-parser yoksa, header'dan manuel çekelim
       const rawCookie = req.headers['cookie'] || '';
-      const jwtCookie = rawCookie.split(';').map(s => s.trim()).find(s => s.startsWith('jwt='));
+      const jwtCookie = rawCookie
+        .split(';')
+        .map(s => s.trim())
+        .find(s => s.startsWith('jwt_influencer='));
+      
       if (jwtCookie) {
-        token = decodeURIComponent(jwtCookie.substring('jwt='.length + 0).split('=')[1] || jwtCookie.split('=')[1]);
+        token = jwtCookie.split('=')[1];
         // Güvenlik: boş string olmasın
         if (token === '') token = undefined;
       }
@@ -34,20 +39,20 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-
+ 
     // Not: Token payload şeması farklı olabilir.
     // Yaygın alan adları: userId | sub
     const userId = decoded.userId || decoded.sub || decoded.id;
     if (!userId) {
       return res.status(401).json({ error: 'Geçersiz token payload' });
     }
-
+ 
     // Kullanıcıyı veritabanından kontrol et (varlık ve durum)
     const user = await knex('influencers').where('id', userId).first();
     if (!user) {
       return res.status(401).json({ error: 'Geçersiz token' });
     }
-
+ 
     req.user = user;
     next();
   } catch (error) {

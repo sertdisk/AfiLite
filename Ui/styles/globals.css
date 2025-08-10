@@ -1,0 +1,259 @@
+/* Kısa açıklama: Global stiller ve Tailwind katmanları — tüm uygulamada geçerli olacak temel stiller. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Admin koyu tema erişilebilirlik düzeltmeleri (kontrast artırma) */
+:root {
+  --app-bg: #0b0f18;         /* arka plan */
+  --app-text: #e6e8ee;       /* ana metin */
+  --muted-text: #cbd5e1;     /* ikincil metin (önce #94a3b8 idi, artırıldı) */
+  --card-bg: #0f172a;        /* yüzey */
+  --card-border: #1e293b;    /* sınırlar */
+  --accent-bg: #111827;      /* hover/dolgu */
+  --thead-bg: #0b1220;       /* tablo başlık arka planı (daha koyu) */
+  --thead-text: #ffffff;     /* tablo başlık yazısı (maksimum kontrast) */
+  --row-alt: #0c1426;        /* şeritli satır arka planı */
+}
+
+/* Genel gövde */
+html.dark body {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* Kart ve sınırlar */
+.card-like {
+  background-color: var(--card-bg);
+  border-color: var(--card-border);
+}
+
+/* Tablo erişilebilirlik stilleri — tüm admin tablolarına global override */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+thead {
+  background-color: var(--thead-bg) !important;
+  color: var(--thead-text) !important;
+}
+thead th {
+  font-weight: 700 !important;
+  letter-spacing: .015em !important;
+  padding: 10px 12px !important;
+  border-bottom: 1px solid var(--card-border) !important;
+}
+tbody td {
+  padding: 10px 12px !important;
+  border-top: 1px solid var(--card-border) !important;
+}
+tbody tr:nth-child(even) {
+  background-color: var(--row-alt) !important;
+}
+
+/* Bileşen bazlı daha zengin tablo sınıfı (uygulandığı yerlerde) */
+.table-admin {
+  width: 100%;
+  background-color: var(--card-bg);
+  color: var(--app-text);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Header hücrelerinin uppercase veya zayıf kontrast aldığı temalarda düzeltme */
+.table-admin thead {
+  background-color: var(--thead-bg) !important;
+  color: var(--thead-text) !important;
+  text-transform: none !important;
+}
+
+.table-admin thead th {
+  font-weight: 600;
+  letter-spacing: .02em;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--card-border);
+  text-transform: none; /* ID, Name vs. doğal görünüm */
+}
+
+.table-admin tbody td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--card-border);
+}
+
+.table-admin tbody tr:nth-child(odd) {
+  background-color: transparent;
+}
+.table-admin tbody tr:nth-child(even) {
+  background-color: var(--row-alt);
+}
+
+/* Hücre içi muted metinleri kontrastlı yap */
+.text-muted {
+  color: var(--muted-text);
+}
+
+/* Buton/link hover */
+.nav-btn {
+  color: var(--app-text);
+}
+.nav-btn:hover {
+  background-color: var(--accent-bg);
+}
+
+/* Gray-50 başlıkları kullanan mevcut sayfalarda görünürlüğü zorlayan utility düzeltmeleri */
+.bg-gray-50 {
+  background-color: var(--thead-bg) !important;
+  color: var(--thead-text) !important;
+}
+.text-gray-700, .text-gray-900 {
+  color: var(--app-text) !important;
+}
+.bg-white {
+  background-color: var(--card-bg) !important;
+}
+.border {
+  border-color: var(--card-border) !important;
+}
+
+/* Input ve select kontrast */
+input, select, textarea {
+  background-color: #0b1324;
+  color: var(--app-text);
+  border-color: var(--card-border);
+}
+input::placeholder, textarea::placeholder {
+  color: #9aa7bb;
+}
+
+/* Design tokens (premium dark) */
+:root {
+  color-scheme: dark;
+  --bg: #0B0F14;            /* ana arka plan */
+  --panel: #121823;         /* kart/panel arka planı */
+  --panel-glass: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.10);
+  --muted: #8A9AAE;         /* ikincil metin */
+  --text: #E6EDF3;          /* birincil metin */
+  --primary: #7C3AED;       /* lila/mor */
+  --primary-600: #6D28D9;
+  --primary-700: #5B21B6;
+  --accent: #06B6D4;        /* cyan vurgusu */
+  --success: #22C55E;       /* onay */
+  --warning: #F59E0B;       /* beklemede */
+  --danger: #EF4444;        /* reddedildi */
+  --gradient-1: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
+}
+
+.dark {
+  --bg: #0B0F14;
+  --panel: #121823;
+  --panel-glass: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.10);
+  --muted: #8A9AAE;
+  --text: #E6EDF3;
+  --primary: #7C3AED;
+  --primary-600: #6D28D9;
+  --primary-700: #5B21B6;
+  --accent: #06B6D4;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --gradient-1: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
+}
+
+html, body {
+  height: 100%;
+}
+
+ /* Temel body arka plan ve metin rengi */
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  @apply antialiased leading-relaxed;
+}
+
+/* Form öğeleri — tutarlı yükseklik ve tipografi */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+input:not([type]),
+select,
+textarea {
+  @apply text-sm;
+  min-height: 40px; /* aynı satır yüksekliği */
+}
+
+/* Placeholder rengi */
+::placeholder {
+  color: color-mix(in oklab, var(--muted) 80%, transparent);
+}
+
+/* Focus stilleri (mor vurgu) */
+:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, .55);
+  transition: box-shadow .2s ease;
+}
+
+/* Linkler: kontrastı artırılmış, hover/focus belirgin */
+a {
+  color: var(--accent);
+  transition: color .2s ease, text-decoration-color .2s ease;
+}
+a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--primary) 70%, transparent);
+}
+
+/* Form odak yönetimi */
+input, button, select, textarea {
+  outline: none;
+}
+
+/* Tailwind ile uyumlu yardımcı sınıflar */
+@layer utilities {
+  /* Arka planlar ve metin */
+  .bg-app { background-color: var(--bg); }
+  .bg-panel { background-color: var(--panel); }
+  .text-app { color: var(--text); }
+  .text-muted { color: var(--muted); }
+
+  /* Kenarlık ve cam efekt */
+  .border-app { border-color: var(--border); }
+  .glass {
+    background-color: var(--panel-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+  }
+
+  /* Marka gradyan */
+  .gradient-brand {
+    background-image: var(--gradient-1);
+  }
+
+  /* Micro-interactions */
+  .focus-ring {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, .45);
+    transition: box-shadow .2s ease;
+  }
+  .card-hover {
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  /* Semantik bölümler için yardımcı sınıflar */
+  .section-title {
+    @apply text-xl md:text-2xl font-semibold tracking-tight;
+  }
+  .section-desc {
+    @apply text-sm text-muted;
+  }
+}

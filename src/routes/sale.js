@@ -3,11 +3,12 @@
  * Güvenlik: Hatalar merkezi handler ile yönetilir, PII sızıntısı engellenir.
  * - POST /sale için girdi doğrulama ve katmanlı rate limit eklendi.
  * - GET uçları authenticateToken ile korunur.
+ * - PATCH /sales/:id (ADMIN) ile satış kaydındaki düzenlenebilir alanlar güncellenir.
  */
 const router = require('express').Router();
 const knex = require('../db/sqlite');
 // JWT koruması yalnızca GET uçları için kullanılacak
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { validateSale } = require('../middleware/validation');
 const { saleShortLimiter, saleLongLimiter } = require('../middleware/rateLimiter');

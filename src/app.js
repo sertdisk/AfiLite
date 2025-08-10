@@ -1,3 +1,5 @@
+require('dotenv').config(); // Ortam değişkenlerini yükle
+
 /*
   Bu dosya: Express uygulamasını başlatır ve global middleware/route zincirini kurar.
   Not: Güvenlik için boot aşamasında kritik ortam değişkenleri kontrol edilir.
@@ -64,10 +66,10 @@ function createApp() {
         credentials: false,
       }
     : {
-        origin: '*', // development/test ortamında serbest
+        origin: ['http://localhost:3000', 'http://localhost:4000'], // Frontend portlarına izin ver
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: false,
+        credentials: true,
       };
   app.use(cors(corsOptions));
 
@@ -97,16 +99,29 @@ function createApp() {
   // API routes
   // ÖNEMLİ SIRA: Public uçlar önce tanımlanır; aksi halde global/auth etkilenebilir.
   // 1) Public uçlar
-  app.use('/api/v1', require('./routes/auth'));
-  app.use('/api/v1', require('./routes/apply'));
+  const authRouter = require('./routes/auth');
+  app.use('/api/v1', authRouter);
+  // Ayrıca UI tarafı doğrudan kök path’e (prefixsiz) çağrı yaparsa 404 olmasın diye alias ekle
+  app.use('/', authRouter);
+
+  app.use('/api/v1', authenticateToken, require('./routes/apply')); // apply router'ı authenticateToken ile korundu
   // Satış kaydetme (POST /sale) public; GET satış uçları route içinde korunur
   app.use('/api/v1', require('./routes/sale'));
-  // Influencer public ve korumalı uçları (/api/v1/influencers/*)
-  app.use('/api/v1/influencers', require('./routes/influencer'));
+  // Influencer public ve korumalı uçları: hem /api/v1/influencers altında hem de köke alias
+  const influencerRouter = require('./routes/influencer');
+  app.use('/api/v1/influencers', influencerRouter);
+  app.use('/influencers', influencerRouter);
 
   // 2) Korumalı uçlar (auth gerektirir)
-  app.use('/api/v1', authenticateToken, require('./routes/codes'));
-  app.use('/api/v1', authenticateToken, require('./routes/balance'));
+  const codesRouter = require('./routes/codes');
+  const balanceRouter = require('./routes/balance');
+  const messagesRouter = require('./routes/messages');
+  const alertsRouter = require('./routes/alerts'); // Yeni sistem uyarıları rotası
+  app.use('/api/v1', authenticateToken, codesRouter);
+  // Balance router altında artık admin için /balance/:influencerId/summary da mevcut
+  app.use('/api/v1', authenticateToken, balanceRouter);
+  app.use('/api/v1', authenticateToken, messagesRouter);
+  app.use('/api/v1/alerts', authenticateToken, alertsRouter); // Sistem uyarıları rotasını ekle
 
   // Error handling
   app.use(notFoundHandler);
@@ -117,7 +132,7 @@ function createApp() {
  
 // Eğer dosya doğrudan çalıştırılırsa, dinlemeyi başlat ve portu logla
 if (require.main === module) {
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 5003; // Varsayılan portu 5003 olarak ayarla
   const app = createApp();
   app.listen(PORT, () => {
     console.log(`[backend] Server is listening on http://localhost:${PORT}`);
