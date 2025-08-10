@@ -3,7 +3,7 @@
 const nextConfig = {
   reactStrictMode: true,
   env: {
-    ADMIN_API_BASE_URL: 'http://localhost:5002', // Backend portu 5002 olarak güncellendi
+    ADMIN_API_BASE_URL: 'http://localhost:5003', // Backend portu 5003 olarak güncellendi
   },
 };
 

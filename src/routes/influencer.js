@@ -210,8 +210,9 @@ router.use(authenticateToken, meLimiter);
 
 // Yardımcı: kimliği belirle (user_id ile çalış)
 function resolveUserId(req) {
-  // auth middleware farklı bir şema kullanıyor olabilir; güvenli şekilde seç
-  return (req.user && (req.user.user_id || req.user.id)) || null;
+  const userId = (req.user && (req.user.user_id || req.user.id)) || null;
+  console.log(`[resolveUserId] Token user: ${JSON.stringify(req.user)}, resolved ID: ${userId}`);
+  return userId;
 }
 
 // GET /influencers/me

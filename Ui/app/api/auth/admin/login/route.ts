@@ -13,7 +13,7 @@ import type { NextRequest } from 'next/server';
  * - Hatalıysa: uygun status ve Türkçe mesaj döndürür.
  */
 export async function POST(req: NextRequest) {
-  const baseUrl = process.env.ADMIN_API_BASE_URL || 'http://localhost:5000';
+  const baseUrl = process.env.ADMIN_API_BASE_URL || 'http://localhost:5003';
 
   let payload: { email?: string; password?: string };
   try {

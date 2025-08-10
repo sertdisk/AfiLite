@@ -1,8 +1,5 @@
 {
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js",
   "/influencer/dashboard/page": "app/influencer/dashboard/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/codes/page": "app/admin/codes/page.js",
-  "/admin/influencers/page": "app/admin/influencers/page.js"
+  "/influencer/balance/page": "app/influencer/balance/page.js"
 }

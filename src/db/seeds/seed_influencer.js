@@ -45,7 +45,7 @@ exports.seed = async function(knex) {
   const now = knex.fn.now();
   
   for (const influencer of influencers) {
-    const { email, password, role, full_name, tax_type, phone, iban, social_media, about, message, status, followers } = influencer;
+    const { email, password, role, full_name, tax_type, phone, iban, social_media, about, message, status, followers, user_id } = influencer;
     
     // Parola hashle
     const salt = await bcrypt.genSalt(10);
@@ -67,6 +67,7 @@ exports.seed = async function(knex) {
           message: existing.message ?? message,
           status: existing.status || status,
           followers: existing.followers || followers,
+          user_id: user_id || existing.user_id,
           password_hash,
           role,
           updated_at: now
@@ -86,6 +87,7 @@ exports.seed = async function(knex) {
         message,
         status,
         followers,
+        user_id,
         password_hash,
         role,
         created_at: now,

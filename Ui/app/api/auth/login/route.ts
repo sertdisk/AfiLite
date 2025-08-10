@@ -11,7 +11,7 @@ import type { NextRequest } from 'next/server';
  * - Hatalıysa: uygun status ve Türkçe mesaj döndürür.
  */
 export async function POST(req: NextRequest) {
-  const baseUrl = process.env.ADMIN_API_BASE_URL || 'http://localhost:5002'; // Backend 5002 portunda çalışıyor
+  const baseUrl = process.env.ADMIN_API_BASE_URL || 'http://localhost:5003'; // Backend 5003 portunda çalışıyor
 
   let payload: { email?: string; password?: string };
   try {

@@ -66,7 +66,7 @@ function createApp() {
         credentials: false,
       }
     : {
-        origin: ['http://localhost:3000', 'http://localhost:4000'], // Frontend portlarına izin ver
+        origin: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:4001'], // Frontend portlarına izin ver
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
