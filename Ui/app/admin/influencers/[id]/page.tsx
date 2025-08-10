@@ -172,6 +172,7 @@ type InflDetail = {
   country?: string;
   bio?: string | null;
   website?: string | null;
+  brandName?: string | null; // Yeni eklenen alan
   created_at?: string;
   updated_at?: string;
 };
@@ -258,6 +259,7 @@ export default function AdminInfluencerDetailPage() {
         country: d?.country ?? '',
         bio: d?.about ?? '', // about'u bio olarak kullan
         website: d?.website ?? '',
+        brandName: d?.brand_name ?? '', // brand_name'i brandName olarak kullan
         created_at: d?.created_at,
         updated_at: d?.updated_at,
       };
@@ -271,6 +273,7 @@ export default function AdminInfluencerDetailPage() {
         country: detailData.country,
         bio: detailData.bio,
         website: detailData.website,
+        brandName: detailData.brandName, // Yeni eklenen alan
         channels: detailData.channels,
       });
     } catch (e: any) {
@@ -384,6 +387,7 @@ export default function AdminInfluencerDetailPage() {
         country: form.country,
         about: form.bio ?? null, // bio'yu about olarak gönder
         website: form.website ?? null,
+        brand_name: form.brandName ?? null, // brandName'i brand_name olarak gönder
         channels: Array.isArray(form.channels) ? JSON.stringify(form.channels) : undefined, // channels'ı JSON string olarak gönder
       };
       const res = await fetch(`/api/influencers/${encodeURIComponent(inflId)}`, {
@@ -526,6 +530,16 @@ export default function AdminInfluencerDetailPage() {
                     className="w-full rounded-md border px-3 py-2"
                     readOnly={!editing}
                     placeholder="https://..."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm text-muted mb-1">Marka Adı</label>
+                  <input
+                    value={form.brandName ?? ''}
+                    onChange={(e) => setFormField('brandName', e.target.value as any)}
+                    className="w-full rounded-md border px-3 py-2"
+                    readOnly={!editing}
+                    placeholder="Sosyal medyadaki marka adınız"
                   />
                 </div>
                 <div className="sm:col-span-2">

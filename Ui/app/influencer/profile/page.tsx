@@ -107,7 +107,7 @@ export default function InfluencerProfilePage() {
       {me && (
         <div className="rounded-xl border border-app bg-panel p-6 shadow-xl card-hover">
           {/* Açıklama: Mevcut değerler ProfileForm'a aktarılır */}
-          <ProfileForm initial={me} />
+          <ProfileForm initial={me} platformMessage={me?.platformMessage} />
         </div>
       )}
     </div>

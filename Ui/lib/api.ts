@@ -135,6 +135,7 @@ export interface Influencer {
   terms_accepted: boolean;
   bio?: string | null;
   website?: string | null;
+  brandName?: string | null; // Yeni eklenen alan
   status: InfluencerStatus;
   created_at: string; // ISO
   updated_at?: string;
@@ -150,6 +151,7 @@ export interface InfluencerApplyPayload {
   terms_accepted: boolean;
   bio?: string;
   website?: string;
+  brandName?: string; // Yeni eklenen alan
   /** Geçici alan (TR): Backend desteği geldiğinde schema uyumu için güncellenecek. */
   social_accounts?: Array<{
     platform: 'Instagram' | 'YouTube' | 'TikTok' | 'Other';
@@ -246,6 +248,7 @@ export async function getInfluencerMe(): Promise<Influencer | null> {
     const data = await request<any>('/api/v1/influencers/me', { method: 'GET' });
     const infl: Influencer = {
       ...data,
+      brandName: data?.brand_name, // brand_name'i brandName olarak kullan
       channels: channelsFromApi(data?.channels)
     };
     return infl;

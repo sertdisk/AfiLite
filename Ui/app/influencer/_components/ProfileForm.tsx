@@ -32,6 +32,7 @@ type ProfileFormState = {
   country: string;
   bio: string;
   website: string;
+  brandName: string;
 };
 
 type PasswordFormState = {
@@ -42,8 +43,13 @@ type PasswordFormState = {
 
 type SocialAccountFormState = {
   platform: string;
-  handle: string;
-  url: string;
+  platformName?: string;
+  handleOrChannel: string;
+  address?: string;
+  role?: string;
+  niche?: string;
+  followers: number | '';
+  avgViews: number | '';
 };
 
 type PaymentAccountFormState = {
@@ -52,7 +58,7 @@ type PaymentAccountFormState = {
   iban: string;
 };
 
-export default function ProfileForm({ initial }: { initial: Influencer }) {
+export default function ProfileForm({ initial, platformMessage }: { initial: Influencer; platformMessage?: string | null }) {
   // Genel profil bilgileri state'i
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     name: initial.name ?? '',
@@ -61,7 +67,8 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
     channels: (initial.channels ?? []).join(', '),
     country: initial.country ?? '',
     bio: initial.bio ?? '',
-    website: initial.website ?? ''
+    website: initial.website ?? '',
+    brandName: initial.brandName ?? ''
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileServerError, setProfileServerError] = useState<string | null>(null);
@@ -81,8 +88,9 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
   const [socialForm, setSocialForm] = useState<SocialAccountFormState>({
     platform: '',
-    handle: '',
-    url: ''
+    handleOrChannel: '',
+    followers: '',
+    avgViews: ''
   });
   const [socialSaving, setSocialSaving] = useState(false);
   const [socialServerError, setSocialServerError] = useState<string | null>(null);
@@ -133,7 +141,7 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
 
   // Sosyal hesap formu doğrulama
   const isSocialFormValid = useMemo(() => {
-    return socialForm.platform.length > 0 && socialForm.handle.length > 0;
+    return socialForm.platform.length > 0 && socialForm.handleOrChannel.length > 0;
   }, [socialForm]);
 
   // Ödeme hesap formu doğrulama
@@ -169,7 +177,8 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
         channels: (updated.channels ?? []).join(', '),
         country: updated.country ?? '',
         bio: updated.bio ?? '',
-        website: updated.website ?? ''
+        website: updated.website ?? '',
+        brandName: updated.brandName ?? ''
       });
       setProfileSuccess('Profil başarıyla güncellendi.');
     } catch (err: any) {
@@ -211,10 +220,21 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
     if (!isSocialFormValid) return;
     setSocialSaving(true);
     try {
-      const newAccount = await addInfluencerSocialAccount(socialForm);
+      // Form state'ini API'ye uygun hale getir
+      const payload: any = {
+        platform: socialForm.platform,
+        platformName: socialForm.platform === 'Other' ? socialForm.platformName?.trim() : undefined,
+        handleOrChannel: socialForm.handleOrChannel.trim(),
+        address: socialForm.address?.trim() || undefined,
+        role: socialForm.role?.trim() || undefined,
+        niche: socialForm.niche?.trim() || undefined,
+        followers: Number(socialForm.followers),
+        avgViews: Number(socialForm.avgViews)
+      };
+      const newAccount = await addInfluencerSocialAccount(payload as any);
       setSocialAccounts((prev) => [...prev, newAccount]);
       setSocialSuccess('Sosyal hesap başarıyla eklendi.');
-      setSocialForm({ platform: '', handle: '', url: '' }); // Formu temizle
+      setSocialForm({ platform: '', handleOrChannel: '', followers: '', avgViews: '' }); // Formu temizle
     } catch (err: any) {
       setSocialServerError(err?.message || 'Sosyal hesap ekleme başarısız.');
     } finally {
@@ -367,6 +387,16 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
                 placeholder="https://..."
               />
             </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="brandName" className="block text-sm mb-1">Marka Adı</label>
+              <input
+                id="brandName"
+                value={profileForm.brandName}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, brandName: e.target.value }))}
+                className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                placeholder="Sosyal medyadaki marka adınız"
+              />
+            </div>
           </div>
 
           <div className="pt-2">
@@ -487,38 +517,120 @@ export default function ProfileForm({ initial }: { initial: Influencer }) {
           <p className="text-sm text-muted mb-4">Henüz eklenmiş sosyal hesap bulunmamaktadır.</p>
         )}
 
+        {/* Platformlardaki faaliyetleriniz mesajı */}
+        {platformMessage && platformMessage.trim() !== '' && (
+          <div className="mb-4 p-3 border border-white/10 rounded-md bg-white/5">
+            <p className="text-sm text-muted">
+              <span className="font-semibold">Platformlardaki faaliyetleriniz:</span> {platformMessage}
+            </p>
+          </div>
+        )}
+
         {/* Yeni Hesap Ekle Formu */}
         <h3 className="text-lg font-semibold mb-3">Yeni Hesap Ekle</h3>
         <form onSubmit={onSocialAddSubmit} className="space-y-4">
           <div>
             <label htmlFor="socialPlatform" className="block text-sm mb-1">Platform</label>
-            <input
+            <select
               id="socialPlatform"
               value={socialForm.platform}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, platform: e.target.value }))}
+              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+            >
+              <option value="">Seçiniz</option>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Web">Web</option>
+              <option value="Other">Diğer</option>
+            </select>
+          </div>
+          {/* Platform adı */}
+          <div>
+            <label className="block text-sm mb-1">Platform adı</label>
+            <input
+              value={socialForm.platform === 'Other' ? (socialForm.platformName ?? '') : socialForm.platform}
+              onChange={(e) => {
+                if (socialForm.platform === 'Other') {
+                  setSocialForm((prev) => ({ ...prev, platformName: e.target.value }));
+                }
+              }}
+              readOnly={socialForm.platform !== 'Other'}
               className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-              placeholder="Instagram, YouTube, TikTok vb."
+              placeholder={socialForm.platform === 'Other' ? "Örn. Twitch" : ""}
             />
           </div>
           <div>
             <label htmlFor="socialHandle" className="block text-sm mb-1">Hesap Adı / Kanal</label>
             <input
               id="socialHandle"
-              value={socialForm.handle}
-              onChange={(e) => setSocialForm((prev) => ({ ...prev, handle: e.target.value }))}
+              value={socialForm.handleOrChannel}
+              onChange={(e) => setSocialForm((prev) => ({ ...prev, handleOrChannel: e.target.value }))}
               className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="@kullanici veya Kanal Adı"
             />
           </div>
           <div>
-            <label htmlFor="socialUrl" className="block text-sm mb-1">Profil URL (Opsiyonel)</label>
+            <label htmlFor="socialUrl" className="block text-sm mb-1">Adres (Web)</label>
             <input
               id="socialUrl"
               type="url"
-              value={socialForm.url}
-              onChange={(e) => setSocialForm((prev) => ({ ...prev, url: e.target.value }))}
+              value={socialForm.address ?? ''}
+              onChange={(e) => setSocialForm((prev) => ({ ...prev, address: e.target.value }))}
               className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-              placeholder="https://instagram.com/kullanici"
+              placeholder="https://... (varsa)"
+            />
+          </div>
+          {/* Görevi */}
+          <div>
+            <label htmlFor="socialRole" className="block text-sm mb-1">Görevi</label>
+            <input
+              id="socialRole"
+              value={socialForm.role ?? ''}
+              onChange={(e) => setSocialForm((prev) => ({ ...prev, role: e.target.value }))}
+              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              placeholder="Örn. İçerik Üreticisi"
+            />
+          </div>
+          {/* Niş */}
+          <div>
+            <label htmlFor="socialNiche" className="block text-sm mb-1">Niş</label>
+            <input
+              id="socialNiche"
+              value={socialForm.niche ?? ''}
+              onChange={(e) => setSocialForm((prev) => ({ ...prev, niche: e.target.value }))}
+              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              placeholder="Örn. Teknoloji"
+            />
+          </div>
+          {/* Takipçi */}
+          <div>
+            <label htmlFor="socialFollowers" className="block text-sm mb-1">Takipçi Sayısı</label>
+            <input
+              id="socialFollowers"
+              type="number"
+              min={0}
+              step={1}
+              value={socialForm.followers}
+              onChange={(e) => setSocialForm((prev) => ({ ...prev, followers: e.target.value === '' ? '' : Number(e.target.value) }))}
+              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              placeholder="0"
+              inputMode="numeric"
+            />
+          </div>
+          {/* Ortalama İzlenme */}
+          <div>
+            <label htmlFor="socialAvgViews" className="block text-sm mb-1">1 Gönderi Ortalama Görüntüleme</label>
+            <input
+              id="socialAvgViews"
+              type="number"
+              min={0}
+              step={1}
+              value={socialForm.avgViews}
+              onChange={(e) => setSocialForm((prev) => ({ ...prev, avgViews: e.target.value === '' ? '' : Number(e.target.value) }))}
+              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              placeholder="0"
+              inputMode="numeric"
             />
           </div>
           <div className="pt-2">

@@ -30,6 +30,7 @@ type FormState = {
   // Hesap Alanı
   email: string;
   password: string; // Yeni eklendi
+  brandName: string; // Yeni eklendi
 
   // İletişim Alanı
   name: string;
@@ -71,6 +72,7 @@ export default function ApplyForm() {
     // Hesap Alanı
     email: '',
     password: '',
+    brandName: '',
 
     // İletişim Alanı
     name: '',
@@ -105,7 +107,7 @@ export default function ApplyForm() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const requiredFields: (keyof FormState)[] = [
-    'email', 'password', 'name', 'phone', 'countryCode', 'iban', 'bankName', 'accountHolder',
+    'email', 'password', 'brandName', 'name', 'phone', 'countryCode', 'iban', 'bankName', 'accountHolder',
     'businessType', 'commercialTitle', 'taxOffice', 'taxNumber', 'businessAddress'
   ];
 
@@ -247,6 +249,7 @@ export default function ApplyForm() {
       const payload: any = {
         email: form.email.trim(),
         password: form.password.trim(),
+        brandName: form.brandName.trim(),
         name: form.name.trim(),
         phone: `${form.countryCode}${form.phone.replace(/[\s.\-]/g, '')}`,
         isWhatsappActive: form.isWhatsappActive,
@@ -310,6 +313,17 @@ export default function ApplyForm() {
               placeholder="Şifrenizi girin"
             />
             {errors['password'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['password']}</p>}
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="brandName" className="block text-sm mb-1 text-muted">Markanız</label>
+            <input
+              id="brandName"
+              value={form.brandName}
+              onChange={(e) => setField('brandName', e.target.value)}
+              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              placeholder="Sosyal medyadaki marka adınız"
+            />
+            {errors['brandName'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['brandName']}</p>}
           </div>
         </div>
       </div>
@@ -436,23 +450,24 @@ export default function ApplyForm() {
                     )}
                   </div>
 
-                  {/* Platform adı (Other) */}
+                  {/* Platform adı */}
                   <div className="sm:col-span-1">
-                    {isOther && (
-                      <>
-                        <label className="block text-xs mb-1 text-muted">Platform adı</label>
-                        <input
-                          value={acc.platformName ?? ''}
-                          onChange={(e) => setSocialAccount(idx, { platformName: e.target.value })}
-                          className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
-                          placeholder="Örn. Twitch"
-                        />
-                        {errors[`social_accounts.${idx}.platformName`] && (
-                          <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>
-                            {errors[`social_accounts.${idx}.platformName`]}
-                          </p>
-                        )}
-                      </>
+                    <label className="block text-xs mb-1 text-muted">Platform adı</label>
+                    <input
+                      value={isOther ? (acc.platformName ?? '') : acc.platform}
+                      onChange={(e) => {
+                        if (isOther) {
+                          setSocialAccount(idx, { platformName: e.target.value });
+                        }
+                      }}
+                      readOnly={!isOther}
+                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      placeholder={isOther ? "Örn. Twitch" : ""}
+                    />
+                    {errors[`social_accounts.${idx}.platformName`] && (
+                      <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>
+                        {errors[`social_accounts.${idx}.platformName`]}
+                      </p>
                     )}
                   </div>
 

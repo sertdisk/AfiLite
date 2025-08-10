@@ -96,6 +96,7 @@ router.post('/apply', applyLimiter, async (req, res) => {
       terms_accepted,
       bio,
       website,
+      brandName,
     } = req.body || {};
 
     const errors = [];
@@ -129,6 +130,7 @@ router.post('/apply', applyLimiter, async (req, res) => {
         status: 'pending',
         bio: bio || null,
         website: website || null,
+        brand_name: brandName || null, // Yeni eklenen alan
         created_at: now,
         updated_at: now,
       });
