@@ -22,7 +22,7 @@ router.get('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
    err.status = 401;
    throw err;
  }
- const infl = await knex('influencers').where('user_id', userId).first();
+ const infl = await knex('influencers').where('id', userId).first();
  if (!infl) {
    const err = new Error('Influencer kaydı bulunamadı');
    err.status = 404;
@@ -142,7 +142,7 @@ if (!userId) {
 }
 
 // Kullanıcının influencer kaydını getir
-const influencer = await knex('influencers').where('user_id', userId).first();
+const influencer = await knex('influencers').where('id', userId).first();
 if (!influencer) {
   const err = new Error('Influencer kaydı bulunamadı');
   err.status = 404;
@@ -189,7 +189,7 @@ const [id] = await knex('discount_codes').insert({
   code,
   discount_pct: Number(discount_pct) || 10,
   commission_pct: Number(commission_pct) || 10,
-  is_active: true
+  is_active: false
 });
 
 const newCode = await knex('discount_codes').where('id', id).first();

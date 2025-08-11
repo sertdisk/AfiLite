@@ -740,7 +740,7 @@ export default function ApplyForm() {
             className="h-4 w-4 rounded border-app bg-panel text-app focus-ring transition"
           />
           <label htmlFor="terms_accepted" className="text-sm text-muted">
-            <a href="#" className="underline hover:opacity-80">Sözleşme</a>’yi okudum, anladım ve kabul ettim.
+            <a href="/contract" target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80">Sözleşme</a>’yi okudum, anladım ve kabul ettim.
           </label>
         </div>
         {errors['terms_accepted'] && (

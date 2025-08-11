@@ -103,7 +103,7 @@ function createApp() {
   app.use('/api/v1', authRouter);
   // Ayrıca UI tarafı doğrudan kök path’e (prefixsiz) çağrı yaparsa 404 olmasın diye alias ekle
   app.use('/', authRouter);
-
+  
   app.use('/api/v1', authenticateToken, require('./routes/apply')); // apply router'ı authenticateToken ile korundu
   // Satış kaydetme (POST /sale) public; GET satış uçları route içinde korunur
   app.use('/api/v1', require('./routes/sale'));
@@ -111,7 +111,11 @@ function createApp() {
   const influencerRouter = require('./routes/influencer');
   app.use('/api/v1/influencers', influencerRouter);
   app.use('/influencers', influencerRouter);
-
+  
+  // Sözleşme rotası (public erişim)
+  const contractRouter = require('./routes/contract');
+  app.use('/api/v1/contracts', contractRouter);
+  
   // 2) Korumalı uçlar (auth gerektirir)
   const codesRouter = require('./routes/codes');
   const balanceRouter = require('./routes/balance');

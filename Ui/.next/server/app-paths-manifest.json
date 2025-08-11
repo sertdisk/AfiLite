@@ -1,9 +1,15 @@
 {
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/page": "app/page.js",
   "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/api/codes/route": "app/api/codes/route.js",
+  "/api/balance/[influencerId]/route": "app/api/balance/[influencerId]/route.js",
+  "/api/sales/stats/route": "app/api/sales/stats/route.js",
+  "/(auth)/admin/login/page": "app/(auth)/admin/login/page.js",
+  "/api/auth/admin/login/route": "app/api/auth/admin/login/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
   "/influencer/dashboard/page": "app/influencer/dashboard/page.js",
-  "/influencer/balance/page": "app/influencer/balance/page.js",
-  "/influencer/profile/page": "app/influencer/profile/page.js",
-  "/influencer/apply/page": "app/influencer/apply/page.js"
+  "/admin/codes/page": "app/admin/codes/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/logout/route": "app/admin/logout/route.js",
+  "/admin/alerts/page": "app/admin/alerts/page.js"
 }

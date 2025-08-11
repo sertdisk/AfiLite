@@ -370,7 +370,7 @@ router.get('/me/summary', async (req, res) => {
         // Calculate days since application directly in SQLite
         knex.raw("CAST((JULIANDAY('now') - JULIANDAY(created_at)) AS INTEGER) AS days_since_application")
       )
-      .where('user_id', userId)
+      .where('id', userId)
       .first();
 
     if (!row) {

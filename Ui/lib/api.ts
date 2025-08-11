@@ -592,3 +592,16 @@ export async function addInfluencerPaymentAccount(payload: PaymentAccountPayload
     throw err;
   }
 }
+
+/** Aktif sözleşme içeriğini getir — GET /api/v1/contracts/active */
+export async function getActiveContract(): Promise<{ id: number; content: string; version: number; is_active: boolean; created_at: string; updated_at: string } | null> {
+  try {
+    return await request('/api/v1/contracts/active', { method: 'GET' });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return null;
+    }
+    if (err instanceof ApiError) throw new Error(err.message);
+    throw err;
+  }
+}
