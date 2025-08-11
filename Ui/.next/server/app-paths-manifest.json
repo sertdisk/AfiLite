@@ -5,6 +5,5 @@
   "/influencer/dashboard/page": "app/influencer/dashboard/page.js",
   "/influencer/balance/page": "app/influencer/balance/page.js",
   "/influencer/profile/page": "app/influencer/profile/page.js",
-  "/influencer/apply/page": "app/influencer/apply/page.js",
-  "/influencer/messages/page": "app/influencer/messages/page.js"
+  "/influencer/apply/page": "app/influencer/apply/page.js"
 }
