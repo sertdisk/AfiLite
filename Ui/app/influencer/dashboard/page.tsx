@@ -7,7 +7,8 @@ import {
   createMyDiscountCode,
   getMyBalance,
   getMySettlements,
-  getMySales
+  getMySales,
+  listMyCodesUnsafe
 } from '@/lib/api';
 import { Line } from 'react-chartjs-2';
 import {
@@ -52,46 +53,63 @@ export default function InfluencerDashboardPage() {
   const [totalSalesCount, setTotalSalesCount] = useState(0); // Toplam satış sayısı
 
   useEffect(() => {
+    let isMounted = true;
 
     (async () => {
       try {
         const s = await getInfluencerSummary();
+        if (!isMounted) return;
         setSummary(s);
 
-
         // Influencer'ın kodlarını çek
-        // Backend'de GET /codes/me uç noktası varsa listMyCodesUnsafe kullanılabilir.
-        // Şimdilik mock veri veya boş dizi ile devam ediyoruz.
-        // const myCodes = await listMyCodesUnsafe();
-        // setCodes(myCodes.items || []);
+        try {
+          const myCodes = await listMyCodesUnsafe();
+          if (!isMounted) return;
+          setCodes(myCodes.items || []);
+        } catch (e: any) {
+          console.error('Kodlar alınamadı:', e);
+        }
 
         // Bakiye ve performans verilerini çek
         const b = await getMyBalance();
+        if (!isMounted) return;
         setBalance(b?.total_balance ?? 0);
 
         const settlements = await getMySettlements();
+        if (!isMounted) return;
         if (settlements?.items && settlements.items.length > 0) {
           setLatestSettlement(settlements.items[0]); // En son ödeme
         }
 
-        // Eğer kod varsa, o koda ait satışları çek (sayfalama ile)
-        if (codes.length > 0 && codes[0].code) {
-          const sales = await getMySales({
-            code: codes[0].code,
-            limit: itemsPerPage,
-            offset: (currentPage - 1) * itemsPerPage
-          });
-          setLatestSales(sales?.items || []);
-          setTotalSalesCount(sales?.total_count ?? 0);
-        }
-
       } catch (e: any) {
+        if (!isMounted) return;
         setServerError(e?.message || 'Veriler alınamadı: ' + e?.message);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     })();
-  }, [codes.length, currentPage, itemsPerPage]); // codes.length, currentPage, itemsPerPage değiştiğinde tekrar çalıştır
+
+    return () => { isMounted = false; };
+  }, []); // Sadece bileşen mount olduğunda çalış
+
+  // Kodlar veya sayfa değiştiğinde satış verilerini güncelle
+  useEffect(() => {
+    if (codes.length === 0 || !codes[0].code) return;
+
+    (async () => {
+      try {
+        const sales = await getMySales({
+          code: codes[0].code,
+          limit: itemsPerPage,
+          offset: (currentPage - 1) * itemsPerPage
+        });
+        setLatestSales(sales?.items || []);
+        setTotalSalesCount(sales?.total_count ?? 0);
+      } catch (e: any) {
+        console.error('Satış verileri alınamadı:', e);
+      }
+    })();
+  }, [codes, currentPage, itemsPerPage]);
 
 
   const weeklySalesData = useMemo(() => {

@@ -9,9 +9,10 @@ import { cookies } from 'next/headers';
  * Not: Asıl token doğrulaması backend tarafından yapılır; burada sadece korumalı alan için minimum gating yapılır.
  */
 function hasAnyAuthCookie() {
-  const adminJwt = cookies().get('admin_jwt')?.value;
+  const adminJwt = cookies().get('jwt_admin')?.value;
   const jwt = cookies().get('jwt')?.value;
   const access = cookies().get('access_token')?.value;
+  console.log('[ADMIN LAYOUT DEBUG] Cookie kontrolü:', { adminJwt, jwt, access }); // DEBUG LOG
   return Boolean(adminJwt || jwt || access);
 }
 

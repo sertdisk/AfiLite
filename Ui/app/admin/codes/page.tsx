@@ -8,7 +8,7 @@ type PendingCode = {
   influencer_id?: number;
   influencer_email?: string;
   created_at?: string;
-  commission_rate?: number; // %
+  commission_pct?: number; // %
 };
 
 type InfluencerOption = { id: number; name: string; email?: string; social_handle?: string };
@@ -39,32 +39,42 @@ export default function AdminCodesPage() {
   // Pendingleri çek
   useEffect(() => {
     let ignore = false;
+    console.log('[DEBUG] useEffect başladı, ignore:', ignore);
     (async () => {
       try {
+        console.log('[DEBUG] API çağrısı yapılıyor: /api/codes?status=pending');
         const res = await fetch('/api/codes?status=pending', { credentials: 'include', cache: 'no-store' });
         const text = await res.text();
+        console.log('[DEBUG] API yanıtı:', res.status, res.statusText, 'Body:', text);
         if (!res.ok) {
           if (!ignore) {
+            console.log('[DEBUG] HTTP hata, ignore:', ignore);
             setPendingCodes([]);
-            setCodesError(null);
+            setCodesError(`HTTP ${res.status}: ${res.statusText}`);
           }
           return;
         }
-        let json: any = [];
-        try { json = JSON.parse(text || '[]'); } catch { json = []; }
-        const arr: PendingCode[] = Array.isArray(json?.codes) ? json.codes : (Array.isArray(json) ? json : []);
+        let json: any = {};
+        try { json = JSON.parse(text || '{}'); } catch { json = {}; }
+        const arr: PendingCode[] = Array.isArray(json?.codes) ? json.codes : [];
+        console.log('[DEBUG] Parse edilen kodlar:', arr);
         if (!ignore) {
+          console.log('[DEBUG] State güncelleniyor, ignore:', ignore);
           setPendingCodes(arr);
           setCodesError(null);
         }
-      } catch {
+      } catch (err: any) {
+        console.log('[DEBUG] Catch bloğu, ignore:', ignore);
         if (!ignore) {
           setPendingCodes([]);
-          setCodesError(null);
+          setCodesError(err?.message || 'Beklenmeyen bir hata oluştu');
         }
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      console.log('[DEBUG] useEffect cleanup, ignore true yapılıyor');
+      ignore = true;
+    };
   }, []);
 
   async function approve(codeRow: PendingCode) {
@@ -90,7 +100,7 @@ export default function AdminCodesPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          status: 'approved',
+          is_active: true,
           discount_percentage,
           commission_pct
         })
@@ -201,9 +211,9 @@ export default function AdminCodesPage() {
         const r2 = await fetch('/api/codes?status=pending', { credentials: 'include', cache: 'no-store' });
         const t2 = await r2.text();
         if (r2.ok) {
-          let j2: any = [];
-          try { j2 = JSON.parse(t2 || '[]'); } catch { j2 = []; }
-          const arr2: PendingCode[] = Array.isArray(j2?.codes) ? j2.codes : (Array.isArray(j2) ? j2 : []);
+          let j2: any = {};
+          try { j2 = JSON.parse(t2 || '{}'); } catch { j2 = {}; }
+          const arr2: PendingCode[] = Array.isArray(j2?.codes) ? j2.codes : [];
           setPendingCodes(arr2);
         }
       } catch {}
@@ -219,7 +229,12 @@ export default function AdminCodesPage() {
       <h1 className="text-2xl font-semibold">Kodlar</h1>
 
       {/* Onay bekleyen indirim kodları (varsa) */}
-      {codesError ? null : (pendingCodes && pendingCodes.length > 0) ? (
+      {codesError ? (
+        <div className="rounded-md border card-like p-4 bg-red-50 text-red-700">
+          <h2 className="text-lg font-semibold mb-3">Hata</h2>
+          <p>{codesError}</p>
+        </div>
+      ) : (pendingCodes && pendingCodes.length > 0) ? (
         <section className="rounded-md border card-like p-4">
           <h2 className="text-lg font-semibold mb-3">Onay Bekleyen İndirim Kodları</h2>
           <table className="table-admin text-sm">
@@ -238,7 +253,7 @@ export default function AdminCodesPage() {
                   <td>{c.code}</td>
                   <td>{c.influencer_email ?? c.influencer_id ?? '-'}</td>
                   <td>{c.created_at ? new Date(c.created_at).toLocaleString() : '-'}</td>
-                  <td>{typeof c.commission_rate === 'number' ? c.commission_rate : '-'}</td>
+                  <td>{typeof c.commission_pct === 'number' ? c.commission_pct : '-'}</td>
                   <td>
                     <button
                       className="rounded-md border px-2 py-1 text-xs hover:bg-white/10"

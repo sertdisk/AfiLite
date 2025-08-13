@@ -10,7 +10,7 @@ function buildCookieHeader() {
   // jwt alias: admin_jwt/access_token varsa ve jwt yoksa alias ekle
   const hasJwt = all.some((c) => c.name === 'jwt');
   if (!hasJwt) {
-    const alias = cookies().get('admin_jwt')?.value || cookies().get('access_token')?.value;
+    const alias = cookies().get('jwt_admin')?.value || cookies().get('access_token')?.value;
     if (alias) parts.push(`jwt=${encodeURIComponent(alias)}`);
   }
   return parts.join('; ');
@@ -24,7 +24,7 @@ function passThroughHeaders() {
   };
   // Authorization üret: admin_jwt → jwt → access_token
   const token =
-    cookies().get('admin_jwt')?.value ||
+    cookies().get('jwt_admin')?.value ||
     cookies().get('jwt')?.value ||
     cookies().get('access_token')?.value;
   if (token) hdr['Authorization'] = `Bearer ${token}`;

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'E-posta ve şifre zorunludur.' }, { status: 400 });
   }
 
-  const url = `${baseUrl}/api/v1/login`;
+  const url = `${baseUrl}/admin/login`;
   try {
     console.log('[UI][admin-login] → POST', url);
     const res = await fetch(url, {
@@ -66,11 +66,13 @@ export async function POST(req: NextRequest) {
     const cookieSecure = process.env.NODE_ENV === 'production' ? cookieSecureEnv : false;
 
     console.log('[UI][admin-login] ✓ Başarılı, cookie set ediliyor. secure=', cookieSecure);
+    console.log('[UI][admin-login] Token:', token); // DEBUG LOG
 
     // İzolasyon: admin için ayrı cookie adı
-    const response = NextResponse.redirect(new URL('/dashboard', req.url), { status: 302 });
+    const response = NextResponse.redirect(new URL('/admin/dashboard', req.url), { status: 302 });
+    console.log('[UI][admin-login] Response before cookie set:', response.headers); // DEBUG LOG
     response.cookies.set({
-      name: 'jwt', // UI genelinde okunan cookie adıyla hizala
+      name: 'jwt_admin', // UI genelinde okunan cookie adıyla hizala
       value: token,
       httpOnly: true,
       secure: cookieSecure,
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
       path: '/',
       maxAge: 15 * 60 // 15 dakika
     });
+    console.log('[UI][admin-login] Response headers:', response.headers); // DEBUG LOG
 
     return response;
   } catch (err: any) {

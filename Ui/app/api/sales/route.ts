@@ -12,7 +12,7 @@ function buildCookieHeader() {
 }
 function bearerFromCookies() {
   // Sunucu tarafında mevcutsa Authorization üret (ör: jwt veya access_token cookie)
-  const jwt = cookies().get('jwt')?.value || cookies().get('access_token')?.value;
+  const jwt = cookies().get('jwt_admin')?.value || cookies().get('jwt_influencer')?.value || cookies().get('access_token')?.value;
   return jwt ? `Bearer ${jwt}` : null;
 }
 function passThroughHeaders() {

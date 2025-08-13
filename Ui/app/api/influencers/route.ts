@@ -3,7 +3,7 @@ import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
 const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
-const JWT_COOKIE_NAMES = ['admin_jwt','jwt','access_token'];
+const JWT_COOKIE_NAMES = ['jwt_admin','jwt','access_token'];
 
 /**
  * Bazı dağıtımlarda admin UI domaini ile backend domaini farklı olur ve
@@ -30,7 +30,7 @@ function buildCookieHeader() {
   const parts: string[] = all.map((c) => `${c.name}=${encodeURIComponent(c.value)}`);
   // Eğer 'jwt' yok ama admin_jwt veya access_token varsa, backend fallback'i için 'jwt' aliası ekle
   if (!map.has('jwt')) {
-    const alias = map.get('admin_jwt') || map.get('access_token');
+    const alias = map.get('jwt_admin') || map.get('access_token');
     if (alias) parts.push(`jwt=${encodeURIComponent(alias)}`);
   }
   return parts.join('; ');

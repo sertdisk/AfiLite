@@ -212,7 +212,7 @@ router.use(authenticateToken, meLimiter);
 
 // Yardımcı: kimliği belirle (user_id ile çalış)
 function resolveUserId(req) {
-  const userId = (req.user && (req.user.user_id || req.user.id)) || null;
+  const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null;
   console.log(`[resolveUserId] Token user: ${JSON.stringify(req.user)}, resolved ID: ${userId}`);
   return userId;
 }

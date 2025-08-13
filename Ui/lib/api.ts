@@ -81,7 +81,7 @@ export async function request<T = unknown>(
 
   // URL zaten absolute ise değiştirme (örn: http:// veya https:// ile başlıyorsa)
   const isAbsolute = /^https?:\/\//i.test(url);
-  // Tüm istekleri localhost:5002'ye yönlendir
+  // Tüm istekleri localhost:5003'ye yönlendir (backend portu)
   const fullUrl = isAbsolute ? url : `http://localhost:5003${url}`;
   const res = await fetch(fullUrl, {
     method: opts.method ?? 'GET',
@@ -297,9 +297,7 @@ export async function getInfluencerSummary(): Promise<InfluencerSummary | null> 
   }
 }
 
-/** (Opsiyonel) Kendi kodlarımı listele — UI ihtiyaç duyarsa kullanılabilir
- * Not: Backend'de GET /codes/me uç noktası yoksa bu fonksiyon kullanılmaz.
- */
+/** Kendi kodlarımı listele */
 export async function listMyCodesUnsafe(): Promise<{
   items: Array<{
     id: number;
@@ -309,10 +307,11 @@ export async function listMyCodesUnsafe(): Promise<{
     commission_pct: number;
     is_active: number;
     created_at?: string;
-    approved_at?: string; // approved_at eklendi
+    approved_at?: string;
   }>;
 }> {
-  return request('/api/v1/codes/me', { method: 'GET' });
+  const response = await request<{ codes: any[] }>('/api/v1/codes/me', { method: 'GET' });
+  return { items: response.codes || [] };
 }
 
 /** (Muhasebe) Toplam bakiye — GET /api/v1/balance/me */

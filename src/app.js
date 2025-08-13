@@ -17,7 +17,7 @@ const knex = require('./db/sqlite');
 // Middleware imports
 const { errorHandler, notFoundHandler, requestLogger } = require('./middleware/errorHandler');
 const { generalLimiter, apiLimiter, authLimiter, authShortLimiter, authLongLimiter } = require('./middleware/rateLimiter');
-const { authenticateToken } = require('./middleware/auth');
+const { authenticateToken, requireAdmin } = require('./middleware/auth');
 
 function createApp() {
   // Boot-time env kontrolleri (test dahil)
@@ -66,7 +66,7 @@ function createApp() {
         credentials: false,
       }
     : {
-        origin: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:4001'], // Frontend portlarına izin ver
+        origin: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:5002'], // Frontend portlarına izin ver
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
@@ -104,7 +104,7 @@ function createApp() {
   // Ayrıca UI tarafı doğrudan kök path’e (prefixsiz) çağrı yaparsa 404 olmasın diye alias ekle
   app.use('/', authRouter);
   
-  app.use('/api/v1', authenticateToken, require('./routes/apply')); // apply router'ı authenticateToken ile korundu
+  app.use('/api/v1', require('./routes/apply')); // apply router'ı public olmalı
   // Satış kaydetme (POST /sale) public; GET satış uçları route içinde korunur
   app.use('/api/v1', require('./routes/sale'));
   // Influencer public ve korumalı uçları: hem /api/v1/influencers altında hem de köke alias
@@ -121,11 +121,14 @@ function createApp() {
   const balanceRouter = require('./routes/balance');
   const messagesRouter = require('./routes/messages');
   const alertsRouter = require('./routes/alerts'); // Yeni sistem uyarıları rotası
+  const payoutsRouter = require('./routes/payouts'); // Ödeme yönetimi rotası
+  // Codes router için sadece authenticateToken yeterli, admin kontrolü route dosyasında
   app.use('/api/v1', authenticateToken, codesRouter);
   // Balance router altında artık admin için /balance/:influencerId/summary da mevcut
   app.use('/api/v1', authenticateToken, balanceRouter);
   app.use('/api/v1', authenticateToken, messagesRouter);
   app.use('/api/v1/alerts', authenticateToken, alertsRouter); // Sistem uyarıları rotasını ekle
+  app.use('/api/v1', authenticateToken, payoutsRouter); // Ödeme yönetimi rotasını ekle
 
   // Error handling
   app.use(notFoundHandler);

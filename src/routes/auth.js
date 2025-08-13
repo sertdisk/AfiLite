@@ -16,13 +16,7 @@ const BCRYPT_SALT_ROUNDS = 11; // bcrypt cost=11
 const ACCESS_TOKEN_TTL = '15m'; // access token 15 dakika
 
 // Admin login endpoint (kimlik doğrulama)
-router.post('/api/v1/login', validateAuthLogin, asyncHandler(async (req, res, next) => {
-  // UI uyumluluğu için alias: gerçek handlera delege et
-  req.url = '/login';
-  next();
-}));
-
-router.post('/login', validateAuthLogin, asyncHandler(async (req, res) => {
+router.post('/admin/login', validateAuthLogin, asyncHandler(async (req, res) => {
 const { email, password } = req.body;
 
 // Şema uyumsuzluğu ihtimaline karşı: role kolonunun olmayabileceği senaryoda sadece email'e göre bak
@@ -55,13 +49,13 @@ if (!isValidPassword) {
 }
 
 const token = jwt.sign(
-  { userId: user.id, email: user.email, role: user.role || 'influencer' },
+  { userId: user.id, email: user.email, role: 'admin' },
   JWT_SECRET,
   { expiresIn: ACCESS_TOKEN_TTL }
 );
 
-// Token'ı cookie'ye yaz
-res.cookie('jwt_influencer', token, {
+// Token'ı cookie'ye yaz (artık sadece jwt cookie'si kullanılıyor)
+res.cookie('jwt_admin', token, {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
@@ -72,19 +66,13 @@ res.cookie('jwt_influencer', token, {
   user: {
     id: user.id,
     email: user.email,
-    role: user.role || 'influencer'
+    role: user.role || 'admin'
   }
 });
 }));
 
 // Influencer login endpoint (onaylanmış influencer'lar için, kimlik doğrulama)
 // Geçici geliştirme modu: Eğer password_hash kolonu yoksa veya parola boşsa, sadece email ve approved durumu ile girişe izin ver.
-router.post('/api/v1/influencer/login', validateAuthLogin, asyncHandler(async (req, res, next) => {
-  // UI uyumluluğu için alias: gerçek handlera delege et
-  req.url = '/influencer/login';
-  next();
-}));
-
 router.post('/influencer/login', validateAuthLogin, asyncHandler(async (req, res) => {
 const { email, password } = req.body;
 
@@ -131,7 +119,7 @@ const token = jwt.sign(
   { expiresIn: ACCESS_TOKEN_TTL }
 );
 
-// Token'ı cookie'ye yaz
+// Token'ı cookie'ye yaz (artık sadece jwt cookie'si kullanılıyor)
 res.cookie('jwt_influencer', token, {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',

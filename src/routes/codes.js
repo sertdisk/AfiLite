@@ -16,7 +16,7 @@ const { validateDiscountCode } = require('../middleware/validation');
 * Not: Sadece kendi influencer_id'si ile ilişkilendirilmiş kodlar döner
 */
 router.get('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
- const userId = (req.user && (req.user.user_id || req.user.id)) || null;
+ const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null;
  if (!userId) {
    const err = new Error('Kimlik doğrulama gerekli');
    err.status = 401;
@@ -34,23 +34,32 @@ router.get('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
  res.json({ codes });
 }));
 
-// Tüm indirim kodlarını listele
-router.get('/codes', asyncHandler(async (req, res) => {
- const codes = await knex('discount_codes')
-   .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
-   .select(
-     'discount_codes.id',
-     'discount_codes.code',
-     'discount_codes.discount_pct',
-     'discount_codes.commission_pct',
-     'discount_codes.is_active',
-     'discount_codes.created_at',
-     'influencers.full_name as influencer_name',
-     'influencers.email as influencer_email'
-   )
-   .orderBy('discount_codes.created_at', 'desc');
+// Tüm indirim kodlarını listele (Admin)
+router.get('/codes', requireAdmin, asyncHandler(async (req, res) => {
+  const query = knex('discount_codes')
+    .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+    .select(
+      'discount_codes.id',
+      'discount_codes.code',
+      'discount_codes.discount_pct',
+      'discount_codes.commission_pct',
+      'discount_codes.is_active',
+      'discount_codes.created_at',
+      'influencers.full_name as influencer_name',
+      'influencers.email as influencer_email'
+    )
+    .orderBy('discount_codes.created_at', 'desc');
+  
+  // Status parametresine göre filtreleme
+  const { status } = req.query;
+  if (status === 'pending') {
+    query.where('discount_codes.is_active', false);
+  } else if (status === 'active') {
+    query.where('discount_codes.is_active', true);
+  }
 
- res.json({ codes });
+  const codes = await query;
+  res.json({ codes });
 }));
 
 // Tek bir kod detayını getir
@@ -134,7 +143,7 @@ res.status(201).json({
 * - Kod formatı: A-Z0-9, 4-16 karakter arası, DB'de benzersiz
 */
 router.post('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
-const userId = (req.user && (req.user.user_id || req.user.id)) || null;
+const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null;
 if (!userId) {
   const err = new Error('Kimlik doğrulama gerekli');
   err.status = 401;

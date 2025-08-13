@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const res = NextResponse.redirect(new URL('/admin/login', req.url), { status: 302 });
   
   // Clear all possible auth cookies
-  const cookiesToClear = ['jwt', 'access_token', 'influencer_jwt', 'admin_jwt'];
+  const cookiesToClear = ['jwt', 'access_token', 'influencer_jwt', 'admin_jwt', 'jwt_admin', 'jwt_influencer'];
   
   cookiesToClear.forEach(cookieName => {
     res.cookies.set({

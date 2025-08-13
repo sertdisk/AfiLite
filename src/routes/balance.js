@@ -10,7 +10,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // Yardımcı: user_id çöz
 function resolveUserId(req) {
-  return (req.user && req.user.id) || null;
+  return (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null;
 }
 
 // GET /balance/me — toplam bakiye

@@ -19,11 +19,19 @@ function passThroughHeaders() {
   };
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
     const cookieHeader = buildCookieHeader();
-    const url = `${BACKEND_ORIGIN}/api/v1/codes`;
-    const res = await fetch(url, {
+    // Query parametrelerini al ve backend'e ilet
+    const url = new URL(req.url);
+    const backendUrl = new URL(`${BACKEND_ORIGIN}/api/v1/codes`);
+    
+    // Mevcut query parametrelerini backend URL'sine kopyala
+    url.searchParams.forEach((value, key) => {
+      backendUrl.searchParams.set(key, value);
+    });
+    
+    const res = await fetch(backendUrl.toString(), {
       method: 'GET',
       headers: {
         ...passThroughHeaders(),
