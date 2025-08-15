@@ -23,10 +23,14 @@ type CodeDetail = {
   code: string;
   influencer_id: number;
   influencer_email?: string;
-  // UI'de otomatik doldurmak için opsiyonel alanlar — API dönmezse fallback uygulanır
+  influencer_name?: string;        // API'den gelen ad soyad
+  influencer_brand_name?: string;  // marka adı
   influencer_handle?: string;      // hesap adı (örn: @ahmet)
-  influencer_full_name?: string;   // ad soyad (örn: Ahmet Yılmaz)
-  commission_rate?: number; // %
+  discount_pct?: number;           // indirim yüzdesi
+  commission_pct?: number;         // komisyon yüzdesi (API'den gelen)
+  commission_rate?: number;        // alternatif field name
+  is_active?: boolean;             // kod aktif mi
+  created_at?: string;             // oluşturulma tarihi
 };
 
 type QuickSaleReq = {
@@ -128,56 +132,118 @@ export default function AdminDashboardPage() {
   }, []);
 
   // Kod detayı → influencer & oran
-  async function resolveCodeInfo(code: string) {
-    // alanları sıfırla
+  const [loadingCodeInfo, setLoadingCodeInfo] = useState(false);
+  const [codeInfoError, setCodeInfoError] = useState<string | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  // Component unmount olduğunda timer'ı temizle
+  useEffect(() => {
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [debounceTimer]);
+  
+  async function resolveCodeInfo(code: string, useDebounce = true) {
+    // Önceki timer'ı iptal et
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    
+    // Kodu temizle ve normalize et
+    const cleanCode = code.trim().toUpperCase();
+    
+    // Alanları sıfırla
     setQInfluencer('');
     setQInfluencerHandle('');
     setQInfluencerFullName('');
     setQInfluencerBrandName('');
     setQRate(null);
-    if (!code || code.trim().length < 1) return;
-    try {
-      const res = await fetch(`/api/codes/${encodeURIComponent(code)}`, { credentials: 'include', cache: 'no-store' });
-      const text = await res.text();
-      if (!res.ok) return;
-      let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch { json = {}; }
-      const detail: CodeDetail = (json?.code ?? json) as CodeDetail;
-
-      // hesap adı/ad-soyad için esnek alan eşlemesi
-      const handle = detail?.influencer_handle ?? detail?.influencer_email ?? '';
-      const fullName = detail?.influencer_full_name ?? (detail as any)?.full_name ?? '';
-
-      if (handle) {
-        setQInfluencer(handle);         // geriye dönük uyum
-        setQInfluencerHandle(handle);   // yeni alan
+    setCodeInfoError(null);
+    
+    // Kod formatını kontrol et
+    if (!cleanCode || cleanCode.length < 2) {
+      if (cleanCode.length > 0) {
+        setCodeInfoError('Kod en az 2 karakter olmalıdır');
       }
-      if (fullName) {
-        setQInfluencerFullName(fullName);
-      }
-      if (typeof detail?.commission_rate === 'number') {
-        setQRate(detail.commission_rate);
-      }
-
-      // Influencer detaylarını al
-      if (detail?.influencer_id) {
-        try {
-          const influencerRes = await fetch(`/api/influencers/${encodeURIComponent(detail.influencer_id)}`, { credentials: 'include', cache: 'no-store' });
-          const influencerText = await influencerRes.text();
-          if (influencerRes.ok) {
-            let influencerJson: any = {};
-            try { influencerJson = JSON.parse(influencerText || '{}'); } catch { influencerJson = {}; }
-            const influencerDetail = influencerJson?.influencer ?? influencerJson;
-            
-            // Marka adını al (brand_name, company_name veya name alanlarından biri olabilir)
-            const brandName = influencerDetail?.brand_name || influencerDetail?.company_name || influencerDetail?.name || '';
-            if (brandName) {
-              setQInfluencerBrandName(brandName);
-            }
+      return;
+    }
+    
+    // Sadece alfanümerik karakterlere izin ver
+    if (!/^[A-Z0-9]+$/.test(cleanCode)) {
+      setCodeInfoError('Kod sadece harf ve rakam içerebilir');
+      return;
+    }
+    
+    const performSearch = async () => {
+      setLoadingCodeInfo(true);
+      
+      try {
+        const res = await fetch(`/api/codes/search/${encodeURIComponent(cleanCode)}`, {
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          
+          switch (res.status) {
+            case 404:
+              setCodeInfoError(`"${cleanCode}" kodu bulunamadı veya aktif değil. Lütfen geçerli bir kod girin.`);
+              break;
+            case 400:
+              setCodeInfoError(errorData.error || 'Geçersiz kod formatı. Lütfen doğru bir kod girin.');
+              break;
+            default:
+              setCodeInfoError(`Bir hata oluştu. Lütfen tekrar deneyin. (Hata: ${res.status})`);
           }
-        } catch {}
+          return;
+        }
+        
+        const json = await res.json();
+        const detail = json?.code;
+        
+        if (!detail?.id) {
+          setCodeInfoError('Geçersiz kod bilgisi alındı');
+          return;
+        }
+
+        // Influencer bilgilerini ayarla - daha güvenli field mapping
+        const influencerHandle = detail.influencer_handle || detail.influencer_email || '';
+        const influencerName = detail.influencer_name || detail.influencer_full_name || '';
+        const influencerBrand = detail.influencer_brand_name || detail.brand_name || '';
+        
+        // Komisyon oranı - birden fazla field'i kontrol et
+        const commissionRate = detail.commission_pct ?? detail.commission_rate ?? detail.commission_percentage ?? null;
+        
+        setQInfluencer(influencerHandle);
+        setQInfluencerHandle(influencerHandle);
+        setQInfluencerFullName(influencerName);
+        setQInfluencerBrandName(influencerBrand);
+        setQRate(commissionRate);
+        
+        // Başarı mesajı (isteğe bağlı)
+        if (influencerBrand) {
+          setCodeInfoError(null); // Hata mesajını temizle
+        }
+        
+      } catch (e) {
+        console.error('Kod bilgisi alınırken hata:', e);
+        setCodeInfoError('Kod bilgisi alınamadı. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.');
+      } finally {
+        setLoadingCodeInfo(false);
       }
-    } catch {}
+    };
+    
+    if (useDebounce) {
+      // Debounce ile API çağrısı
+      const timer = setTimeout(performSearch, 300); // 300ms debounce (daha hızlı)
+      setDebounceTimer(timer);
+    } else {
+      // Hemen arama yap
+      performSearch();
+    }
   }
 
   // 3) Hakediş özeti (fallback ile)
@@ -185,7 +251,7 @@ export default function AdminDashboardPage() {
     let ignore = false;
     (async () => {
       try {
-        const res = await fetch('/api/balance/summary', { credentials: 'include', cache: 'no-store' });
+        const res = await fetch('/api/balance/admin-summary/summary', { credentials: 'include', cache: 'no-store' }); // influencerId olmadan genel özet
         const text = await res.text();
         if (!res.ok) {
           // fallback: /api/sales/stats
@@ -572,15 +638,47 @@ export default function AdminDashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             {/* İndirim Kodu (required) */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-muted">İndirim Kodu</label>
-              <input
-                value={qCode}
-                onChange={(e) => setQCode(e.target.value)}
-                onBlur={() => resolveCodeInfo(qCode)}
-                placeholder="Örn: AHMET15"
-                required
-                className="rounded-md border px-3 py-2"
-              />
+              <label className="text-sm text-muted">
+                İndirim Kodu
+                <span className="text-xs text-gray-500 ml-1">(büyük/küçük harf duyarsız)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={qCode}
+                  onChange={(e) => {
+                    setQCode(e.target.value);
+                    if (e.target.value.trim().length > 2) {
+                      resolveCodeInfo(e.target.value);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      resolveCodeInfo(qCode);
+                    }
+                  }}
+                  onBlur={() => resolveCodeInfo(qCode)}
+                  placeholder="Örn: AHMET15"
+                  required
+                  className="rounded-md border px-3 py-2 flex-1"
+                  maxLength={20}
+                />
+                <button
+                  type="button"
+                  onClick={() => resolveCodeInfo(qCode)}
+                  disabled={loadingCodeInfo || !qCode.trim() || qCode.trim().length < 2}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center min-w-[60px]"
+                >
+                  {loadingCodeInfo ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : 'Ara'}
+                </button>
+              </div>
+              {codeInfoError && (
+                <div className="text-red-500 text-xs mt-1 p-2 bg-red-50 rounded">{codeInfoError}</div>
+              )}
+              <div className="text-xs text-gray-500 mt-1">
+                Kod en az 2 karakter olmalı ve sadece harf/rakam içermelidir
+              </div>
             </div>
 
             {/* Influencer Marka Adı (otomatik, required) */}

@@ -125,9 +125,8 @@ router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
     .first();
   
   if (!payout) {
-    const err = new Error('Ödeme bulunamadı');
-    err.status = 404;
-    throw err;
+    // Eğer ödeme bulunamazsa boş bir dizi döndür
+    return res.json({});
   }
   
   // Admin değilse sadece kendi ödemelerini görebilir

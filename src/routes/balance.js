@@ -79,28 +79,13 @@ router.get('/balance/me/settlements', authenticateToken, asyncHandler(async (req
  * Bu aşamada örnek/placeholder mantığı kuruyoruz.
  */
 // GET /balance/:influencerId/summary (ADMIN)
-router.get('/balance/:influencerId/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const influencerId = Number(req.params.influencerId);
-  if (!influencerId || Number.isNaN(influencerId)) {
-    const err = new Error('Geçerli influencerId zorunludur');
-    err.status = 400;
-    throw err;
-  }
-
-  // Influencer var mı kontrolü
-  const infl = await knex('influencers').where('id', influencerId).first();
-  if (!infl) {
-    const err = new Error('Influencer bulunamadı');
-    err.status = 404;
-    throw err;
-  }
-
+router.get('/balance/admin-summary/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+  // Genel bakiye özeti döndürülecek, influencerId'ye gerek yok
   // Örnek/placeholder: gerçek hesaplama ileride eklenecek
   const balance = 0; // örn: SUM(commission_amount) - SUM(settlements)
   const last_settlement_at = null; // örn: settlements.max(date)
 
   res.json({
-    influencer_id: influencerId,
     balance,
     last_settlement_at
   });

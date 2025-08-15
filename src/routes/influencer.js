@@ -10,7 +10,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const knex = require('../db/sqlite');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 const bcrypt = require('bcryptjs'); // bcryptjs'i import et
@@ -22,7 +22,7 @@ function pickInfluencerFields(row) {
     id: row.id,
     name: row.name,
     email: row.email,
-    social_handle: row.social_handle,
+    // social_handle: row.social_handle, // Kaldırıldı, artık influencer_social_accounts tablosunda
     niche: row.niche,
     channels: safeParseJSON(row.channels),
     country: row.country,
@@ -89,7 +89,7 @@ router.post('/apply', applyLimiter, async (req, res) => {
     const {
       name,
       email,
-      social_handle,
+      // social_handle, // Kaldırıldı, artık influencer_social_accounts tablosunda
       niche,
       channels,
       country,
@@ -102,7 +102,7 @@ router.post('/apply', applyLimiter, async (req, res) => {
     const errors = [];
     if (!nonEmptyString(name, 2)) errors.push('İsim en az 2 karakter olmalıdır');
     if (!isEmail(email)) errors.push('Geçerli bir email adresi giriniz');
-    if (!nonEmptyString(social_handle, 2)) errors.push('Sosyal hesap bilgisi gerekli');
+    // if (!nonEmptyString(social_handle, 2)) errors.push('Sosyal hesap bilgisi gerekli'); // Kaldırıldı
     if (!nonEmptyString(niche, 2)) errors.push('Niche alanı en az 2 karakter olmalıdır');
     if (!isArrayOfStrings(channels) || channels.length === 0) errors.push('Channels en az bir öğe içeren dizi olmalıdır');
     if (!nonEmptyString(country, 2)) errors.push('Ülke bilgisi gerekli');
@@ -122,7 +122,7 @@ router.post('/apply', applyLimiter, async (req, res) => {
         user_id: null, // public başvuru; henüz kullanıcı hesabına bağlı değil
         name,
         email,
-        social_handle,
+        // social_handle, // Kaldırıldı
         niche,
         channels: JSON.stringify(channels),
         country,
@@ -177,15 +177,20 @@ router.get('/search', authenticateToken, async (req, res) => {
         'i.id',
         knex.raw("COALESCE(i.full_name, i.name) as display_name"),
         'i.email',
-        'i.social_handle',
         'i.status',
-        knex.raw('GROUP_CONCAT(DISTINCT d.code) as codes')
+        knex.raw('GROUP_CONCAT(DISTINCT d.code) as codes'),
+        knex.raw('(SELECT handle FROM influencer_social_accounts WHERE influencer_id = i.id ORDER BY created_at DESC LIMIT 1) as social_handle')
       )
       .where(function() {
-        this.where('i.social_handle', 'like', like)
-          .orWhere('i.name', 'like', like)
+        this.where('i.name', 'like', like)
           .orWhere('i.full_name', 'like', like)
-          .orWhere('d.code', 'like', like);
+          .orWhere('d.code', 'like', like)
+          .orWhereExists(function() {
+            this.select('*')
+                .from('influencer_social_accounts')
+                .whereRaw('influencer_social_accounts.influencer_id = i.id')
+                .andWhere('influencer_social_accounts.handle', 'like', like);
+          });
       })
       .groupBy('i.id')
       .orderBy('i.id', 'desc')
@@ -196,7 +201,7 @@ router.get('/search', authenticateToken, async (req, res) => {
       id: r.id,
       name: r.display_name,
       email: r.email,
-      social_handle: r.social_handle,
+      social_handle: r.social_handle, // Artık influencer_social_accounts tablosundan geliyor
       status: r.status,
       codes: r.codes ? String(r.codes).split(',') : []
     }));
@@ -204,6 +209,18 @@ router.get('/search', authenticateToken, async (req, res) => {
     return res.json({ items });
   } catch (err) {
     return res.status(500).json({ error: 'Arama sırasında hata oluştu' });
+  }
+});
+
+// Admin için tüm influencerları listele
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const influencers = await knex('influencers')
+      .select('id', 'name', 'email', 'status', 'created_at', 'brand_name');
+    return res.json(influencers);
+  } catch (err) {
+    console.error('Influencer listesi alınırken hata:', err);
+    return res.status(500).json({ error: 'Influencer listesi alınırken hata oluştu' });
   }
 });
 
@@ -240,7 +257,7 @@ router.patch('/me', async (req, res) => {
 
     const {
       name,
-      social_handle,
+      // social_handle, // Kaldırıldı
       niche,
       channels,
       country,
@@ -262,10 +279,10 @@ router.patch('/me', async (req, res) => {
       if (!nonEmptyString(name, 2)) errors.push('İsim en az 2 karakter olmalıdır');
       else updates.name = name;
     }
-    if (social_handle !== undefined) {
-      if (!nonEmptyString(social_handle, 2)) errors.push('Sosyal hesap bilgisi geçersiz');
-      else updates.social_handle = social_handle;
-    }
+    // if (social_handle !== undefined) { // Kaldırıldı
+    //   if (!nonEmptyString(social_handle, 2)) errors.push('Sosyal hesap bilgisi geçersiz');
+    //   else updates.social_handle = social_handle;
+    // }
     if (niche !== undefined) {
       if (!nonEmptyString(niche, 2)) errors.push('Niche alanı en az 2 karakter olmalıdır');
       else updates.niche = niche;

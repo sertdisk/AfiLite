@@ -62,25 +62,87 @@ router.get('/codes', requireAdmin, asyncHandler(async (req, res) => {
   res.json({ codes });
 }));
 
-// Tek bir kod detayını getir
+// Tek bir kod detayını getir (ID ile)
 router.get('/codes/:id', asyncHandler(async (req, res) => {
- const code = await knex('discount_codes')
-   .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
-   .select(
-     'discount_codes.*',
-     'influencers.full_name as influencer_name',
-     'influencers.email as influencer_email'
-   )
-   .where('discount_codes.id', req.params.id)
-   .first();
- 
- if (!code) {
-   const err = new Error('Kod bulunamadı');
-   err.status = 404;
-   throw err;
- }
- 
- res.json({ code });
+  const code = await knex('discount_codes')
+    .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+    .select(
+      'discount_codes.*',
+      'influencers.full_name as influencer_name',
+      'influencers.email as influencer_email'
+    )
+    .where('discount_codes.id', req.params.id)
+    .first();
+  
+  if (!code) {
+    const err = new Error('Kod bulunamadı');
+    err.status = 404;
+    throw err;
+  }
+  
+  res.json({ code });
+}));
+
+// Kod string'i ile detay getir (kod arama)
+router.get('/codes/search/:code', asyncHandler(async (req, res) => {
+  const codeString = req.params.code?.toString().toUpperCase().trim();
+  
+  if (!codeString || codeString.length < 2) {
+    const err = new Error('Kod en az 2 karakter olmalıdır');
+    err.status = 400;
+    err.code = 'INVALID_CODE_LENGTH';
+    throw err;
+  }
+
+  // Sadece alfanümerik karakterlere izin ver
+  if (!/^[A-Z0-9]+$/.test(codeString)) {
+    const err = new Error('Kod sadece harf ve rakam içerebilir');
+    err.status = 400;
+    err.code = 'INVALID_CODE_FORMAT';
+    throw err;
+  }
+
+  const code = await knex('discount_codes')
+    .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+    .leftJoin('influencer_social_accounts', function() {
+      this.on('influencers.id', '=', 'influencer_social_accounts.influencer_id')
+          .andOn('influencer_social_accounts.is_active', '=', knex.raw('?', [true]))
+    })
+    .select(
+      'discount_codes.*',
+      'influencers.full_name as influencer_name',
+      'influencers.email as influencer_email',
+      'influencers.brand_name as influencer_brand_name'
+    )
+    .where('discount_codes.code', codeString)
+    .where('discount_codes.is_active', true)
+    .first();
+  
+  if (!code) {
+    const err = new Error('Kod bulunamadı veya aktif değil');
+    err.status = 404;
+    err.code = 'CODE_NOT_FOUND';
+    throw err;
+  }
+  
+  res.json({
+    success: true,
+    code: {
+      id: code.id,
+      code: code.code,
+      influencer_id: code.influencer_id,
+      influencer_name: code.influencer_name,
+      influencer_email: code.influencer_email,
+      influencer_brand_name: code.influencer_brand_name,
+      brand_name: code.influencer_brand_name, // Alias for frontend compatibility
+      discount_pct: code.discount_pct,
+      commission_pct: code.commission_pct,
+      commission_rate: code.commission_pct, // Alias for frontend compatibility
+      commission_percentage: code.commission_pct, // Another alias
+      is_active: code.is_active,
+      created_at: code.created_at
+    }
+  });
 }));
 
 // Yeni indirim kodu oluştur (ADMIN) - Admin bir influencere sınırsız sayıda ek kod ekleyebilir
