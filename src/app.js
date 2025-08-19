@@ -109,8 +109,8 @@ function createApp() {
   app.use('/api/v1', require('./routes/sale'));
   // Influencer public ve korumalı uçları: hem /api/v1/influencers altında hem de köke alias
   const influencerRouter = require('./routes/influencer');
-  app.use('/api/v1/influencers', influencerRouter);
-  app.use('/influencers', influencerRouter);
+  app.use('/api/v1/influencers', authenticateToken, requireAdmin, influencerRouter); // Admin için yetkilendirme ekle
+  // app.use('/influencers', influencerRouter); // Public erişim için (eğer varsa) - Admin panosunda 403 hatası verdiği için kaldırıldı
   
   // Sözleşme rotası (public erişim)
   const contractRouter = require('./routes/contract');
@@ -123,12 +123,12 @@ function createApp() {
   const alertsRouter = require('./routes/alerts'); // Yeni sistem uyarıları rotası
   const payoutsRouter = require('./routes/payouts'); // Ödeme yönetimi rotası
   // Codes router için sadece authenticateToken yeterli, admin kontrolü route dosyasında
-  app.use('/api/v1', authenticateToken, codesRouter);
+  app.use('/api/v1/codes', authenticateToken, codesRouter); // Daha spesifik hale getir
   // Balance router altında artık admin için /balance/:influencerId/summary da mevcut
-  app.use('/api/v1', authenticateToken, balanceRouter);
-  app.use('/api/v1', authenticateToken, messagesRouter);
+  app.use('/api/v1/balance', authenticateToken, balanceRouter); // Balance router'ı /api/v1/balance altında çalışacak
+  app.use('/api/v1/messages', authenticateToken, messagesRouter); // Daha spesifik hale getir
   app.use('/api/v1/alerts', authenticateToken, alertsRouter); // Sistem uyarıları rotasını ekle
-  app.use('/api/v1', authenticateToken, payoutsRouter); // Ödeme yönetimi rotasını ekle
+  app.use('/api/v1/payouts', authenticateToken, payoutsRouter); // Ödeme yönetimi rotasını ekle
 
   // Error handling
   app.use(notFoundHandler);

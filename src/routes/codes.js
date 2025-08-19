@@ -15,7 +15,7 @@ const { validateDiscountCode } = require('../middleware/validation');
 * Influencer kendi kodlarını listeler (AUTH gerekli)
 * Not: Sadece kendi influencer_id'si ile ilişkilendirilmiş kodlar döner
 */
-router.get('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
  const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null;
  if (!userId) {
    const err = new Error('Kimlik doğrulama gerekli');
@@ -35,7 +35,7 @@ router.get('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
 }));
 
 // Tüm indirim kodlarını listele (Admin)
-router.get('/codes', requireAdmin, asyncHandler(async (req, res) => {
+router.get('/', requireAdmin, asyncHandler(async (req, res) => {
   const query = knex('discount_codes')
     .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
     .select(
@@ -63,7 +63,7 @@ router.get('/codes', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 // Tek bir kod detayını getir (ID ile)
-router.get('/codes/:id', asyncHandler(async (req, res) => {
+router.get('/:id', asyncHandler(async (req, res) => {
   const code = await knex('discount_codes')
     .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
     .select(
@@ -84,7 +84,7 @@ router.get('/codes/:id', asyncHandler(async (req, res) => {
 }));
 
 // Kod string'i ile detay getir (kod arama)
-router.get('/codes/search/:code', asyncHandler(async (req, res) => {
+router.get('/search/:code', asyncHandler(async (req, res) => {
   const codeString = req.params.code?.toString().toUpperCase().trim();
   
   if (!codeString || codeString.length < 2) {
@@ -146,7 +146,7 @@ router.get('/codes/search/:code', asyncHandler(async (req, res) => {
 }));
 
 // Yeni indirim kodu oluştur (ADMIN) - Admin bir influencere sınırsız sayıda ek kod ekleyebilir
-router.post('/codes', requireAdmin, validateDiscountCode, asyncHandler(async (req, res) => {
+router.post('/', requireAdmin, validateDiscountCode, asyncHandler(async (req, res) => {
 const { influencer_id, code, discount_percentage, commission_pct = 10 } = req.body;
 
 // Influencer kontrolü
@@ -204,7 +204,7 @@ res.status(201).json({
 * - Eğer influencer daha önce kod oluşturmuşsa 409 döner (ek kodlar yalnızca admin ile eklenebilir)
 * - Kod formatı: A-Z0-9, 4-16 karakter arası, DB'de benzersiz
 */
-router.post('/codes/me', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/me', authenticateToken, asyncHandler(async (req, res) => {
 const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null;
 if (!userId) {
   const err = new Error('Kimlik doğrulama gerekli');
@@ -281,7 +281,7 @@ return (prefix + rand).slice(0, 12);
 }
 
 // Kod güncelle
-router.put('/codes/:id', requireAdmin, asyncHandler(async (req, res) => {
+router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
  const { discount_pct, commission_pct, is_active } = req.body;
  
  const code = await knex('discount_codes').where('id', req.params.id).first();
@@ -324,7 +324,7 @@ router.put('/codes/:id', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 // Kod sil (soft delete yerine tamamen sil)
-router.delete('/codes/:id', requireAdmin, asyncHandler(async (req, res) => {
+router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
  const deleted = await knex('discount_codes')
    .where('id', req.params.id)
    .del();

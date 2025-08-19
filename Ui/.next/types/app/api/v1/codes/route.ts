@@ -1,8 +1,8 @@
-// File: /home/berennas/Belgeler/apps/AfiLite/Ui/app/api/balance/[influencerId]/route.ts
-import * as entry from '../../../../../../app/api/balance/[influencerId]/route.js'
+// File: /home/berennas/Belgeler/apps/AfiLite/Ui/app/api/v1/codes/route.ts
+import * as entry from '../../../../../../app/api/v1/codes/route.js'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../../app/api/balance/[influencerId]/route.js')
+type TEntry = typeof import('../../../../../../app/api/v1/codes/route.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

@@ -5,7 +5,7 @@
 import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5003';
 
 function buildCookieHeader() {
   return cookies().getAll().map((c) => `${c.name}=${encodeURIComponent(c.value)}`).join('; ');
@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
     });
     const contentType = res.headers.get('content-type') || 'application/octet-stream';
     const disposition = res.headers.get('content-disposition') || '';
-    const buf = Buffer.from(await res.arrayBuffer());
-    return new Response(buf, { status: res.status, headers: { 'Content-Type': contentType, 'Content-Disposition': disposition } });
+    const arrayBuffer = await res.arrayBuffer();
+    return new Response(arrayBuffer, { status: res.status, headers: { 'Content-Type': contentType, 'Content-Disposition': disposition } });
   } catch (err: any) {
     const message = err?.message || 'Proxy error (GET /api/sales/export)';
     return new Response(JSON.stringify({ message }), { status: 500, headers: { 'Content-Type': 'application/json; charset=utf-8' } });

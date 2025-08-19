@@ -3,7 +3,7 @@
 import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5003';
 const JWT_COOKIE_NAMES = ['jwt_admin','jwt','access_token'];
 
 function buildCookieHeader() {

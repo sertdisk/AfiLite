@@ -2,7 +2,7 @@
 import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5003';
 const JWT_COOKIE_NAMES = ['jwt_admin','jwt','access_token'];
 
 /**
@@ -90,10 +90,11 @@ export async function GET(req: NextRequest) {
     if (page) qs.set('page', page);
     if (limit) qs.set('limit', limit);
 
-    // Admin liste uç noktası backend tarafında apply router'ı altında (requireAdmin) tanımlı:
-    // src/app.js -> app.use('/api/v1', require('./routes/apply'));
-    // src/routes/apply.js -> router.get('/apply', requireAdmin, ...)
-    const url = ensureAdminQuery(`${BACKEND_ORIGIN}/api/v1/apply${qs.toString() ? `?${qs.toString()}` : ''}`);
+    // Admin liste uç noktası backend tarafında influencer router'ı altında (requireAdmin) tanımlı:
+    // src/app.js -> app.use('/api/v1', require('./routes/influencer'));
+    // src/routes/influencer.js -> router.get('/', requireAdmin, ...)
+    const url = ensureAdminQuery(`${BACKEND_ORIGIN}/api/v1/influencers${qs.toString() ? `?${qs.toString()}` : ''}`);
+    console.log(`[Proxy] GET /api/influencers -> Backend URL: ${url}`);
 
     const baseHeaders = passThroughHeaders();
     const explicitAuth = bearerFromCookies();
@@ -111,6 +112,8 @@ export async function GET(req: NextRequest) {
 
     const contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
     const text = await res.text();
+    console.log(`[Proxy] GET /api/influencers -> Backend Response Status: ${res.status}`);
+    console.log(`[Proxy] GET /api/influencers -> Backend Response Text: ${text}`);
 
     return new Response(text, { status: res.status, headers: { 'Content-Type': contentType } });
   } catch (err: any) {

@@ -80,10 +80,36 @@ router.get('/balance/me/settlements', authenticateToken, asyncHandler(async (req
  */
 // GET /balance/:influencerId/summary (ADMIN)
 router.get('/balance/admin-summary/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+  console.log('[Backend] GET /balance/admin-summary/summary endpoint reached.');
   // Genel bakiye özeti döndürülecek, influencerId'ye gerek yok
-  // Örnek/placeholder: gerçek hesaplama ileride eklenecek
-  const balance = 0; // örn: SUM(commission_amount) - SUM(settlements)
-  const last_settlement_at = null; // örn: settlements.max(date)
+  // Gerçek hesaplama: toplam komisyon - toplam ödemeler
+  
+  // Toplam komisyonu hesapla
+  const commissionResult = await knex('sales')
+    .sum('commission as total_commission')
+    .first();
+  const totalCommission = parseFloat(commissionResult.total_commission) || 0;
+  console.log(`[Backend] Total Commission: ${totalCommission}`);
+  
+  // Toplam ödemeleri hesapla
+  const payoutResult = await knex('payouts')
+    .sum('amount as total_payouts')
+    .where('status', 'completed') // Sadece tamamlanmış ödemeleri hesaba kat
+    .first();
+  const totalPayouts = parseFloat(payoutResult.total_payouts) || 0;
+  console.log(`[Backend] Total Payouts (completed): ${totalPayouts}`);
+  
+  // Bakiye hesapla
+  const balance = totalCommission - totalPayouts;
+  console.log(`[Backend] Calculated Balance: ${balance}`);
+  
+  // Son ödeme tarihini al
+  const lastPayout = await knex('payouts')
+    .where('status', 'completed')
+    .orderBy('created_at', 'desc')
+    .first();
+  const last_settlement_at = lastPayout ? lastPayout.created_at : null;
+  console.log(`[Backend] Last Settlement At: ${last_settlement_at}`);
 
   res.json({
     balance,

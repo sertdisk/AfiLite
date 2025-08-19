@@ -5,7 +5,7 @@
 import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5003';
 
 function buildCookieHeader() {
   return cookies().getAll().map((c) => `${c.name}=${encodeURIComponent(c.value)}`).join('; ');

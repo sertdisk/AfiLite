@@ -216,11 +216,35 @@ router.get('/search', authenticateToken, async (req, res) => {
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const influencers = await knex('influencers')
-      .select('id', 'name', 'email', 'status', 'created_at', 'brand_name');
-    return res.json(influencers);
+      .leftJoin('discount_codes', 'influencers.id', 'discount_codes.influencer_id')
+      .leftJoin('sales', 'discount_codes.code', 'sales.code')
+      .select(
+        'influencers.id',
+        'influencers.full_name as name', // 'name' yerine 'full_name' kullan
+        'influencers.email',
+        'influencers.status',
+        'influencers.created_at',
+        'influencers.brand_name',
+        knex.raw('COUNT(DISTINCT CASE WHEN discount_codes.is_active = ? THEN discount_codes.id END) as active_codes_count', [true]),
+        knex.raw('COUNT(DISTINCT sales.id) as total_sales_count'),
+        knex.raw('COALESCE(SUM(sales.commission), 0) as total_commission')
+      )
+      .groupBy('influencers.id', 'influencers.full_name', 'influencers.email', 'influencers.status', 'influencers.created_at', 'influencers.brand_name')
+      .orderBy('influencers.created_at', 'desc');
+
+    // Sonuçları sayısal değerlere dönüştür
+    const result = influencers.map(influencer => ({
+      ...influencer,
+      active_codes_count: parseInt(influencer.active_codes_count) || 0,
+      total_sales_count: parseInt(influencer.total_sales_count) || 0,
+      total_commission: parseFloat(influencer.total_commission) || 0
+    }));
+
+    return res.json(result);
   } catch (err) {
     console.error('Influencer listesi alınırken hata:', err);
-    return res.status(500).json({ error: 'Influencer listesi alınırken hata oluştu' });
+    console.error('Hata Detayı:', err.message, err.stack); // Detaylı hata logu
+    return res.status(500).json({ error: 'Influencer listesi alınırken hata oluştu', details: err.message });
   }
 });
 

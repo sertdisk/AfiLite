@@ -102,33 +102,51 @@ export default function AdminDashboardPage() {
   // 1) Onay bekleyen indirim kodları (varsa)
   useEffect(() => {
     let ignore = false;
+    console.log('[DEBUG] AdminDashboard: Fetching pending codes...');
     (async () => {
       try {
-        // Önerilen endpoint: /api/codes?status=pending (hazır değilse 404 gelebilir)
-        const res = await fetch('/api/codes?status=pending', { credentials: 'include', cache: 'no-store' });
+        const endpoint = '/api/v1/codes?status=pending';
+        console.log(`[DEBUG] AdminDashboard: Calling endpoint: ${endpoint}`);
+        const res = await fetch(endpoint, { credentials: 'include', cache: 'no-store' });
+        console.log(`[DEBUG] AdminDashboard: Response status: ${res.status}`);
+        
         const text = await res.text();
+        console.log(`[DEBUG] AdminDashboard: Response text: ${text.substring(0, 200)}...`);
+        
         if (!res.ok) {
+          console.log(`[DEBUG] AdminDashboard: Request failed with status ${res.status}`);
           if (!ignore) {
-            setPendingCodes([]); // gösterme
+            setPendingCodes([]);
             setCodesError(null);
           }
           return;
         }
         let json: any = [];
-        try { json = JSON.parse(text || '[]'); } catch { json = []; }
+        try {
+          json = JSON.parse(text || '[]');
+          console.log('[DEBUG] AdminDashboard: Parsed JSON:', json);
+        } catch (e) {
+          console.error('[DEBUG] AdminDashboard: JSON parse error:', e);
+          json = [];
+        }
         const arr: PendingCode[] = Array.isArray(json?.codes) ? json.codes : (Array.isArray(json) ? json : []);
+        console.log(`[DEBUG] AdminDashboard: Found ${arr.length} pending codes`);
         if (!ignore) {
           setPendingCodes(arr);
           setCodesError(null);
         }
-      } catch {
+      } catch (error) {
+        console.error('[DEBUG] AdminDashboard: Error fetching pending codes:', error);
         if (!ignore) {
           setPendingCodes([]);
           setCodesError(null);
         }
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      console.log('[DEBUG] AdminDashboard: Cleaning up pending codes effect');
+      ignore = true;
+    };
   }, []);
 
   // Kod detayı → influencer & oran
@@ -180,7 +198,7 @@ export default function AdminDashboardPage() {
       setLoadingCodeInfo(true);
       
       try {
-        const res = await fetch(`/api/codes/search/${encodeURIComponent(cleanCode)}`, {
+        const res = await fetch(`/api/v1/codes/search/${encodeURIComponent(cleanCode)}`, {
           credentials: 'include',
           cache: 'no-store'
         });
@@ -249,36 +267,67 @@ export default function AdminDashboardPage() {
   // 3) Hakediş özeti (fallback ile)
   useEffect(() => {
     let ignore = false;
+    console.log('[DEBUG] AdminDashboard: Fetching balance summary...');
     (async () => {
       try {
-        const res = await fetch('/api/balance/admin-summary/summary', { credentials: 'include', cache: 'no-store' }); // influencerId olmadan genel özet
+        const primaryEndpoint = '/api/v1/balance/admin-summary/summary';
+        console.log(`[DEBUG] AdminDashboard: Calling primary endpoint: ${primaryEndpoint}`);
+        
+        const res = await fetch(primaryEndpoint, { credentials: 'include', cache: 'no-store' });
+        console.log(`[DEBUG] AdminDashboard: Primary response status: ${res.status}`);
+        
         const text = await res.text();
+        console.log(`[DEBUG] AdminDashboard: Primary response text: ${text.substring(0, 200)}...`);
+        
         if (!res.ok) {
+          console.log(`[DEBUG] AdminDashboard: Primary endpoint failed, trying fallback...`);
           // fallback: /api/sales/stats
-          const sres = await fetch('/api/sales/stats', { credentials: 'include', cache: 'no-store' });
+          const fallbackEndpoint = '/api/sales/stats';
+          console.log(`[DEBUG] AdminDashboard: Calling fallback endpoint: ${fallbackEndpoint}`);
+          
+          const sres = await fetch(fallbackEndpoint, { credentials: 'include', cache: 'no-store' });
+          console.log(`[DEBUG] AdminDashboard: Fallback response status: ${sres.status}`);
+          
           const stext = await sres.text();
+          console.log(`[DEBUG] AdminDashboard: Fallback response text: ${stext.substring(0, 200)}...`);
+          
           if (sres.ok) {
             try {
               const o = JSON.parse(stext || '{}');
+              console.log('[DEBUG] AdminDashboard: Fallback parsed JSON:', o);
               const total = o?.stats?.total_commission;
+              console.log(`[DEBUG] AdminDashboard: Fallback total commission: ${total}`);
               if (!ignore && typeof total === 'number') {
                 setPayoutTotal(total);
               }
-            } catch {}
+            } catch (e) {
+              console.error('[DEBUG] AdminDashboard: Fallback JSON parse error:', e);
+            }
           }
           return;
         }
         let json: any = {};
-        try { json = JSON.parse(text || '{}'); } catch { json = {}; }
+        try {
+          json = JSON.parse(text || '{}');
+          console.log('[DEBUG] AdminDashboard: Primary parsed JSON:', json);
+        } catch (e) {
+          console.error('[DEBUG] AdminDashboard: Primary JSON parse error:', e);
+          json = {};
+        }
         const val = json?.total ?? json?.sum ?? json?.amount;
+        console.log(`[DEBUG] AdminDashboard: Primary balance value: ${val}`);
         if (!ignore && typeof val === 'number') {
           setPayoutTotal(val);
         }
-      } catch {
+      } catch (error) {
+        console.error('[DEBUG] AdminDashboard: Error fetching balance summary:', error);
         if (!ignore) setPayoutTotal(null);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      console.log('[DEBUG] AdminDashboard: Cleaning up balance summary effect');
+      ignore = true;
+    };
   }, []);
 
   async function submitSale(e: React.FormEvent<HTMLFormElement>) {
@@ -350,7 +399,7 @@ export default function AdminDashboardPage() {
       setActiveCodesError(null);
       try {
         // Aktif kodlar için status=active parametresi ile API çağrısı
-        const res = await fetch('/api/codes?status=active&limit=20', { credentials: 'include', cache: 'no-store' });
+        const res = await fetch('/api/v1/codes?status=active&limit=20', { credentials: 'include', cache: 'no-store' });
         const text = await res.text();
         if (!res.ok) {
           if (!ignore) {
@@ -439,7 +488,7 @@ export default function AdminDashboardPage() {
       try {
         // Tüm gerekli verileri paralel olarak al
         const [codesRes, influencersRes, salesStatsRes, payoutsRes] = await Promise.all([
-          fetch('/api/codes', { credentials: 'include', cache: 'no-store' }),
+          fetch('/api/v1/codes', { credentials: 'include', cache: 'no-store' }),
           fetch('/api/influencers', { credentials: 'include', cache: 'no-store' }),
           fetch('/api/sales/stats', { credentials: 'include', cache: 'no-store' }),
           fetch('/api/payouts', { credentials: 'include', cache: 'no-store' }),
@@ -469,10 +518,16 @@ export default function AdminDashboardPage() {
           if (influencersRes.ok) {
             try {
               const influencersText = await influencersRes.text();
+              console.log('[AdminDashboard] Influencers API Raw Response:', influencersText);
               const influencersJson = JSON.parse(influencersText || '[]');
+              console.log('[AdminDashboard] Influencers API Parsed JSON:', influencersJson);
               const influencersList = Array.isArray(influencersJson) ? influencersJson : (influencersJson?.influencers || []);
+              console.log('[AdminDashboard] Influencers List (after array check):', influencersList);
               activeInfluencersCount = influencersList.filter((i: any) => i?.status === 'approved').length;
-            } catch {}
+              console.log('[AdminDashboard] Active Influencers Count:', activeInfluencersCount);
+            } catch (e) {
+              console.error('[AdminDashboard] Error processing Influencers API response:', e);
+            }
           }
 
           // Satış istatistikleri
@@ -567,7 +622,7 @@ export default function AdminDashboardPage() {
                     (async () => {
                       try {
                         // Backend beklenen alan adları: discount_pct, commission_pct, is_active
-                        const res = await fetch(`/api/codes/${encodeURIComponent(String(c.id))}`, {
+                        const res = await fetch(`/api/v1/codes/${encodeURIComponent(String(c.id))}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           credentials: 'include',
@@ -902,7 +957,7 @@ export default function AdminDashboardPage() {
                           }
                           (async () => {
                             try {
-                              const res = await fetch(`/api/codes/${encodeURIComponent(String(code.id))}`, {
+                              const res = await fetch(`/api/v1/codes/${encodeURIComponent(String(code.id))}`, {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 credentials: 'include',
