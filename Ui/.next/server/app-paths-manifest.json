@@ -1,9 +1,7 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/v1/codes/route": "app/api/v1/codes/route.js",
-  "/api/sales/route": "app/api/sales/route.js",
-  "/api/influencers/route": "app/api/influencers/route.js",
-  "/api/payouts/route": "app/api/payouts/route.js",
-  "/api/sales/stats/route": "app/api/sales/stats/route.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/(auth)/admin/login/page": "app/(auth)/admin/login/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/influencer/dashboard/page": "app/influencer/dashboard/page.js"
 }
