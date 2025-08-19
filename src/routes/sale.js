@@ -46,7 +46,7 @@ async function findActiveCodeWithRetry(codeUpper, maxAttempts = 5, delayMs = 20)
  * bir auth middleware’in yanlışlıkla devreye girmesi olabilir. Bu uç noktayı bilinçli
  * olarak önce tanımlayarak ve açıkça public tutarak 401’i önleriz.
  */
-router.post('/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncHandler(async (req, res) => {
+router.post('/api/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncHandler(async (req, res) => {
   const rawCode = typeof req.body.code === 'string' ? req.body.code.trim() : req.body.code;
   const parsedAmount = Number(req.body.total_amount);
   const codeUpper = String(rawCode).toUpperCase();
@@ -149,7 +149,7 @@ router.get('/sales', authenticateToken, asyncHandler(async (req, res) => {
 }));
 
 // Tek bir satış detayını getir (korumalı)
-router.get('/sale/:id', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/api/sale/:id', authenticateToken, asyncHandler(async (req, res) => {
   const sale = await knex('sales')
     .join('discount_codes', 'sales.code', 'discount_codes.code')
     .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
@@ -172,7 +172,7 @@ router.get('/sale/:id', authenticateToken, asyncHandler(async (req, res) => {
   res.json(sale);
 }));
 
-// Toplam satış istatistikleri (korumalı)
+// Satış istatistikleri endpointi
 router.get('/sales/stats', authenticateToken, asyncHandler(async (req, res) => {
   const { start_date, end_date } = req.query;
   

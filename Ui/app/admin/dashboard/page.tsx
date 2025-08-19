@@ -8,6 +8,18 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import {
+  getAdminPendingCodes,
+  searchAdminCode,
+  getAdminBalanceSummary,
+  getAdminSalesStats,
+  postAdminSale,
+  putAdminCode,
+  getAdminAllCodes,
+  getAdminAllInfluencers,
+  getAdminAllPayouts,
+  getAdminRecentSales,
+} from '@/lib/api';
 
 type PendingCode = {
   id: number;
@@ -82,7 +94,7 @@ export default function AdminDashboardPage() {
   const [codesLoading, setCodesLoading] = useState(false);
   const [activeCodesError, setActiveCodesError] = useState<string | null>(null);
 
-  // Genel rapor verileri
+  // Genel rapor verileri için state'ler
   const [reportData, setReportData] = useState({
     activeCodesCount: 0,
     pendingCodesCount: 0,
@@ -105,41 +117,16 @@ export default function AdminDashboardPage() {
     console.log('[DEBUG] AdminDashboard: Fetching pending codes...');
     (async () => {
       try {
-        const endpoint = '/api/v1/codes?status=pending';
-        console.log(`[DEBUG] AdminDashboard: Calling endpoint: ${endpoint}`);
-        const res = await fetch(endpoint, { credentials: 'include', cache: 'no-store' });
-        console.log(`[DEBUG] AdminDashboard: Response status: ${res.status}`);
-        
-        const text = await res.text();
-        console.log(`[DEBUG] AdminDashboard: Response text: ${text.substring(0, 200)}...`);
-        
-        if (!res.ok) {
-          console.log(`[DEBUG] AdminDashboard: Request failed with status ${res.status}`);
-          if (!ignore) {
-            setPendingCodes([]);
-            setCodesError(null);
-          }
-          return;
-        }
-        let json: any = [];
-        try {
-          json = JSON.parse(text || '[]');
-          console.log('[DEBUG] AdminDashboard: Parsed JSON:', json);
-        } catch (e) {
-          console.error('[DEBUG] AdminDashboard: JSON parse error:', e);
-          json = [];
-        }
-        const arr: PendingCode[] = Array.isArray(json?.codes) ? json.codes : (Array.isArray(json) ? json : []);
-        console.log(`[DEBUG] AdminDashboard: Found ${arr.length} pending codes`);
+        const pendingCodesData = await getAdminPendingCodes();
         if (!ignore) {
-          setPendingCodes(arr);
+          setPendingCodes(pendingCodesData);
           setCodesError(null);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[DEBUG] AdminDashboard: Error fetching pending codes:', error);
         if (!ignore) {
           setPendingCodes([]);
-          setCodesError(null);
+          setCodesError(error?.message || 'Onay bekleyen kodlar alınamadı.');
         }
       }
     })();
@@ -198,29 +185,8 @@ export default function AdminDashboardPage() {
       setLoadingCodeInfo(true);
       
       try {
-        const res = await fetch(`/api/v1/codes/search/${encodeURIComponent(cleanCode)}`, {
-          credentials: 'include',
-          cache: 'no-store'
-        });
-        
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          
-          switch (res.status) {
-            case 404:
-              setCodeInfoError(`"${cleanCode}" kodu bulunamadı veya aktif değil. Lütfen geçerli bir kod girin.`);
-              break;
-            case 400:
-              setCodeInfoError(errorData.error || 'Geçersiz kod formatı. Lütfen doğru bir kod girin.');
-              break;
-            default:
-              setCodeInfoError(`Bir hata oluştu. Lütfen tekrar deneyin. (Hata: ${res.status})`);
-          }
-          return;
-        }
-        
-        const json = await res.json();
-        const detail = json?.code;
+        const result = await searchAdminCode(cleanCode);
+        const detail = result.code;
         
         if (!detail?.id) {
           setCodeInfoError('Geçersiz kod bilgisi alındı');
@@ -229,11 +195,11 @@ export default function AdminDashboardPage() {
 
         // Influencer bilgilerini ayarla - daha güvenli field mapping
         const influencerHandle = detail.influencer_handle || detail.influencer_email || '';
-        const influencerName = detail.influencer_name || detail.influencer_full_name || '';
-        const influencerBrand = detail.influencer_brand_name || detail.brand_name || '';
+        const influencerName = detail.influencer_name || '';
+        const influencerBrand = detail.influencer_brand_name || '';
         
         // Komisyon oranı - birden fazla field'i kontrol et
-        const commissionRate = detail.commission_pct ?? detail.commission_rate ?? detail.commission_percentage ?? null;
+        const commissionRate = detail.commission_pct ?? detail.commission_rate ?? null;
         
         setQInfluencer(influencerHandle);
         setQInfluencerHandle(influencerHandle);
@@ -246,9 +212,15 @@ export default function AdminDashboardPage() {
           setCodeInfoError(null); // Hata mesajını temizle
         }
         
-      } catch (e) {
+      } catch (e: any) {
         console.error('Kod bilgisi alınırken hata:', e);
-        setCodeInfoError('Kod bilgisi alınamadı. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.');
+        if (e?.status === 404) {
+          setCodeInfoError(`"${cleanCode}" kodu bulunamadı veya aktif değil. Lütfen geçerli bir kod girin.`);
+        } else if (e?.status === 400) {
+          setCodeInfoError(e?.message || 'Geçersiz kod formatı. Lütfen doğru bir kod girin.');
+        } else {
+          setCodeInfoError(`Bir hata oluştu. Lütfen tekrar deneyin. (Hata: ${e?.status || 'Bilinmeyen hata'})`);
+        }
       } finally {
         setLoadingCodeInfo(false);
       }
@@ -270,54 +242,33 @@ export default function AdminDashboardPage() {
     console.log('[DEBUG] AdminDashboard: Fetching balance summary...');
     (async () => {
       try {
-        const primaryEndpoint = '/api/v1/balance/admin-summary/summary';
+        const primaryEndpoint = 'http://localhost:5003/api/balance/admin-summary/summary';
         console.log(`[DEBUG] AdminDashboard: Calling primary endpoint: ${primaryEndpoint}`);
         
-        const res = await fetch(primaryEndpoint, { credentials: 'include', cache: 'no-store' });
-        console.log(`[DEBUG] AdminDashboard: Primary response status: ${res.status}`);
-        
-        const text = await res.text();
-        console.log(`[DEBUG] AdminDashboard: Primary response text: ${text.substring(0, 200)}...`);
-        
-        if (!res.ok) {
-          console.log(`[DEBUG] AdminDashboard: Primary endpoint failed, trying fallback...`);
-          // fallback: /api/sales/stats
-          const fallbackEndpoint = '/api/sales/stats';
-          console.log(`[DEBUG] AdminDashboard: Calling fallback endpoint: ${fallbackEndpoint}`);
-          
-          const sres = await fetch(fallbackEndpoint, { credentials: 'include', cache: 'no-store' });
-          console.log(`[DEBUG] AdminDashboard: Fallback response status: ${sres.status}`);
-          
-          const stext = await sres.text();
-          console.log(`[DEBUG] AdminDashboard: Fallback response text: ${stext.substring(0, 200)}...`);
-          
-          if (sres.ok) {
-            try {
-              const o = JSON.parse(stext || '{}');
-              console.log('[DEBUG] AdminDashboard: Fallback parsed JSON:', o);
-              const total = o?.stats?.total_commission;
-              console.log(`[DEBUG] AdminDashboard: Fallback total commission: ${total}`);
-              if (!ignore && typeof total === 'number') {
-                setPayoutTotal(total);
-              }
-            } catch (e) {
-              console.error('[DEBUG] AdminDashboard: Fallback JSON parse error:', e);
-            }
-          }
-          return;
-        }
-        let json: any = {};
         try {
-          json = JSON.parse(text || '{}');
-          console.log('[DEBUG] AdminDashboard: Primary parsed JSON:', json);
-        } catch (e) {
-          console.error('[DEBUG] AdminDashboard: Primary JSON parse error:', e);
-          json = {};
-        }
-        const val = json?.total ?? json?.sum ?? json?.amount;
-        console.log(`[DEBUG] AdminDashboard: Primary balance value: ${val}`);
-        if (!ignore && typeof val === 'number') {
-          setPayoutTotal(val);
+          const result = await getAdminBalanceSummary();
+          console.log('[DEBUG] AdminDashboard: Primary response:', result);
+          const val = result?.balance;
+          console.log(`[DEBUG] AdminDashboard: Primary balance value: ${val}`);
+          if (!ignore && typeof val === 'number') {
+            setPayoutTotal(val);
+          }
+        } catch (error) {
+          console.log(`[DEBUG] AdminDashboard: Primary endpoint failed, trying fallback...`);
+          console.log(`[DEBUG] AdminDashboard: Calling fallback endpoint: getAdminSalesStats`);
+          
+          try {
+            const result = await getAdminSalesStats();
+            // Fallback endpoint is now /api/sales/stats
+            console.log('[DEBUG] AdminDashboard: Fallback response:', result);
+            const total = result?.stats?.total_commission;
+            console.log(`[DEBUG] AdminDashboard: Fallback total commission: ${total}`);
+            if (!ignore && typeof total === 'number') {
+              setPayoutTotal(total);
+            }
+          } catch (e) {
+            console.error('[DEBUG] AdminDashboard: Fallback error:', e);
+          }
         }
       } catch (error) {
         console.error('[DEBUG] AdminDashboard: Error fetching balance summary:', error);
@@ -352,20 +303,14 @@ export default function AdminDashboardPage() {
         amount: numericAmount,
         note: qNote || undefined
       };
-      const res = await fetch('/api/sales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body)
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
-        setSaleErr(msg || 'Satış kaydetme başarısız.');
+      try {
+        const result = await postAdminSale(body);
+        setSaleMsg(result?.message || 'Satış kaydedildi.');
+      } catch (error: any) {
+        console.error('[DEBUG] AdminDashboard: Error posting sale:', error);
+        setSaleErr(error?.message || 'Satış kaydetme başarısız.');
         return;
       }
-      setSaleMsg('Satış kaydedildi.');
       setQProduct('');
     } catch {
       setSaleErr('Beklenmeyen bir hata oluştu.');
@@ -398,32 +343,23 @@ export default function AdminDashboardPage() {
       setCodesLoading(true);
       setActiveCodesError(null);
       try {
-        // Aktif kodlar için status=active parametresi ile API çağrısı
-        const res = await fetch('/api/v1/codes?status=active&limit=20', { credentials: 'include', cache: 'no-store' });
-        const text = await res.text();
-        if (!res.ok) {
-          if (!ignore) {
-            setActiveCodesError('Aktif kodlar alınamadı.');
-          }
-          return;
-        }
-        let json: any = {};
-        try { json = JSON.parse(text || '{}'); } catch { json = {}; }
-        const list = Array.isArray(json?.codes) ? json.codes : (Array.isArray(json) ? json : []);
+        const activeCodes = await getAdminAllCodes(); // Tüm kodları getir, sonra filtrele
         if (!ignore) {
-          // Kodları işle ve gerekli alanları ayıkla
-          const processedCodes = list.map((code: any) => ({
-            id: code?.id,
-            code: code?.code || '',
-            discount_pct: typeof code?.discount_pct === 'number' ? code.discount_pct : null,
-            commission_pct: typeof code?.commission_pct === 'number' ? code.commission_pct : null,
-            created_at: code?.created_at || '',
-          }));
+          const processedCodes = activeCodes
+            .filter(code => code.is_active)
+            .slice(0, 20) // Sadece ilk 20 aktif kodu al
+            .map((code: any) => ({
+              id: code?.id,
+              code: code?.code || '',
+              discount_pct: typeof code?.discount_pct === 'number' ? code.discount_pct : null,
+              commission_pct: typeof code?.commission_pct === 'number' ? code.commission_pct : null,
+              created_at: code?.created_at || '',
+            }));
           setRecentActiveCodes(processedCodes);
         }
-      } catch {
+      } catch (e: any) {
         if (!ignore) {
-          setActiveCodesError('Aktif kodlar yüklenirken bir hata oluştu.');
+          setActiveCodesError(e?.message || 'Aktif kodlar yüklenirken bir hata oluştu.');
         }
       } finally {
         if (!ignore) {
@@ -437,22 +373,14 @@ export default function AdminDashboardPage() {
   // Son satışları al
   useEffect(() => {
     let ignore = false;
-    (async () => {
+    
+    const fetchRecentSales = async () => {
       setSalesLoading(true);
       setSalesError(null);
+      
       try {
-        // Son 20 satış için limit=20 parametresi ile API çağrısı
-        const res = await fetch('/api/sales?limit=20', { credentials: 'include', cache: 'no-store' });
-        const text = await res.text();
-        if (!res.ok) {
-          if (!ignore) {
-            setSalesError('Satışlar alınamadı.');
-          }
-          return;
-        }
-        let json: any = {};
-        try { json = JSON.parse(text || '{}'); } catch { json = {}; }
-        const list = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : json?.sales || []);
+        // Updated endpoint: /api/sales with limit parameter
+        const list = await getAdminRecentSales(20);
         if (!ignore) {
           // Satışları işle ve gerekli alanları ayıkla
           const processedSales = list.map((sale: any) => ({
@@ -466,32 +394,36 @@ export default function AdminDashboardPage() {
           }));
           setRecentSales(processedSales);
         }
-      } catch {
+      } catch (error) {
+        console.error('[DEBUG] AdminDashboard: Error fetching recent sales:', error);
         if (!ignore) {
-          setSalesError('Satışlar yüklenirken bir hata oluştu.');
+          setSalesError('Satışlar alınamadı.');
         }
       } finally {
         if (!ignore) {
           setSalesLoading(false);
         }
       }
-    })();
+    };
+    
+    fetchRecentSales();
     return () => { ignore = true; };
   }, []);
 
   // Genel rapor verilerini al
   useEffect(() => {
     let ignore = false;
-    (async () => {
+    
+    const fetchReportData = async () => {
       setReportLoading(true);
       setReportError(null);
+      
       try {
-        // Tüm gerekli verileri paralel olarak al
-        const [codesRes, influencersRes, salesStatsRes, payoutsRes] = await Promise.all([
-          fetch('/api/v1/codes', { credentials: 'include', cache: 'no-store' }),
-          fetch('/api/influencers', { credentials: 'include', cache: 'no-store' }),
-          fetch('/api/sales/stats', { credentials: 'include', cache: 'no-store' }),
-          fetch('/api/payouts', { credentials: 'include', cache: 'no-store' }),
+        const [codesData, influencersData, salesStatsData, payoutsData] = await Promise.all([
+          getAdminAllCodes().catch(() => []),
+          getAdminAllInfluencers().catch(() => []),
+          getAdminSalesStats().catch(() => ({ stats: { total_revenue: 0, total_commission: 0 } })),
+          getAdminAllPayouts().catch(() => []),
         ]);
 
         if (!ignore) {
@@ -504,55 +436,20 @@ export default function AdminDashboardPage() {
           let totalSalesAmount = 0;
 
           // Kod sayıları
-          if (codesRes.ok) {
-            try {
-              const codesText = await codesRes.text();
-              const codesJson = JSON.parse(codesText || '[]');
-              const codesList = Array.isArray(codesJson?.codes) ? codesJson.codes : (Array.isArray(codesJson) ? codesJson : []);
-              activeCodesCount = codesList.filter((c: any) => c?.is_active === true).length;
-              pendingCodesCount = codesList.filter((c: any) => c?.status === 'pending').length;
-            } catch {}
-          }
+          activeCodesCount = codesData.filter((c: any) => c?.is_active === true).length;
+          pendingCodesCount = codesData.filter((c: any) => c?.status === 'pending').length;
 
           // Aktif influencer sayısı
-          if (influencersRes.ok) {
-            try {
-              const influencersText = await influencersRes.text();
-              console.log('[AdminDashboard] Influencers API Raw Response:', influencersText);
-              const influencersJson = JSON.parse(influencersText || '[]');
-              console.log('[AdminDashboard] Influencers API Parsed JSON:', influencersJson);
-              const influencersList = Array.isArray(influencersJson) ? influencersJson : (influencersJson?.influencers || []);
-              console.log('[AdminDashboard] Influencers List (after array check):', influencersList);
-              activeInfluencersCount = influencersList.filter((i: any) => i?.status === 'approved').length;
-              console.log('[AdminDashboard] Active Influencers Count:', activeInfluencersCount);
-            } catch (e) {
-              console.error('[AdminDashboard] Error processing Influencers API response:', e);
-            }
-          }
+          activeInfluencersCount = influencersData.filter((i: any) => i?.status === 'approved').length;
 
           // Satış istatistikleri
-          if (salesStatsRes.ok) {
-            try {
-              const salesStatsText = await salesStatsRes.text();
-              const salesStatsJson = JSON.parse(salesStatsText || '{}');
-              const stats = salesStatsJson?.stats || {};
-              totalSalesAmount = typeof stats?.total_revenue === 'number' ? stats.total_revenue : 0;
-              commissionSinceLastPayout = typeof stats?.total_commission === 'number' ? stats.total_commission : 0;
-              // salesAmountSinceLastPayout için ayrı bir hesaplama gerekebilir
-            } catch {}
-          }
+          totalSalesAmount = typeof salesStatsData?.stats?.total_revenue === 'number' ? salesStatsData.stats.total_revenue : 0;
+          commissionSinceLastPayout = typeof salesStatsData?.stats?.total_commission === 'number' ? salesStatsData.stats.total_commission : 0;
 
           // Toplam ödenen komisyon
-          if (payoutsRes.ok) {
-            try {
-              const payoutsText = await payoutsRes.text();
-              const payoutsJson = JSON.parse(payoutsText || '[]');
-              const payoutsList = Array.isArray(payoutsJson) ? payoutsJson : (payoutsJson?.payouts || []);
-              totalCommissionPaid = payoutsList.reduce((sum: number, payout: any) => {
-                return sum + (typeof payout?.amount === 'number' ? payout.amount : 0);
-              }, 0);
-            } catch {}
-          }
+          totalCommissionPaid = payoutsData.reduce((sum: number, payout: any) => {
+            return sum + (typeof payout?.amount === 'number' ? payout.amount : 0);
+          }, 0);
 
           setReportData({
             activeCodesCount,
@@ -568,7 +465,8 @@ export default function AdminDashboardPage() {
             totalEarnedCommission: 0, // Yeni alan
           });
         }
-      } catch {
+      } catch (error) {
+        console.error('[DEBUG] AdminDashboard: Error fetching report data:', error);
         if (!ignore) {
           setReportError('Rapor verileri yüklenirken bir hata oluştu.');
         }
@@ -577,7 +475,9 @@ export default function AdminDashboardPage() {
           setReportLoading(false);
         }
       }
-    })();
+    };
+    
+    fetchReportData();
     return () => { ignore = true; };
   }, []);
 
@@ -622,28 +522,24 @@ export default function AdminDashboardPage() {
                     (async () => {
                       try {
                         // Backend beklenen alan adları: discount_pct, commission_pct, is_active
-                        const res = await fetch(`/api/v1/codes/${encodeURIComponent(String(c.id))}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({
+                        try {
+                          const payload = {
                             // bilgi amaçlı status taşıyabiliriz ama backend'te esas belirleyici is_active
                             status: 'approved',
                             discount_pct: discount_percentage,
                             commission_pct: commission_pct,
                             is_active: true
-                          })
-                        });
-                        const text = await res.text();
-                        if (!res.ok) {
-                          let msg = text;
-                          try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
-                          alert(msg || 'Kod onaylama başarısız.');
+                          };
+                          await putAdminCode(c.id, payload);
+                          alert('Kod onaylandı.');
+                        } catch (error: any) {
+                          console.error('[DEBUG] AdminDashboard: Error approving code:', error);
+                          alert(error?.message || 'Kod onaylama başarısız.');
                           return;
                         }
                         // Son onaylanan kodu kısa süre göstermek için local UI duyurusu
                         try {
-                          const approved = JSON.parse(text || '{}');
+                          // basit bildirim stoğu (sessionStorage) — sayfa yenilense bile kısa süre göstermek için
                           // basit bildirim stoğu (sessionStorage) — sayfa yenilense bile kısa süre göstermek için
                           const k = 'recentlyApprovedCodes';
                           const list = JSON.parse(sessionStorage.getItem(k) || '[]');
@@ -957,20 +853,16 @@ export default function AdminDashboardPage() {
                           }
                           (async () => {
                             try {
-                              const res = await fetch(`/api/v1/codes/${encodeURIComponent(String(code.id))}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({
+                              try {
+                                const payload = {
                                   discount_pct: discount_percentage,
                                   commission_pct: commission_pct,
-                                })
-                              });
-                              const text = await res.text();
-                              if (!res.ok) {
-                                let msg = text;
-                                try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
-                                alert(msg || 'Kod güncelleme başarısız.');
+                                };
+                                await putAdminCode(code.id, payload);
+                                alert('Kod başarıyla güncellendi.');
+                              } catch (error: any) {
+                                console.error('[DEBUG] AdminDashboard: Error updating code:', error);
+                                alert(error?.message || 'Kod güncelleme başarısız.');
                                 return;
                               }
                               alert('Kod başarıyla güncellendi.');

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'E-posta ve şifre zorunludur.' }, { status: 400 });
   }
 
-  const url = `${baseUrl}/admin/login`;
+  const url = `${baseUrl}/api/auth/admin/login`;
   try {
     console.log('[UI][admin-login] → POST', url);
     const res = await fetch(url, {

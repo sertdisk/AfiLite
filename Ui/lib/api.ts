@@ -604,3 +604,161 @@ export async function getActiveContract(): Promise<{ id: number; content: string
     throw err;
   }
 }
+
+/* =========================
+ * Admin Dashboard API istemci fonksiyonları
+ * ========================= */
+
+export interface AdminPendingCode {
+  id: number;
+  code: string;
+  influencer_id?: number;
+  influencer_email?: string;
+  created_at?: string;
+  commission_rate?: number;
+}
+
+export interface AdminBalanceSummary {
+  balance: number;
+  last_settlement_at: string | null;
+}
+
+export interface AdminSalesStats {
+  stats: {
+    total_sales: number;
+    total_revenue: number;
+    total_commission: number;
+    avg_sale_amount: number;
+    by_influencer: {
+      total_sales: number;
+      total_revenue: number;
+      total_commission: number;
+      avg_sale_amount: number;
+    };
+  };
+}
+
+export interface AdminCodeDetail {
+  id: number;
+  code: string;
+  influencer_id: number;
+  influencer_email?: string;
+  influencer_name?: string;
+  influencer_brand_name?: string;
+  influencer_handle?: string;
+  discount_pct?: number;
+  commission_pct?: number;
+  commission_rate?: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
+export interface AdminSalePayload {
+  code: string;
+  customer_url?: string;
+  product?: string;
+  amount: number;
+  note?: string;
+}
+
+export interface AdminCodeUpdatePayload {
+  status?: string;
+  discount_pct?: number;
+  commission_pct?: number;
+  is_active?: boolean;
+}
+
+export interface AdminCode {
+  id: number;
+  code: string;
+  discount_pct: number;
+  commission_pct: number;
+  is_active: boolean;
+  created_at: string;
+  influencer_name?: string;
+  influencer_email?: string;
+  status?: string; // pending, approved, etc.
+}
+
+export interface AdminInfluencer {
+  id: number;
+  name: string;
+  email: string;
+  status: string;
+  created_at: number;
+  brand_name: string | null;
+  active_codes_count: number;
+  total_sales_count: number;
+  total_commission: number;
+}
+
+export interface AdminPayout {
+  id: number;
+  influencer_id: number;
+  amount: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  influencer_name?: string;
+  influencer_email?: string;
+}
+
+/** Admin: Onay bekleyen kodları getir — GET /api/v1/codes?status=pending */
+export async function getAdminPendingCodes(): Promise<AdminPendingCode[]> {
+  const response = await request<{ codes: AdminPendingCode[] }>('/api/v1/codes?status=pending', { method: 'GET' });
+  return response.codes || [];
+}
+
+/** Admin: Bakiye özetini getir — GET /api/v1/balance/admin-summary/summary */
+export async function getAdminBalanceSummary(): Promise<AdminBalanceSummary> {
+  return request<AdminBalanceSummary>('/api/v1/balance/admin-summary/summary', { method: 'GET' });
+}
+
+/** Admin: Satış istatistiklerini getir — GET /api/sales/stats */
+export async function getAdminSalesStats(): Promise<AdminSalesStats> {
+  return request<AdminSalesStats>('/api/sales/stats', { method: 'GET' });
+}
+
+/** Admin: Kod ara — GET /api/v1/codes/search/:code */
+export async function searchAdminCode(code: string): Promise<{ code: AdminCodeDetail }> {
+  return request<{ code: AdminCodeDetail }>(`/api/v1/codes/search/${encodeURIComponent(code)}`, { method: 'GET' });
+}
+
+/** Admin: Hızlı satış oluştur — POST /api/sales */
+export async function postAdminSale(payload: AdminSalePayload): Promise<{ message: string }> {
+  return request<{ message: string }>('/api/sales', {
+    method: 'POST',
+    body: payload
+  });
+}
+
+/** Admin: Kodu güncelle (onayla/değiştir) — PUT /api/v1/codes/:id */
+export async function putAdminCode(id: number, payload: AdminCodeUpdatePayload): Promise<any> {
+  return request(`/api/v1/codes/${id}`, {
+    method: 'PUT',
+    body: payload
+  });
+}
+
+/** Admin: Tüm kodları listele — GET /api/v1/codes */
+export async function getAdminAllCodes(): Promise<AdminCode[]> {
+  const response = await request<{ codes: AdminCode[] }>('/api/v1/codes', { method: 'GET' });
+  return response.codes || [];
+}
+
+/** Admin: Tüm influencerları listele — GET /api/influencers */
+export async function getAdminAllInfluencers(): Promise<AdminInfluencer[]> {
+  return request<AdminInfluencer[]>('/api/influencers', { method: 'GET' });
+}
+
+/** Admin: Tüm ödemeleri listele — GET /api/payouts */
+export async function getAdminAllPayouts(): Promise<AdminPayout[]> {
+  const response = await request<{ payouts: AdminPayout[] }>('/api/payouts', { method: 'GET' });
+  return response.payouts || [];
+}
+
+/** Admin: Son satışları getir — GET /api/sales?limit=20 */
+export async function getAdminRecentSales(limit: number = 20): Promise<any[]> {
+  const response = await request<{ items: any[] }>(`/api/sales?limit=${limit}`, { method: 'GET' });
+  return response.items || [];
+}

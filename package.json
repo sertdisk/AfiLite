@@ -13,7 +13,8 @@
     "lint:fix": "eslint src/ tests/ --fix",
     "db:migrate": "knex migrate:latest",
     "db:seed": "knex seed:run",
-    "seed:influencer": "node src/db/seed_influencer.js"
+    "seed:influencer": "node src/db/seed_influencer.js",
+    "restart-backend": "pkill -f 'node src/app.js' && npm run dev"
   },
   "jest": {
     "testEnvironment": "node",

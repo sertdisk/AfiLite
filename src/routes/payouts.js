@@ -112,8 +112,8 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) 
   });
 }));
 
-// GET /payouts/:id - Tek bir ödeme detayı
-router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
+// GET /api/payouts/:id - Tek bir ödeme detayı
+router.get('/api/payouts/:id', authenticateToken, asyncHandler(async (req, res) => {
   const payout = await knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
     .select(
@@ -139,8 +139,8 @@ router.get('/:id', authenticateToken, asyncHandler(async (req, res) => {
   res.json(payout);
 }));
 
-// PATCH /payouts/:id - Ödeme güncelle (Admin)
-router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+// PATCH /api/payouts/:id - Ödeme güncelle (Admin)
+router.patch('/api/payouts/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { status } = req.body;
   
   if (!status) {
@@ -176,8 +176,8 @@ router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, r
   res.json(updatedPayout);
 }));
 
-// GET /payouts/export - Ödemeleri export et (Admin)
-router.get('/export', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+// GET /api/payouts/export - Ödemeleri export et (Admin)
+router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { format = 'csv', status, influencerId, from, to } = req.query;
   
   let query = knex('payouts')

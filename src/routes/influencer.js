@@ -83,8 +83,8 @@ function isArrayOfStrings(a) {
   return Array.isArray(a) && a.every((v) => typeof v === 'string' && v.trim().length > 0);
 }
 
-// POST /influencers/apply (public)
-router.post('/apply', applyLimiter, async (req, res) => {
+// POST /api/influencers/apply (public)
+router.post('/api/influencers/apply', applyLimiter, async (req, res) => {
   try {
     const {
       name,
@@ -258,7 +258,7 @@ function resolveUserId(req) {
   return userId;
 }
 
-// GET /influencers/me
+// GET /api/influencers/me
 router.get('/me', async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -273,7 +273,7 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// PATCH /influencers/me
+// PATCH /api/influencers/me
 router.patch('/me', async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -353,7 +353,7 @@ router.patch('/me', async (req, res) => {
   }
 });
 
-// PATCH /influencers/me/password (Şifre değiştirme)
+// PATCH /api/influencers/me/password (Şifre değiştirme)
 router.patch('/me/password', async (req, res) => {
   try {
     const userId = resolveUserId(req);
@@ -393,7 +393,7 @@ router.patch('/me/password', async (req, res) => {
   }
 });
 
-// GET /influencers/me/summary
+// GET /api/influencers/me/summary
 router.get('/me/summary', async (req, res) => {
   try {
     console.log('[DEBUG] /me/summary: resolving user ID');

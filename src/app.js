@@ -96,39 +96,39 @@ function createApp() {
     });
   });
 
-  // API routes
-  // ÖNEMLİ SIRA: Public uçlar önce tanımlanır; aksi halde global/auth etkilenebilir.
-  // 1) Public uçlar
-  const authRouter = require('./routes/auth');
-  app.use('/api/v1', authRouter);
-  // Ayrıca UI tarafı doğrudan kök path’e (prefixsiz) çağrı yaparsa 404 olmasın diye alias ekle
-  app.use('/', authRouter);
-  
-  app.use('/api/v1', require('./routes/apply')); // apply router'ı public olmalı
-  // Satış kaydetme (POST /sale) public; GET satış uçları route içinde korunur
-  app.use('/api/v1', require('./routes/sale'));
-  // Influencer public ve korumalı uçları: hem /api/v1/influencers altında hem de köke alias
+  // API routes - support both versioned and non-versioned endpoints
+  const applyRouter = require('./routes/apply');
+  const saleRouter = require('./routes/sale');
   const influencerRouter = require('./routes/influencer');
-  app.use('/api/v1/influencers', authenticateToken, requireAdmin, influencerRouter); // Admin için yetkilendirme ekle
-  // app.use('/influencers', influencerRouter); // Public erişim için (eğer varsa) - Admin panosunda 403 hatası verdiği için kaldırıldı
-  
-  // Sözleşme rotası (public erişim)
   const contractRouter = require('./routes/contract');
-  app.use('/api/v1/contracts', contractRouter);
-  
-  // 2) Korumalı uçlar (auth gerektirir)
   const codesRouter = require('./routes/codes');
   const balanceRouter = require('./routes/balance');
   const messagesRouter = require('./routes/messages');
-  const alertsRouter = require('./routes/alerts'); // Yeni sistem uyarıları rotası
-  const payoutsRouter = require('./routes/payouts'); // Ödeme yönetimi rotası
-  // Codes router için sadece authenticateToken yeterli, admin kontrolü route dosyasında
-  app.use('/api/v1/codes', authenticateToken, codesRouter); // Daha spesifik hale getir
-  // Balance router altında artık admin için /balance/:influencerId/summary da mevcut
-  app.use('/api/v1/balance', authenticateToken, balanceRouter); // Balance router'ı /api/v1/balance altında çalışacak
-  app.use('/api/v1/messages', authenticateToken, messagesRouter); // Daha spesifik hale getir
-  app.use('/api/v1/alerts', authenticateToken, alertsRouter); // Sistem uyarıları rotasını ekle
-  app.use('/api/v1/payouts', authenticateToken, payoutsRouter); // Ödeme yönetimi rotasını ekle
+  const alertsRouter = require('./routes/alerts');
+  const payoutsRouter = require('./routes/payouts');
+  const authRouter = require('./routes/auth');
+
+  // Mount routers for both /api and /api/v1
+  const apiBases = ['/api', '/api/v1'];
+  
+  apiBases.forEach(base => {
+    // Mount auth routes under /auth
+    app.use(`${base}/auth`, authRouter);
+    
+    // Mount other routes
+    app.use(base, applyRouter);
+    app.use(base, saleRouter);
+    app.use(`${base}/influencers`, authenticateToken, requireAdmin, influencerRouter);
+    app.use(`${base}/contracts`, contractRouter);
+    app.use(`${base}/codes`, authenticateToken, codesRouter);
+    app.use(`${base}/balance`, authenticateToken, balanceRouter);
+    app.use(`${base}/messages`, authenticateToken, messagesRouter);
+    app.use(`${base}/alerts`, authenticateToken, alertsRouter);
+    app.use(`${base}/payouts`, authenticateToken, payoutsRouter);
+    
+    // Add explicit admin login route
+    app.use(`${base}/admin/login`, authRouter);
+  });
 
   // Error handling
   app.use(notFoundHandler);

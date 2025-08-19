@@ -78,9 +78,9 @@ router.get('/balance/me/settlements', authenticateToken, asyncHandler(async (req
  * Not: Gerçek bakiye/hesap kesim hesaplaması satışlar, iade, ödeme ve mahsuplaşma tablolarına göre yapılmalıdır.
  * Bu aşamada örnek/placeholder mantığı kuruyoruz.
  */
-// GET /balance/:influencerId/summary (ADMIN)
-router.get('/balance/admin-summary/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  console.log('[Backend] GET /balance/admin-summary/summary endpoint reached.');
+// GET /admin-summary/summary (ADMIN)
+router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+  console.log('[Backend] GET /api/balance/admin-summary/summary endpoint reached.');
   // Genel bakiye özeti döndürülecek, influencerId'ye gerek yok
   // Gerçek hesaplama: toplam komisyon - toplam ödemeler
   
