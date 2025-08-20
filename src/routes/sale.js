@@ -49,6 +49,8 @@ async function findActiveCodeWithRetry(codeUpper, maxAttempts = 5, delayMs = 20)
 router.post('/api/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncHandler(async (req, res) => {
   const rawCode = typeof req.body.code === 'string' ? req.body.code.trim() : req.body.code;
   const parsedAmount = Number(req.body.total_amount);
+  const customerUrl = typeof req.body.customer_url === 'string' ? req.body.customer_url.trim() : null;
+  const product = typeof req.body.product === 'string' ? req.body.product.trim() : null;
   const codeUpper = String(rawCode).toUpperCase();
 
   // Kod kontrolü – küçük retry ile
@@ -67,6 +69,8 @@ router.post('/api/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncH
     code: codeUpper,
     total_amount: parsedAmount,
     commission,
+    customer_url: customerUrl,
+    product: product,
     recorded_at: new Date()
   });
 
@@ -105,6 +109,8 @@ router.get('/sales', authenticateToken, asyncHandler(async (req, res) => {
       'sales.code',
       'sales.total_amount',
       'sales.commission',
+      'sales.customer_url',
+      'sales.product',
       'sales.recorded_at',
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email',

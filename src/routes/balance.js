@@ -111,9 +111,61 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
   const last_settlement_at = lastPayout ? lastPayout.created_at : null;
   console.log(`[Backend] Last Settlement At: ${last_settlement_at}`);
 
+  // Aktif ve onay bekleyen kod sayıları
+  const activeCodesCount = await knex('discount_codes')
+    .where('is_active', true)
+    .count('id as count')
+    .first()
+    .then(row => parseInt(row.count) || 0);
+
+  const pendingCodesCount = await knex('discount_codes')
+    .where('is_active', false)
+    .count('id as count')
+    .first()
+    .then(row => parseInt(row.count) || 0);
+
+  // Aktif influencer sayısı
+  const activeInfluencersCount = await knex('influencers')
+    .where('status', 'approved')
+    .count('id as count')
+    .first()
+    .then(row => parseInt(row.count) || 0);
+
+  // Toplam satış tutarı
+  const totalSalesAmountResult = await knex('sales')
+    .sum('total_amount as total_sales_amount')
+    .first();
+  const totalSalesAmount = parseFloat(totalSalesAmountResult.total_sales_amount) || 0;
+
+  // Son ödeme tarihinden sonraki komisyon ve satış tutarları
+  let commissionSinceLastPayout = 0;
+  let salesAmountSinceLastPayout = 0;
+  
+  if (last_settlement_at) {
+    const commissionSinceResult = await knex('sales')
+      .where('recorded_at', '>', last_settlement_at)
+      .sum('commission as commission_since')
+      .first();
+    commissionSinceLastPayout = parseFloat(commissionSinceResult.commission_since) || 0;
+
+    const salesAmountSinceResult = await knex('sales')
+      .where('recorded_at', '>', last_settlement_at)
+      .sum('total_amount as sales_amount_since')
+      .first();
+    salesAmountSinceLastPayout = parseFloat(salesAmountSinceResult.sales_amount_since) || 0;
+  }
+
   res.json({
     balance,
-    last_settlement_at
+    last_settlement_at,
+    activeCodesCount,
+    pendingCodesCount,
+    activeInfluencersCount,
+    totalCommission,
+    totalSalesAmount,
+    commissionSinceLastPayout,
+    salesAmountSinceLastPayout,
+    totalPayouts
   });
 }));
 

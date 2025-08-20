@@ -419,46 +419,18 @@ export default function AdminDashboardPage() {
       setReportError(null);
       
       try {
-        const [codesData, influencersData, salesStatsData, payoutsData] = await Promise.all([
-          getAdminAllCodes().catch(() => []),
-          getAdminAllInfluencers().catch(() => []),
-          getAdminSalesStats().catch(() => ({ stats: { total_revenue: 0, total_commission: 0 } })),
-          getAdminAllPayouts().catch(() => []),
-        ]);
-
+        // Yeni admin balance summary endpoint'inden verileri al
+        const balanceSummary = await getAdminBalanceSummary();
+        
         if (!ignore) {
-          let activeCodesCount = 0;
-          let pendingCodesCount = 0;
-          let activeInfluencersCount = 0;
-          let commissionSinceLastPayout = 0;
-          let salesAmountSinceLastPayout = 0;
-          let totalCommissionPaid = 0;
-          let totalSalesAmount = 0;
-
-          // Kod sayıları
-          activeCodesCount = codesData.filter((c: any) => c?.is_active === true).length;
-          pendingCodesCount = codesData.filter((c: any) => c?.status === 'pending').length;
-
-          // Aktif influencer sayısı
-          activeInfluencersCount = influencersData.filter((i: any) => i?.status === 'approved').length;
-
-          // Satış istatistikleri
-          totalSalesAmount = typeof salesStatsData?.stats?.total_revenue === 'number' ? salesStatsData.stats.total_revenue : 0;
-          commissionSinceLastPayout = typeof salesStatsData?.stats?.total_commission === 'number' ? salesStatsData.stats.total_commission : 0;
-
-          // Toplam ödenen komisyon
-          totalCommissionPaid = payoutsData.reduce((sum: number, payout: any) => {
-            return sum + (typeof payout?.amount === 'number' ? payout.amount : 0);
-          }, 0);
-
           setReportData({
-            activeCodesCount,
-            pendingCodesCount,
-            activeInfluencersCount,
-            commissionSinceLastPayout,
-            salesAmountSinceLastPayout,
-            totalCommissionPaid,
-            totalSalesAmount,
+            activeCodesCount: balanceSummary.activeCodesCount || 0,
+            pendingCodesCount: balanceSummary.pendingCodesCount || 0,
+            activeInfluencersCount: balanceSummary.activeInfluencersCount || 0,
+            commissionSinceLastPayout: balanceSummary.commissionSinceLastPayout || 0,
+            salesAmountSinceLastPayout: balanceSummary.salesAmountSinceLastPayout || 0,
+            totalCommissionPaid: balanceSummary.totalPayouts || 0,
+            totalSalesAmount: balanceSummary.totalSalesAmount || 0,
             salesAmountUntilLastPayout: 0, // Bu değeri aşağıda hesaplayacağız
             totalSalesCount: 0, // Yeni alan
             totalProductAmount: 0, // Yeni alan

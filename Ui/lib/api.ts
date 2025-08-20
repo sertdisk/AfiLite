@@ -621,6 +621,14 @@ export interface AdminPendingCode {
 export interface AdminBalanceSummary {
   balance: number;
   last_settlement_at: string | null;
+  activeCodesCount: number;
+  pendingCodesCount: number;
+  activeInfluencersCount: number;
+  totalCommission: number;
+  totalSalesAmount: number;
+  commissionSinceLastPayout: number;
+  salesAmountSinceLastPayout: number;
+  totalPayouts: number;
 }
 
 export interface AdminSalesStats {
@@ -759,6 +767,6 @@ export async function getAdminAllPayouts(): Promise<AdminPayout[]> {
 
 /** Admin: Son satışları getir — GET /api/sales?limit=20 */
 export async function getAdminRecentSales(limit: number = 20): Promise<any[]> {
-  const response = await request<{ items: any[] }>(`/api/sales?limit=${limit}`, { method: 'GET' });
-  return response.items || [];
+  const response = await request<{ sales: any[] }>(`/api/sales?limit=${limit}`, { method: 'GET' });
+  return response.sales || [];
 }
