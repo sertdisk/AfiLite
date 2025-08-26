@@ -1,0 +1,373 @@
+{
+  "info": {
+    "name": "AfiLite API",
+    "description": "AfiLite Influencer Marketing Platform API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "login"]
+            }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Influencer Applications",
+      "item": [
+        {
+          "name": "Create Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Ahmet Yılmaz\",\n  \"email\": \"ahmet@example.com\",\n  \"phone\": \"+905551234567\",\n  \"social_media\": [\"instagram.com/ahmetyilmaz\", \"tiktok.com/@ahmetyilmaz\"],\n  \"followers\": 15000,\n  \"iban\": \"TR330006100519786457841326\",\n  \"tax_type\": \"individual\",\n  \"about\": \"Moda ve lifestyle içerik üreticisiyim\",\n  \"message\": \"AfiLite ile çalışmak istiyorum\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/apply",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "apply"]
+            }
+          }
+        },
+        {
+          "name": "List Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/apply",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "apply"]
+            }
+          }
+        },
+        {
+          "name": "Update Application Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/apply/:id/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "apply", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Discount Codes",
+      "item": [
+        {
+          "name": "Create Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"AHMET15\",\n  \"discount_percentage\": 15,\n  \"influencer_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/codes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "codes"]
+            }
+          }
+        },
+        {
+          "name": "List Codes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/codes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "codes"]
+            }
+          }
+        },
+        {
+          "name": "Get Code Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/codes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "codes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Code",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"AHMET20\",\n  \"discount_percentage\": 20\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/codes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "codes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Code",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/codes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "codes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Record Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"AHMET15\",\n  \"total_amount\": 150.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sale",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sale"]
+            }
+          }
+        },
+        {
+          "name": "List Sales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sales"]
+            }
+          }
+        },
+        {
+          "name": "Sales Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/sales/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sales", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Balance",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance/:influencer_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "balance", ":influencer_id"],
+              "variable": [
+                {
+                  "key": "influencer_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Balance History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/balance/:influencer_id/history",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "balance", ":influencer_id", "history"],
+              "variable": [
+                {
+                  "key": "influencer_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
