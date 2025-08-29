@@ -105,7 +105,7 @@ export async function PATCH(req: NextRequest) {
 
     const payload = await req.text();
     let json: any = {};
-    try { json = JSON.parse(payload || '{}'); } catch {}
+    try { json = JSON.parse(payload || '{}'); } catch (error) { console.error(error); }
 
     // Hafif UI doğrulamaları (opsiyonel alanlar geldi ise kontrol)
     if (json.name !== undefined && (typeof json.name !== 'string' || json.name.trim().length < 2)) {
@@ -115,7 +115,7 @@ export async function PATCH(req: NextRequest) {
       return new Response(JSON.stringify({ message: 'Geçerli bir email adresi giriniz.' }), { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
     if (json.website !== undefined && json.website) {
-      try { new URL(json.website); } catch {
+      try { new URL(json.website); } catch (error) { console.error(error); 
         return new Response(JSON.stringify({ message: 'Geçerli bir website adresi giriniz.' }), { status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
       }
     }
@@ -157,7 +157,7 @@ export async function PATCH(req: NextRequest) {
       try {
         const maybe = JSON.parse(text || '{}');
         msg = maybe?.message || maybe?.error || msg;
-      } catch {}
+      } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Influencer güncelleme başarısız.' }), {
         status: res.status,
         headers: { 'Content-Type': 'application/json; charset=utf-8' },

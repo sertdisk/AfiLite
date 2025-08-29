@@ -63,11 +63,11 @@ export default function AdminCommissionsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         throw new Error(msg || 'Komisyon listesi alınamadı');
       }
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch {}
+            try { json = JSON.parse(text || '[]'); } catch (error) { console.error(error); json = []; }
       const list: any[] = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : json?.commissions || []);
       setRows((list || []).map((r: any) => ({
         id: Number(r?.id),
@@ -121,7 +121,7 @@ export default function AdminCommissionsPage() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
-    } catch {}
+    } catch (error) { console.error(error); }
   }
 
   async function createCommission(e: React.FormEvent<HTMLFormElement>) {
@@ -148,16 +148,15 @@ export default function AdminCommissionsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         setCreateErr(msg || 'Komisyon ekleme başarısız.');
         return;
       }
       setCreateMsg('Komisyon eklendi.');
       setNInfluencerId(''); setNCode(''); setNPct(40); setNActive(true);
       fetchList();
-    } catch {
-      setCreateErr('Beklenmeyen bir hata oluştu.');
-    } finally {
+    } catch (error) { console.error(error); }
+    finally {
       setCreating(false);
     }
   }
@@ -183,15 +182,14 @@ export default function AdminCommissionsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         alert(msg || 'Komisyon güncelleme başarısız.');
         return;
       }
       setEditingId(null);
       fetchList();
-    } catch {
-      alert('Beklenmeyen bir hata oluştu.');
-    } finally {
+    } catch (error) { console.error(error); }
+    finally {
       setSavingEdit(false);
     }
   }

@@ -68,11 +68,11 @@ export default function AdminPayoutsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         throw new Error(msg || 'Ödeme listesi alınamadı');
       }
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch {}
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
       const list: any[] = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : json?.payouts || []);
       setRows((list || []).map((r: any) => ({
         id: Number(r?.id),
@@ -129,7 +129,7 @@ export default function AdminPayoutsPage() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
-    } catch {}
+    } catch (error) { console.error(error); }
   }
 
   async function createPayout(e: React.FormEvent<HTMLFormElement>) {
@@ -158,16 +158,15 @@ export default function AdminPayoutsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         setCreateErr(msg || 'Ödeme oluşturma başarısız.');
         return;
       }
       setCreateMsg('Ödeme oluşturuldu.');
       setMInfluencerId(''); setMAmount(''); setMIban(''); setMNote(''); setMStatus('pending');
       fetchList();
-    } catch {
-      setCreateErr('Beklenmeyen bir hata oluştu.');
-    } finally {
+    } catch (error) { console.error(error); }
+    finally {
       setCreating(false);
     }
   }
@@ -183,14 +182,12 @@ export default function AdminPayoutsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         alert(msg || 'Durum güncelleme başarısız.');
         return;
       }
       fetchList();
-    } catch {
-      alert('Beklenmeyen bir hata oluştu.');
-    }
+    } catch (error) { console.error(error); }
   }
 
   return (

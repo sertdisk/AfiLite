@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   try {
     const bodyText = await req.text();
     let json: any = {};
-    try { json = JSON.parse(bodyText || '{}'); } catch {}
+    try { json = JSON.parse(bodyText || '{}'); } catch (error) { console.error(error); }
     const cookieHeader = buildCookieHeader();
     const url = `${BACKEND_ORIGIN}/api/v1/sales`;
     const baseHeaders = passThroughHeaders();
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     const text = await res.text();
     if (!res.ok) {
       let msg = text;
-      try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+      try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Satış oluşturma başarısız.' }), { status: res.status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
     return new Response(text, { status: res.status, headers: { 'Content-Type': contentType } });

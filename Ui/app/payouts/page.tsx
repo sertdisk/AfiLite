@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type PayoutRow = {
   id: number | string;
@@ -64,7 +64,7 @@ export default function PayoutsListPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Ödemeler alınamadı.');
         setRows([]);
         setTotal(null);
@@ -72,7 +72,7 @@ export default function PayoutsListPage() {
       }
 
       let json: ListResponse = [];
-      try { json = JSON.parse(text || '[]'); } catch { json = []; }
+      try { json = JSON.parse(text || '[]'); } catch (error) { console.error(error); }
 
       if (Array.isArray(json)) {
         setRows(json || []);

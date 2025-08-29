@@ -23,6 +23,8 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
       'payouts.note',
       'payouts.created_at',
       'payouts.updated_at',
+      'payouts.balance_before', // Eklendi
+      'payouts.balance_after', // Eklendi
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email'
     )
@@ -58,7 +60,7 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
   const [{ count }] = await totalQuery;
   
   res.json({
-    payouts,
+    items: payouts, // Frontend ile uyum için `items` kullanılıyor
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -70,7 +72,7 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
 
 // POST /payouts - Yeni ödeme oluştur (Admin)
 router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { influencerId, amount, iban, note, status = 'pending' } = req.body;
+  const { influencerId, amount, iban, note, status = 'completed' } = req.body; // Değiştirildi
   
   if (!influencerId || !amount || !iban) {
     const err = new Error('Influencer ID, amount ve IBAN zorunludur');
@@ -78,21 +80,37 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) 
     throw err;
   }
   
-  // Influencer kontrolü
   const influencer = await knex('influencers').where('id', influencerId).first();
   if (!influencer) {
     const err = new Error('Influencer bulunamadı');
     err.status = 404;
     throw err;
   }
-  
+
+  // Bakiye hesaplaması
+  const { total_commission } = await knex('sales')
+    .join('discount_codes', 'sales.code', 'discount_codes.code')
+    .where('discount_codes.influencer_id', influencerId)
+    .sum('sales.commission as total_commission')
+    .first();
+
+  const { total_payouts } = await knex('payouts')
+    .where({ influencer_id: influencerId, status: 'completed' })
+    .sum('amount as total_payouts')
+    .first();
+
+  const balance_before = (total_commission || 0) - (total_payouts || 0);
+  const balance_after = balance_before - Number(amount);
+
   // Ödeme oluştur
   const [id] = await knex('payouts').insert({
     influencer_id: influencerId,
     amount: Number(amount),
     iban: String(iban).trim(),
     note: note || null,
-    status: String(status).trim()
+    status: String(status).trim(),
+    balance_before,
+    balance_after
   });
   
   const payout = await knex('payouts')

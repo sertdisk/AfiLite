@@ -1,4 +1,10 @@
 module.exports = {
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('oracledb', 'pg-query-stream', 'knex');
+    }
+    return config;
+  },
   async rewrites() {
     return [
       {
@@ -11,4 +17,4 @@ module.exports = {
       }
     ]
   }
-}
+};

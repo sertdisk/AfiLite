@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 type CodeDetail = {
@@ -61,7 +61,7 @@ export default function CodeDetailPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Kod detayları alınamadı.');
         setLoading(false);
         return;
@@ -69,7 +69,7 @@ export default function CodeDetailPage() {
       let json: any = {};
       try {
         json = JSON.parse(text || '{}');
-      } catch {}
+      } catch (error) { console.error(error); }
       const detail = normalizeDetail(json?.code || json);
       setData(detail);
 
@@ -132,7 +132,7 @@ export default function CodeDetailPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Kod güncelleme başarısız.');
         return;
       }
@@ -160,7 +160,7 @@ export default function CodeDetailPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Kod silme başarısız.');
         setDeleting(false);
         return;

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const cookieHeader = buildCookieHeader();
     const payload = await req.text();
     let json: any = {};
-    try { json = JSON.parse(payload || '{}'); } catch {}
+    try { json = JSON.parse(payload || '{}'); } catch (error) { console.error(error); }
     const url = `${BACKEND_ORIGIN}/api/v1/payouts`;
     const res = await fetch(url, {
       method: 'POST',
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const text = await res.text();
     if (!res.ok) {
       let msg = text;
-      try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+      try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Ödeme oluşturma başarısız.' }), { status: res.status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
     return new Response(text, { status: res.status, headers: { 'Content-Type': contentType } });

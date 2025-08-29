@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   try {
     const payload = await req.text();
     let json: any = {};
-    try { json = JSON.parse(payload || '{}'); } catch {}
+    try { json = JSON.parse(payload || '{}'); } catch (error) { console.error(error); }
 
     const influencer_id = Number(json?.influencer_id);
     const discount_percentage = Number(json?.discount_percentage);
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       try {
         const maybe = JSON.parse(text || '{}');
         msg = maybe?.message || maybe?.error || msg;
-      } catch {}
+      } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Kod oluşturma başarısız.' }), {
         status: res.status,
         headers: { 'Content-Type': 'application/json; charset=utf-8' },

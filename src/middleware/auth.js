@@ -13,44 +13,52 @@ const authenticateToken = async (req, res, next) => {
   console.log('[AUTH DEBUG] authenticateToken middleware çalışıyor, URL:', req.url); // DEBUG LOG
   console.log('[AUTH DEBUG] Tüm headerlar:', req.headers); // DEBUG LOG
   try {
-    // Öncelik: Authorization: Bearer
-    const authHeader = req.headers['authorization'];
-    let token = authHeader && authHeader.split(' ')[0] === 'Bearer'
-      ? authHeader.split(' ')[1]
-      : undefined;
+    let token = null; // Initialize token to null
 
-    // Fallback: HttpOnly cookie "jwt" veya "jwt_influencer"
+    // 1. Try to get token from Authorization header (Bearer token)
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+      console.log('[AUTH DEBUG] Token from Authorization header:', token);
+    }
+
+    // 2. If no token from Authorization header, try to get it from req.cookies
+    if (!token && req.cookies) {
+      token = req.cookies.jwt_admin || req.cookies.jwt_influencer;
+      if (token) {
+        console.log('[AUTH DEBUG] Token from req.cookies:', token);
+      } else {
+        console.log('[AUTH DEBUG] No token found in req.cookies.jwt_admin or req.cookies.jwt_influencer.');
+      }
+    }
+
+    // 3. Fallback: If still no token, manually parse the Cookie header
     if (!token) {
-      // Express'te cookie-parser yoksa, header'dan manuel çekelim
-      const rawCookie = req.headers['cookie'] || '';
-      console.log('[AUTH DEBUG] Raw cookie header:', rawCookie); // DEBUG LOG
+      const rawCookieHeader = req.headers['cookie'] || '';
+      console.log('[AUTH DEBUG] Raw Cookie header:', rawCookieHeader);
+      const cookieParts = rawCookieHeader.split(';').map(s => s.trim());
       
-      // Tüm olası JWT cookie isimlerini kontrol et
-      const jwtCookieNames = ['jwt', 'jwt_influencer', 'jwt_admin'];
-      for (const cookieName of jwtCookieNames) {
-        const cookie = rawCookie
-          .split(';')
-          .map(s => s.trim())
-          .find(s => s.startsWith(`${cookieName}=`));
-        
-        if (cookie) {
-          token = cookie.split('=')[1];
-          console.log(`[AUTH DEBUG] ${cookieName} cookie bulundu:`, token); // DEBUG LOG
-          // Güvenlik: boş string olmasın
-          if (token === '') token = undefined;
-          if (token) break; // Token bulundu, döngüden çık
+      const adminCookie = cookieParts.find(part => part.startsWith('jwt_admin='));
+      if (adminCookie) {
+        token = adminCookie.split('=')[1];
+        console.log('[AUTH DEBUG] Token manually parsed from jwt_admin cookie:', token);
+      }
+
+      if (!token) {
+        const influencerCookie = cookieParts.find(part => part.startsWith('jwt_influencer='));
+        if (influencerCookie) {
+          token = influencerCookie.split('=')[1];
+          console.log('[AUTH DEBUG] Token manually parsed from jwt_influencer cookie:', token);
         }
       }
-      
-      // Ek hata ayıklama: cookie bulunamadıysa detaylı log
+
       if (!token) {
-        console.log('[AUTH DEBUG] Cookie bulunamadı. Mevcut headerlar:', Object.keys(req.headers));
-        console.log('[AUTH DEBUG] Cookie header içeriği:', req.headers['cookie']);
+        console.log('[AUTH DEBUG] No token found after manual parsing.');
       }
     }
 
     if (!token) {
-      console.log('[AUTH DEBUG] Token bulunamadı'); // DEBUG LOG
+      console.log('[AUTH DEBUG] Final check: Token is still null/undefined.');
       return res.status(401).json({ error: 'Access token gerekli' });
     }
 
@@ -89,7 +97,7 @@ const authenticateToken = async (req, res, next) => {
     user.role = role || user.role;
   
     req.user = user;
-    console.log('[AUTH DEBUG] Auth başarılı, user:', user); // DEBUG LOG
+    console.log('[AUTH DEBUG] Auth başarılı, user:', user);
     next();
   } catch (error) {
     console.log('[AUTH DEBUG] Auth hatası:', error); // DEBUG LOG

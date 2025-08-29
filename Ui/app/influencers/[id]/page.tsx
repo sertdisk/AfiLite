@@ -1,7 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import {
+  getAdminInfluencerDetail,
+  patchAdminInfluencerDetail,
+  getAdminInfluencerBalance,
+  getInfluencerBalanceHistory,
+} from '@/lib/api';
 
 /* Balance tipleri dosyada tekil tanımlı olmalı — yinelenen tanımları kaldırıyoruz */
 type BalanceSummary = {
@@ -51,11 +57,7 @@ function toArray(val: any): string[] | undefined {
     try {
       const maybe = JSON.parse(val);
       if (Array.isArray(maybe)) return maybe as string[];
-    } catch {
-      // fallthrough
-      const parts = val.split(',').map((s) => s.trim()).filter(Boolean);
-      return parts.length ? parts : undefined;
-    }
+    } catch (error) { console.error(error); }
   }
   return undefined;
 }
@@ -130,7 +132,7 @@ export default function InfluencerDetailPage() {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Geçerli bir email adresi giriniz.';
     if (!socialHandle || socialHandle.trim().length < 2) return 'Sosyal hesap bilgisi gerekli.';
     if (website) {
-      try { new URL(website); } catch { return 'Geçerli bir website adresi giriniz.'; }
+      try { new URL(website); } catch (error) { console.error(error); return 'Geçerli bir website adresi giriniz.'; }
     }
     if (!['pending', 'approved', 'rejected', 'suspended'].includes(status)) return 'Geçersiz status.';
     return null;
@@ -263,7 +265,7 @@ export default function InfluencerDetailPage() {
                 onChange={(e) => setChannels(e.target.value)}
                 placeholder="instagram, tiktok, youtube"
               />
-              <p className="text-xs text-gray-500 mt-1">Örn: instagram, tiktok (gönderimde ['instagram', 'tiktok'] olarak çevrilir)</p>
+              <p className="text-xs text-gray-500 mt-1">Örn: instagram, tiktok (gönderimde [&apos;instagram&apos;, &apos;tiktok&apos;] olarak çevrilir)</p>
             </div>
             <div>
               <label htmlFor="country" className="block text-sm mb-1">Ülke</label>
@@ -328,7 +330,7 @@ export default function InfluencerDetailPage() {
       {!loading && !error && tab === 'codes' && (
         <section className="space-y-3">
           <div className="text-sm text-gray-600">
-            Kodlar (stub): Bu sekmede ilgili influencer'a ait kodlar listelenecektir.
+            Kodlar (stub): Bu sekmede ilgili influencer&apos;a ait kodlar listelenecektir.
           </div>
           <a
             href="/codes/new"
@@ -375,6 +377,7 @@ function BalanceSection({ influencerId }: { influencerId: string }) {
   }
 
   useEffect(() => {
+    if (!influencerId) return;
     const ctrl = new AbortController();
     fetchAll(ctrl);
     return () => ctrl.abort();
@@ -436,8 +439,8 @@ function BalanceSection({ influencerId }: { influencerId: string }) {
                         {Number(m.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         {summary?.currency ? ` ${summary.currency}` : ''}
                       </td>
-                      <td className="px-3 py-2">{m.description || '—'}</td>
-                      <td className="px-3 py-2">{m.created_at ? new Date(m.created_at).toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2">{m.description || '&mdash;'}</td>
+                      <td className="px-3 py-2">{m.created_at ? new Date(m.created_at).toLocaleString() : '&mdash;'}</td>
                     </tr>
                   ))}
                 </tbody>

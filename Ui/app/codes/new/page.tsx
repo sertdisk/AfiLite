@@ -6,7 +6,7 @@
    - Başarıyla oluşturulunca /codes listesine yönlendirir
 */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function NewCodePage() {
@@ -45,7 +45,7 @@ export default function NewCodePage() {
         return;
       }
       let json: any = [];
-      try { json = JSON.parse(text || '[]'); } catch { json = []; }
+      try { json = JSON.parse(text || '[]'); } catch (error) { console.error(error); json = []; }
       const list = Array.isArray(json) ? json : (json?.influencers || []);
       const mapped = (list || []).map((r: any) => ({
         id: Number(r?.id),
@@ -54,9 +54,8 @@ export default function NewCodePage() {
         social_handle: r?.social_handle,
       }));
       setOptions(mapped);
-    } catch {
-      setOptions([]);
-    } finally {
+    } catch (error) { console.error(error); }
+    finally {
       setLoadingSearch(false);
     }
   }
@@ -108,7 +107,7 @@ export default function NewCodePage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Kod oluşturma başarısız.');
         return;
       }

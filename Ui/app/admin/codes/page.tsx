@@ -1,428 +1,376 @@
-/* /admin/codes — Pending onay ve kod ekleme alanı */
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-type PendingCode = {
-  id: number;
+interface Code {
+  id: string;
+  influencer_id: string;
   code: string;
-  influencer_id?: number;
+  discount_percentage: number;
+  commission_pct: number;
+  status: string; // Assuming a status field exists, e.g., 'pending', 'approved'
+  influencer_name?: string; // Assuming these fields will be available from the backend
   influencer_email?: string;
-  created_at?: string;
-  commission_pct?: number; // %
-};
+  brand_name?: string;
+  is_active: boolean;
+  created_at: string;
+}
 
-type InfluencerOption = { id: number; name: string; email?: string; social_handle?: string };
+const AdminCodesPage = () => {
+  const [pendingCodes, setPendingCodes] = useState<Code[]>([]);
+  const [loadingPending, setLoadingPending] = useState<boolean>(true);
+  const [errorPending, setErrorPending] = useState<string | null>(null);
+  const [approvalInputs, setApprovalInputs] = useState<{ [key: string]: { discount: number; commission: number } }>({});
 
-export default function AdminCodesPage() {
-  const [pendingCodes, setPendingCodes] = useState<PendingCode[] | null>(null);
-  const [codesError, setCodesError] = useState<string | null>(null);
+  const [allCodes, setAllCodes] = useState<Code[]>([]);
+  const [loadingAllCodes, setLoadingAllCodes] = useState<boolean>(true);
+  const [errorAllCodes, setErrorAllCodes] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [totalCodes, setTotalCodes] = useState<number>(0);
 
-  // Yeni kod formu
-  const [influencerId, setInfluencerId] = useState('');
-  const [code, setCode] = useState('');
-  const [discountPct, setDiscountPct] = useState(10); // varsayılan %10
-  const [commissionPct, setCommissionPct] = useState(40); // varsayılan %40
-  const [isActive, setIsActive] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [formMsg, setFormMsg] = useState<string | null>(null);
-  const [formErr, setFormErr] = useState<string | null>(null);
-
-  // Autocomplete state (hesap adı ve ad-soyad ile arama)
-  const [query, setQuery] = useState('');
-  const [options, setOptions] = useState<InfluencerOption[]>([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
-  // Otomatik dolacak alanlar
-  const [influencerHandle, setInfluencerHandle] = useState('');
-  const [influencerFullName, setInfluencerFullName] = useState('');
-
-  // Pendingleri çek
   useEffect(() => {
-    let ignore = false;
-    console.log('[DEBUG] useEffect başladı, ignore:', ignore);
-    (async () => {
+    const fetchPendingCodes = async () => {
       try {
-        console.log('[DEBUG] API çağrısı yapılıyor: /api/codes?status=pending');
-        const res = await fetch('/api/codes?status=pending', { credentials: 'include', cache: 'no-store' });
-        const text = await res.text();
-        console.log('[DEBUG] API yanıtı:', res.status, res.statusText, 'Body:', text);
-        if (!res.ok) {
-          if (!ignore) {
-            console.log('[DEBUG] HTTP hata, ignore:', ignore);
-            setPendingCodes([]);
-            setCodesError(`HTTP ${res.status}: ${res.statusText}`);
-          }
-          return;
+        setLoadingPending(true);
+        const response = await fetch('/api/codes?status=pending'); // Assuming backend supports status=pending
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        let json: any = {};
-        try { json = JSON.parse(text || '{}'); } catch { json = {}; }
-        const arr: PendingCode[] = Array.isArray(json?.codes) ? json.codes : [];
-        console.log('[DEBUG] Parse edilen kodlar:', arr);
-        if (!ignore) {
-          console.log('[DEBUG] State güncelleniyor, ignore:', ignore);
-          setPendingCodes(arr);
-          setCodesError(null);
-        }
-      } catch (err: any) {
-        console.log('[DEBUG] Catch bloğu, ignore:', ignore);
-        if (!ignore) {
-          setPendingCodes([]);
-          setCodesError(err?.message || 'Beklenmeyen bir hata oluştu');
-        }
+        const data: Code[] = await response.json();
+        setPendingCodes(data);
+        // Initialize approval inputs with default values
+        const initialInputs: { [key: string]: { discount: number; commission: number } } = {};
+        data.forEach(code => {
+          initialInputs[code.id] = { discount: 10, commission: 40 }; // Default values
+        });
+        setApprovalInputs(initialInputs);
+      } catch (e: any) {
+        setErrorPending(e.message || 'Failed to fetch pending codes.');
+      } finally {
+        setLoadingPending(false);
       }
-    })();
-    return () => {
-      console.log('[DEBUG] useEffect cleanup, ignore true yapılıyor');
-      ignore = true;
     };
+
+    fetchPendingCodes();
   }, []);
 
-  async function approve(codeRow: PendingCode) {
-    const dfltDiscount = 10;
-    const dfltCommission = 40;
-    const discountStr = prompt(`İndirimi onayla — İndirim % (varsayılan ${dfltDiscount})`, String(dfltDiscount));
-    if (discountStr === null) return;
-    const commissionStr = prompt(`İndirimi onayla — Komisyon % (varsayılan ${dfltCommission})`, String(dfltCommission));
-    if (commissionStr === null) return;
-    const discount_percentage = Number(discountStr);
-    const commission_pct = Number(commissionStr);
-    if (!(discount_percentage >= 1 && discount_percentage <= 100)) {
-      alert('İndirim yüzdesi 1-100 arasında olmalıdır.');
+  useEffect(() => {
+    const fetchAllCodes = async () => {
+      try {
+        setLoadingAllCodes(true);
+        const params = new URLSearchParams();
+        params.append('page', currentPage.toString());
+        params.append('limit', itemsPerPage.toString());
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+
+        const response = await fetch(`/api/codes?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setAllCodes(data.codes); // Assuming the API returns { codes: [], total: number }
+        setTotalCodes(data.total);
+      } catch (e: any) {
+        setErrorAllCodes(e.message || 'Failed to fetch all codes.');
+      } finally {
+        setLoadingAllCodes(false);
+      }
+    };
+
+    fetchAllCodes();
+  }, [currentPage, itemsPerPage, startDate, endDate]);
+
+  const handleInputChange = (codeId: string, field: 'discount' | 'commission', value: string) => {
+    setApprovalInputs(prev => ({
+      ...prev,
+      [codeId]: {
+        ...prev[codeId],
+        [field]: Number(value),
+      },
+    }));
+  };
+
+  const handleApprove = async (codeId: string) => {
+    const { discount, commission } = approvalInputs[codeId];
+    if (isNaN(discount) || isNaN(commission) || discount < 1 || discount > 100 || commission < 1 || commission > 100) {
+      alert('Please enter valid discount (1-100) and commission (1-100) percentages.');
       return;
     }
-    if (!(commission_pct >= 1 && commission_pct <= 100)) {
-      alert('Komisyon yüzdesi 1-100 arasında olmalıdır.');
-      return;
-    }
+
     try {
-      const res = await fetch(`/api/codes/${encodeURIComponent(String(codeRow.id))}`, {
+      const response = await fetch(`/api/codes/${codeId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          is_active: true,
-          discount_percentage,
-          commission_pct
-        })
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
-        alert(msg || 'Kod onaylama başarısız.');
-        return;
-      }
-      alert('Kod onaylandı.');
-      // local listeden düş
-      setPendingCodes((prev) => (prev || []).filter((p) => p.id !== codeRow.id));
-    } catch {
-      alert('Beklenmeyen bir hata oluştu.');
-    }
-  }
-
-  async function searchInfluencers(q: string) {
-    if (!q || q.trim().length < 2) {
-      setOptions([]);
-      return;
-    }
-    setLoadingSearch(true);
-    try {
-      const params = new URLSearchParams({ q, limit: '20', page: '1' });
-      const res = await fetch(`/api/influencers?${params.toString()}`, {
-        method: 'GET',
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        setOptions([]);
-        return;
-      }
-      let json: any = [];
-      try { json = JSON.parse(text || '[]'); } catch { json = []; }
-      const list = Array.isArray(json) ? json : (json?.influencers || []);
-      const mapped: InfluencerOption[] = (list || []).map((r: any) => ({
-        id: Number(r?.id),
-        name: String(r?.name || ''),
-        email: r?.email,
-        social_handle: r?.social_handle,
-      }));
-      setOptions(mapped);
-    } catch {
-      setOptions([]);
-    } finally {
-      setLoadingSearch(false);
-    }
-  }
-
-  function onPickInfluencer(opt: InfluencerOption) {
-    setInfluencerId(String(opt.id));
-    setQuery(`${opt.name}${opt.email ? ' • ' + opt.email : ''}${opt.social_handle ? ' • @' + opt.social_handle : ''}`);
-    // Forma otomatik doldurma
-    setInfluencerHandle(opt.social_handle ? `@${opt.social_handle}` : '');
-    setInfluencerFullName(opt.name || '');
-    setShowOptions(false);
-  }
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setFormErr(null);
-    setFormMsg(null);
-    const inflIdNum = Number(influencerId);
-    if (!influencerId || Number.isNaN(inflIdNum) || inflIdNum <= 0) {
-      setFormErr('Lütfen üstten influencer seçin (ID otomatik dolar).');
-      return;
-    }
-    if (!(discountPct >= 1 && discountPct <= 100)) {
-      setFormErr('İndirim yüzdesi 1-100 arasında olmalıdır.');
-      return;
-    }
-    if (!(commissionPct >= 1 && commissionPct <= 100)) {
-      setFormErr('Komisyon yüzdesi 1-100 arasında olmalıdır.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          influencer_id: inflIdNum,
-          code: code || undefined,
-          discount_percentage: discountPct,
-          commission_pct: commissionPct,
-          is_active: isActive,
+          discount_percentage: discount,
+          commission_pct: commission,
+          status: 'approved', // Assuming backend updates status
         }),
       });
-      const text = await res.text();
-      if (!res.ok) {
-        let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
-        setFormErr(msg || 'Kod oluşturma başarısız.');
-        return;
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      setFormMsg('Kod oluşturuldu.');
-      setCode('');
-      setInfluencerId('');
-      setQuery('');
-      // pending list de değişmiş olabilir, tazele
-      try {
-        const r2 = await fetch('/api/codes?status=pending', { credentials: 'include', cache: 'no-store' });
-        const t2 = await r2.text();
-        if (r2.ok) {
-          let j2: any = {};
-          try { j2 = JSON.parse(t2 || '{}'); } catch { j2 = {}; }
-          const arr2: PendingCode[] = Array.isArray(j2?.codes) ? j2.codes : [];
-          setPendingCodes(arr2);
-        }
-      } catch {}
-    } catch {
-      setFormErr('Beklenmeyen bir hata oluştu.');
-    } finally {
-      setSubmitting(false);
+
+      // Remove the approved code from the pending list and refresh all codes
+      setPendingCodes(prev => prev.filter(code => code.id !== codeId));
+      // Trigger re-fetch of all codes to update the list
+      // This is a simple way to re-fetch, more sophisticated methods might involve updating state directly
+      setCurrentPage(1); // Reset to first page to ensure fresh data
+      alert('Code approved successfully!');
+    } catch (e: any) {
+      alert(`Failed to approve code: ${e.message}`);
     }
-  }
+  };
+
+  const handleCodeUpdate = async (code: Code) => {
+    try {
+      const response = await fetch(`/api/codes/${code.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          discount_percentage: code.discount_percentage,
+          commission_pct: code.commission_pct,
+          is_active: code.is_active,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      alert('Code updated successfully!');
+    } catch (e: any) {
+      alert(`Failed to update code: ${e.message}`);
+    }
+  };
+
+  const handleExport = () => {
+    // Implement export logic here
+    alert('Export functionality not yet implemented.');
+  };
+
+  const totalPages = Math.ceil(totalCodes / itemsPerPage);
+
+  // Group codes by influencer
+  const groupedCodes = allCodes.reduce((acc, code) => {
+    const influencerKey = code.influencer_id; // Assuming influencer_id is unique for each influencer
+    if (!acc[influencerKey]) {
+      acc[influencerKey] = { influencer_name: code.influencer_name, influencer_email: code.influencer_email, brand_name: code.brand_name, codes: [] };
+    }
+    acc[influencerKey].codes.push(code);
+    return acc;
+  }, {} as { [key: string]: { influencer_name?: string; influencer_email?: string; brand_name?: string; codes: Code[] } });
 
   return (
-    <main className="space-y-6 p-4 sm:p-6">
-      <h1 className="text-2xl font-semibold">Kodlar</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Admin Codes Management</h1>
 
-      {/* Onay bekleyen indirim kodları (varsa) */}
-      {codesError ? (
-        <div className="rounded-md border card-like p-4 bg-red-50 text-red-700">
-          <h2 className="text-lg font-semibold mb-3">Hata</h2>
-          <p>{codesError}</p>
-        </div>
-      ) : (pendingCodes && pendingCodes.length > 0) ? (
-        <section className="rounded-md border card-like p-4">
-          <h2 className="text-lg font-semibold mb-3">Onay Bekleyen İndirim Kodları</h2>
-          <table className="table-admin text-sm">
-            <thead>
-              <tr>
-                <th>Kod</th>
-                <th>Influencer</th>
-                <th>Oluşturulma</th>
-                <th>Komisyon (%)</th>
-                <th>İşlem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingCodes.map((c) => (
-                <tr key={c.id} className="hover:bg-white/5">
-                  <td>{c.code}</td>
-                  <td>{c.influencer_email ?? c.influencer_id ?? '-'}</td>
-                  <td>{c.created_at ? new Date(c.created_at).toLocaleString() : '-'}</td>
-                  <td>{typeof c.commission_pct === 'number' ? c.commission_pct : '-'}</td>
-                  <td>
-                    <button
-                      className="rounded-md border px-2 py-1 text-xs hover:bg-white/10"
-                      onClick={() => approve(c)}
-                    >
-                      Onayla
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
-
-      {/* İndirim kodu ekleme alanı (autocomplete ile) */}
-      <section className="rounded-md border card-like p-4">
-        <h2 className="text-lg font-semibold mb-3">Yeni Kod Ekle</h2>
-        <form onSubmit={onSubmit} className="space-y-4 max-w-xl">
-          {/* Influencer arama (hesap adı ve ad/soyad ile) */}
-          <div className="space-y-2">
-            <label className="block text-sm" htmlFor="influencer_search">Influencer</label>
-            <div className="relative">
-              <input
-                id="influencer_search"
-                type="text"
-                value={query}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setQuery(val);
-                  setShowOptions(true);
-                  if (val.trim().length >= 2) searchInfluencers(val);
-                  else setOptions([]);
-                }}
-                onFocus={() => {
-                  setShowOptions(true);
-                  if (query.trim().length >= 2) searchInfluencers(query);
-                }}
-                placeholder="Hesap adı (@kullanici) veya Ad Soyad ile ara (min 2 karakter)"
-                className="w-full rounded-md border px-3 py-2"
-              />
-              {showOptions && (options.length > 0 || loadingSearch) && (
-                <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow">
-                  {loadingSearch && (
-                    <div className="px-3 py-2 text-sm text-gray-500">Aranıyor…</div>
-                  )}
-                  {!loadingSearch && options.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                      onClick={() => onPickInfluencer(opt)}
-                    >
-                      <div className="font-medium">{opt.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {opt.email || '—'} {opt.social_handle ? ` • @${opt.social_handle}` : ''}
-                      </div>
-                    </button>
-                  ))}
-                  {!loadingSearch && options.length === 0 && query.trim().length >= 2 && (
-                    <div className="px-3 py-2 text-sm text-gray-500">Sonuç yok</div>
-                  )}
+      {/* Pending Codes Section */}
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold mb-2">Pending Codes</h2>
+        {loadingPending && <p>Loading pending codes...</p>}
+        {errorPending && <p className="text-red-500">{errorPending}</p>}
+        {!loadingPending && !errorPending && pendingCodes.length === 0 && (
+          <div className="bg-white p-4 rounded shadow">
+            <p>No pending codes to display.</p>
+          </div>
+        )}
+        {!loadingPending && !errorPending && pendingCodes.length > 0 && (
+          <div className="bg-white p-4 rounded shadow">
+            {pendingCodes.map(code => (
+              <div key={code.id} className="border-b pb-4 mb-4 last:border-b-0 last:pb-0 last:mb-0">
+                <p><strong>Code:</strong> {code.code}</p>
+                <p><strong>Influencer:</strong> {code.influencer_name || 'N/A'} ({code.influencer_email || 'N/A'})</p>
+                <p><strong>Brand:</strong> {code.brand_name || 'N/A'}</p>
+                <div className="flex items-center space-x-4 mt-2">
+                  <label>
+                    Discount (%):
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={approvalInputs[code.id]?.discount || ''}
+                      onChange={(e) => handleInputChange(code.id, 'discount', e.target.value)}
+                      className="ml-2 p-1 border rounded w-20"
+                    />
+                  </label>
+                  <label>
+                    Commission (%):
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={approvalInputs[code.id]?.commission || ''}
+                      onChange={(e) => handleInputChange(code.id, 'commission', e.target.value)}
+                      className="ml-2 p-1 border rounded w-20"
+                    />
+                  </label>
+                  <button
+                    onClick={() => handleApprove(code.id)}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                  >
+                    Approve
+                  </button>
                 </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs mb-1" htmlFor="influencer_handle">Influencer Hesap Adı (otomatik)</label>
-                <input
-                  id="influencer_handle"
-                  type="text"
-                  className="w-full rounded-md border px-3 py-2 bg-gray-50 text-gray-700"
-                  value={influencerHandle}
-                  readOnly
-                />
               </div>
-              <div>
-                <label className="block text-xs mb-1" htmlFor="influencer_fullname">Influencer Ad Soyad (otomatik)</label>
-                <input
-                  id="influencer_fullname"
-                  type="text"
-                  className="w-full rounded-md border px-3 py-2 bg-gray-50 text-gray-700"
-                  value={influencerFullName}
-                  readOnly
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs mb-1" htmlFor="influencer_id">Influencer ID (otomatik)</label>
-              <input
-                id="influencer_id"
-                type="number"
-                className="w-full rounded-md border px-3 py-2 bg-gray-50 text-gray-700"
-                value={influencerId}
-                readOnly
-              />
-              <p className="text-xs text-muted mt-1">Üstteki aramadan seçim yaptığınızda hesap adı, ad-soyad ve ID otomatik dolar.</p>
-            </div>
+            ))}
           </div>
-
-          <div>
-            <label className="block text-sm mb-1" htmlFor="code">Kod (Opsiyonel)</label>
-            <input
-              id="code"
-              type="text"
-              className="w-full rounded-md border px-3 py-2"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="Örn: AHMET15 (boş bırakılırsa otomatik üretilebilir)"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm mb-1" htmlFor="discount_pct">İndirim %</label>
-              <input
-                id="discount_pct"
-                type="number"
-                min={1}
-                max={100}
-                className="w-full rounded-md border px-3 py-2"
-                value={discountPct}
-                onChange={(e) => setDiscountPct(Number(e.target.value))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1" htmlFor="commission_pct">Komisyon %</label>
-              <input
-                id="commission_pct"
-                type="number"
-                min={1}
-                max={100}
-                className="w-full rounded-md border px-3 py-2"
-                value={commissionPct}
-                onChange={(e) => setCommissionPct(Number(e.target.value))}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              id="is_active"
-              type="checkbox"
-              className="h-4 w-4"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-            />
-            <label htmlFor="is_active" className="text-sm">Aktif</label>
-          </div>
-
-          {formErr && <div className="text-sm text-red-500">{formErr}</div>}
-          {formMsg && <div className="text-sm text-emerald-500">{formMsg}</div>}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-[#0f172a] text-white px-4 py-2 text-sm hover:bg-[#1f2937] disabled:opacity-60"
-          >
-            {submitting ? 'Oluşturuluyor…' : 'Oluştur'}
-          </button>
-        </form>
-        <p className="text-xs text-muted mt-2">
-          Varsayılan: İndirim %10, Komisyon %40 — değiştirilebilir.
-        </p>
+        )}
       </section>
-    </main>
+
+      {/* Codes List Section */}
+      <section>
+        <h2 className="text-xl font-semibold mb-2">All Codes</h2>
+        <div className="bg-white p-4 rounded shadow">
+          {/* Filters and Pagination Controls */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex space-x-4">
+              <label>
+                Items per page:
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="ml-2 p-1 border rounded"
+                >
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+              <label>
+                Start Date:
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="ml-2 p-1 border rounded"
+                />
+              </label>
+              <label>
+                End Date:
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="ml-2 p-1 border rounded"
+                />
+              </label>
+            </div>
+            <button
+              onClick={handleExport}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Export
+            </button>
+          </div>
+
+          {loadingAllCodes && <p>Loading all codes...</p>}
+          {errorAllCodes && <p className="text-red-500">{errorAllCodes}</p>}
+          {!loadingAllCodes && !errorAllCodes && Object.keys(groupedCodes).length === 0 && (
+            <p>No codes to display.</p>
+          )}
+          {!loadingAllCodes && !errorAllCodes && Object.keys(groupedCodes).length > 0 && (
+            <div>
+              {Object.entries(groupedCodes).map(([influencerId, data]) => (
+                <div key={influencerId} className="mb-6 border p-4 rounded">
+                  <h3 className="text-lg font-semibold mb-2">Influencer: {data.influencer_name} ({data.influencer_email})</h3>
+                  <p className="mb-2">Brand: {data.brand_name}</p>
+                  <table className="min-w-full bg-white">
+                    <thead>
+                      <tr>
+                        <th className="py-2 px-4 border-b">Code</th>
+                        <th className="py-2 px-4 border-b">Active</th>
+                        <th className="py-2 px-4 border-b">Discount (%)</th>
+                        <th className="py-2 px-4 border-b">Commission (%)</th>
+                        <th className="py-2 px-4 border-b">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.codes.map(code => (
+                        <tr key={code.id}>
+                          <td className="py-2 px-4 border-b">{code.code}</td>
+                          <td className="py-2 px-4 border-b">
+                            <input
+                              type="checkbox"
+                              checked={code.is_active}
+                              onChange={(e) => {
+                                const updatedCode = { ...code, is_active: e.target.checked };
+                                setAllCodes(prev => prev.map(c => c.id === code.id ? updatedCode : c));
+                                handleCodeUpdate(updatedCode);
+                              }}
+                            />
+                          </td>
+                          <td className="py-2 px-4 border-b">
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={code.discount_percentage}
+                              onChange={(e) => {
+                                const updatedCode = { ...code, discount_percentage: Number(e.target.value) };
+                                setAllCodes(prev => prev.map(c => c.id === code.id ? updatedCode : c));
+                              }}
+                              onBlur={() => handleCodeUpdate(code)} // Update on blur
+                              className="w-20 p-1 border rounded"
+                            />
+                          </td>
+                          <td className="py-2 px-4 border-b">
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={code.commission_pct}
+                              onChange={(e) => {
+                                const updatedCode = { ...code, commission_pct: Number(e.target.value) };
+                                setAllCodes(prev => prev.map(c => c.id === code.id ? updatedCode : c));
+                              }}
+                              onBlur={() => handleCodeUpdate(code)} // Update on blur
+                              className="w-20 p-1 border rounded"
+                            />
+                          </td>
+                          <td className="py-2 px-4 border-b">
+                            {/* Add any other actions here if needed */}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loadingAllCodes && !errorAllCodes && totalPages > 1 && (
+            <div className="flex justify-center mt-4 space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   );
-}
+};
+
+export default AdminCodesPage;

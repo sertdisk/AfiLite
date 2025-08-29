@@ -192,7 +192,7 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
 }));
 
 // GET /balance/:influencerId/summary (ADMIN)
-router.get('/balance/:influencerId/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+router.get('/influencer/:influencerId/summary', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
   const { influencerId } = req.params;
   
   // Influencer'ı kontrol et

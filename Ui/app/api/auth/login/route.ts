@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   let payload: { email?: string; password?: string };
   try {
     payload = await req.json();
-  } catch {
+  } catch (error) { console.error(error); 
     console.error('[UI][login] Geçersiz JSON body');
     return NextResponse.json({ message: 'Geçersiz istek gövdesi.' }, { status: 400 });
   }
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       try {
         const maybe = JSON.parse(resText || '{}');
         msg = maybe?.message || maybe?.error || resText;
-      } catch {}
+      } catch (error) { console.error(error); }
       const status = res.status || 500;
       console.error('[UI][login] ← HATA', { status, msg });
       return NextResponse.json({ message: msg || 'Giriş başarısız.' }, { status });

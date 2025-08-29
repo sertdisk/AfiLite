@@ -318,6 +318,97 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Admin için belirli bir influencer'ın detayını getir
+router.get('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const influencer = await knex('influencers').where('id', id).first();
+
+    if (!influencer) {
+      return res.status(404).json({ error: 'Influencer bulunamadı' });
+    }
+
+    const socialAccounts = await knex('influencer_social_accounts').where('influencer_id', id);
+    const paymentAccounts = await knex('influencer_payment_accounts').where('influencer_id', id);
+
+    const responseData = {
+      ...influencer,
+      full_name: influencer.full_name || influencer.name,
+      bio: influencer.about,
+      social_accounts: socialAccounts,
+      payment_accounts: paymentAccounts,
+    };
+
+    return res.json({ influencer: responseData });
+  } catch (err) {
+    console.error('Influencer detayı alınırken hata:', err);
+    return res.status(500).json({ error: 'Influencer detayı alınırken hata oluştu', details: err.message });
+  }
+});
+
+// Admin için belirli bir influencer'ın detayını güncelle
+router.patch('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      full_name,
+      email,
+      social_media, // Frontend'den social_handle olarak geliyor
+      status,
+      niche,
+      country,
+      about, // Frontend'den bio olarak geliyor
+      website,
+      brand_name,
+      channels, // Frontend'den dizi olarak geliyor
+    } = req.body;
+
+    const updates = { updated_at: knex.fn.now() };
+    if (full_name !== undefined) updates.full_name = full_name;
+    if (email !== undefined) updates.email = email;
+    if (social_media !== undefined) updates.social_handle = social_media; // social_handle olarak kaydet
+    if (status !== undefined) updates.status = status;
+    if (niche !== undefined) updates.niche = niche;
+    if (country !== undefined) updates.country = country;
+    if (about !== undefined) updates.about = about;
+    if (website !== undefined) updates.website = website;
+    if (brand_name !== undefined) updates.brand_name = brand_name;
+    if (channels !== undefined) updates.channels = JSON.stringify(channels);
+
+    const affectedRows = await knex('influencers').where('id', id).update(updates);
+
+    if (affectedRows === 0) {
+      return res.status(404).json({ error: 'Influencer bulunamadı veya güncellenecek veri yok' });
+    }
+
+    const updatedInfluencer = await knex('influencers').where('id', id).first();
+
+    // Frontend'in beklediği formatta döndür
+    const parsedChannels = typeof updatedInfluencer?.channels === 'string' ? JSON.parse(updatedInfluencer.channels || '[]') : (Array.isArray(updatedInfluencer?.channels) ? updatedInfluencer.channels : []);
+
+    const responseData = {
+      id: updatedInfluencer.id,
+      full_name: updatedInfluencer.full_name || updatedInfluencer.name,
+      email: updatedInfluencer.email,
+      social_handle: updatedInfluencer.social_handle,
+      status: updatedInfluencer.status,
+      niche: updatedInfluencer.niche,
+      channels: parsedChannels,
+      country: updatedInfluencer.country,
+      bio: updatedInfluencer.about,
+      website: updatedInfluencer.website,
+      brand_name: updatedInfluencer.brand_name,
+      created_at: updatedInfluencer.created_at,
+      updated_at: updatedInfluencer.updated_at,
+    };
+
+    return res.json({ message: 'Influencer başarıyla güncellendi', influencer: responseData });
+  } catch (err) {
+    console.error('Influencer güncellenirken hata:', err);
+    return res.status(500).json({ error: 'Influencer güncellenirken hata oluştu', details: err.message });
+  }
+});
+
 // Korumalı uçlar: /influencers/me*
 router.use(authenticateToken, meLimiter);
 

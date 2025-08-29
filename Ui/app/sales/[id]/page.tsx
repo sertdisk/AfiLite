@@ -48,13 +48,13 @@ export default function SaleDetailPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Satış detayı alınamadı.');
         setRow(null);
         return;
       }
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch { json = {}; }
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
       const detail: SaleDetail = (json?.sale ?? json) as SaleDetail;
       setRow(detail || null);
     } catch (e) {

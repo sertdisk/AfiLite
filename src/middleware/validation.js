@@ -137,10 +137,38 @@ const validateAuthLogin = (req, res, next) => {
  next();
 };
 
+const validateSaleUpdate = (req, res, next) => {
+  const { total_amount, customer_url, product, note } = req.body;
+  const errors = [];
+
+  if (total_amount !== undefined && (isNaN(parseFloat(total_amount)) || parseFloat(total_amount) < 0)) {
+    errors.push('Geçerli bir toplam tutar giriniz');
+  }
+
+  if (customer_url !== undefined && typeof customer_url !== 'string') {
+    errors.push('Müşteri bilgisi metin olmalıdır');
+  }
+
+  if (product !== undefined && typeof product !== 'string') {
+    errors.push('Ürün bilgisi metin olmalıdır');
+  }
+
+  if (note !== undefined && typeof note !== 'string') {
+    errors.push('Not metin olmalıdır');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  next();
+};
+
 module.exports = {
  validateInfluencerApplication,
  validateDiscountCode,
  validateSale,
  validatePagination,
- validateAuthLogin
+ validateAuthLogin,
+ validateSaleUpdate
 };

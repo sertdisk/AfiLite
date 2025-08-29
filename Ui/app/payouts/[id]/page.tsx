@@ -48,13 +48,13 @@ export default function PayoutDetailPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Ödeme detayı alınamadı.');
         setRow(null);
         return;
       }
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch { json = {}; }
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
       const detail: PayoutDetail = (json?.payout ?? json) as PayoutDetail;
       setRow(detail || null);
     } catch (e) {
@@ -169,7 +169,7 @@ export default function PayoutDetailPage() {
           <aside className="space-y-4">
             <div className="rounded-md border bg-white p-4">
               <div className="text-sm text-gray-600 mb-3">
-                Yönetim işlemleri (gelecek): Onayla / Reddet / Ödendi işaretle.
+                Bu ödeme için yönetim işlemleri (gelecek): Onayla / Reddet / Ödendi işaretle.
               </div>
               <div className="flex flex-col gap-2">
                 <button

@@ -66,11 +66,11 @@ export default function AdminSalesPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         throw new Error(msg || 'Satış listesi alınamadı');
       }
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch {}
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
       const list: SaleRow[] = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : json?.sales || []);
       setRows((list || []).map((r: any) => ({
         id: Number(r?.id),
@@ -138,9 +138,7 @@ export default function AdminSalesPage() {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
-    } catch {
-      // sessiz geç
-    }
+    } catch (error) { console.error(error); }
   }
 
   return (

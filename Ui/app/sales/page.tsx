@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type SaleRow = {
   id: number;
@@ -53,7 +53,7 @@ export default function SalesListPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Satış listesi alınamadı.');
         setRows([]);
         setTotal(null);
@@ -61,7 +61,7 @@ export default function SalesListPage() {
       }
 
       let json: ListResponse = [];
-      try { json = JSON.parse(text || '[]'); } catch { json = []; }
+      try { json = JSON.parse(text || '[]'); } catch (error) { console.error(error); }
 
       if (Array.isArray(json)) {
         setRows(json || []);

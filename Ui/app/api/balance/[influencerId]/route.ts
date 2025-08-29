@@ -75,9 +75,6 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.log('[Frontend Proxy] Error:', err); // DEBUG LOG
     const message = err?.message || 'Proxy sırasında beklenmeyen bir hata oluştu (GET /api/balance/[influencerId])';
-    return new Response(JSON.stringify({ message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    });
+    return new Response(JSON.stringify({ message }), { status: 500, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
   }
 }

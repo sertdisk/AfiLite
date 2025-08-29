@@ -25,10 +25,7 @@ function toArray(val: any): string[] | undefined {
     try {
       const maybe = JSON.parse(val);
       if (Array.isArray(maybe)) return maybe as string[];
-    } catch {
-      const parts = val.split(',').map((s) => s.trim()).filter(Boolean);
-      return parts.length ? parts : undefined;
-    }
+    } catch (error) { console.error(error); }
   }
   return undefined;
 }
@@ -59,13 +56,13 @@ export default function ApplicationReviewPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Başvuru bilgileri alınamadı.');
         setRow(null);
         return;
       }
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch { json = {}; }
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
       const record: Applicant = (json?.influencer ?? json) as Applicant;
       setRow(record);
     } catch (e) {
@@ -103,15 +100,14 @@ export default function ApplicationReviewPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         alert(msg || 'İşlem başarısız.');
         return;
       }
       // Başarılı → başvurular listesine dön
       router.push('/influencers/applications');
-    } catch {
-      alert('Beklenmeyen bir hata oluştu.');
-    } finally {
+    } catch (error) { console.error(error); }
+    finally {
       setProcessing(null);
     }
   }
@@ -167,7 +163,7 @@ export default function ApplicationReviewPage() {
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-gray-500">Website</div>
                   <div className="col-span-2">
-                    {row.website ? <a className="text-blue-600 hover:text-blue-800" target="_blank" href={row.website}>{row.website}</a> : '—'}
+                    {row.website ? <a className="text-blue-600 hover:text-blue-800" target="_blank" href={row.website}>{(row.website)}</a> : '—'}
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">

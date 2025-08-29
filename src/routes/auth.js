@@ -17,58 +17,77 @@ const ACCESS_TOKEN_TTL = '15m'; // access token 15 dakika
 
 // Admin login endpoint (kimlik doğrulama)
 router.post('/admin/login', validateAuthLogin, asyncHandler(async (req, res) => {
-const { email, password } = req.body;
+    console.log('[ADMIN LOGIN ATTEMPT]', req.body.email);
+    const { email, password } = req.body;
 
-// Şema uyumsuzluğu ihtimaline karşı: role kolonunun olmayabileceği senaryoda sadece email'e göre bak
-let query = knex('influencers').where('email', email);
-try {
-  const hasRole = await knex('influencers').columnInfo().then(ci => !!ci.role);
-  if (hasRole) query = query.where('role', 'admin');
-} catch {}
+    let query = knex('influencers').where('email', email);
+    try {
+        const hasRole = await knex.schema.hasColumn('influencers', 'role');
+        if (hasRole) {
+            console.log('Role column exists, adding role filter');
+            query = query.where('role', 'admin');
+        }
+    } catch (e) {
+        console.error('Error checking for role column', e);
+    }
 
-const user = await query.first();
+    const user = await query.first();
 
-if (!user) {
-  const err = new Error('Geçersiz email veya şifre');
-  err.status = 401;
-  throw err;
-}
+    if (!user) {
+        console.log('Admin user not found:', email);
+        const err = new Error('Geçersiz email veya şifre');
+        err.status = 401;
+        throw err;
+    }
 
-// Parola doğrulama: password_hash yoksa dev kolaylığı olarak kabul et
-let isValidPassword = false;
-if (user.password_hash) {
-  try { isValidPassword = await bcrypt.compare(password, user.password_hash); } catch { isValidPassword = false; }
-} else {
-  isValidPassword = true;
-}
+    console.log('Admin user found:', user.email);
 
-if (!isValidPassword) {
-  const err = new Error('Geçersiz email veya şifre');
-  err.status = 401;
-  throw err;
-}
+    let isValidPassword = false;
+    if (user.password_hash) {
+        try {
+            console.log('Comparing passwords...');
+            isValidPassword = await bcrypt.compare(password, user.password_hash);
+            console.log('Password comparison result:', isValidPassword);
+        } catch (e) {
+            console.error('Bcrypt compare error:', e);
+            isValidPassword = false;
+        }
+    } else {
+        console.log('No password_hash found, treating as valid (dev mode)');
+        isValidPassword = true;
+    }
 
-const token = jwt.sign(
-  { userId: user.id, email: user.email, role: 'admin' },
-  JWT_SECRET,
-  { expiresIn: ACCESS_TOKEN_TTL }
-);
+    if (!isValidPassword) {
+        console.log('Invalid password for user:', email);
+        const err = new Error('Geçersiz email veya şifre');
+        err.status = 401;
+        throw err;
+    }
 
-// Token'ı cookie'ye yaz (artık sadece jwt cookie'si kullanılıyor)
-res.cookie('jwt_admin', token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 15 * 60 * 1000 // 15 dakika
-}).json({
-  message: 'Giriş başarılı',
-  token,
-  user: {
-    id: user.id,
-    email: user.email,
-    role: user.role || 'admin'
-  }
-});
+    console.log('Password is valid, creating token...');
+
+    const token = jwt.sign(
+        { userId: user.id, email: user.email, role: 'admin' },
+        JWT_SECRET,
+        { expiresIn: ACCESS_TOKEN_TTL }
+    );
+
+    console.log('Token created, setting cookie and sending response.');
+
+        res.cookie('jwt_admin', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax',
+        maxAge: 15 * 60 * 1000 // 15 dakika
+    }).json({
+        message: 'Giriş başarılı',
+        token,
+        user: {
+            id: user.id,
+            email: user.email,
+            role: user.role || 'admin'
+        }
+    });
 }));
 
 // Influencer login endpoint (onaylanmış influencer'lar için, kimlik doğrulama)

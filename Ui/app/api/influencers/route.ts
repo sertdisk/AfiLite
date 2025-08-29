@@ -18,9 +18,8 @@ function ensureAdminQuery(url: string): string {
       u.searchParams.set('_admin', '1');
     }
     return u.toString();
-  } catch {
-    return url;
-  }
+  } catch (error) { console.error(error); }
+  return url;
 }
 
 function buildCookieHeader() {
@@ -131,7 +130,7 @@ export async function POST(req: NextRequest) {
   try {
     const payload = await req.text();
     let json: any = {};
-    try { json = JSON.parse(payload || '{}'); } catch {}
+    try { json = JSON.parse(payload || '{}'); } catch (error) { console.error(error); }
 
     // Basit UI doğrulamaları (backend detaylı doğrulama yapmalıdır)
     if (!json?.name || String(json.name).trim().length < 2) {
@@ -186,7 +185,7 @@ export async function POST(req: NextRequest) {
       try {
         const maybe = JSON.parse(text || '{}');
         msg = maybe?.message || maybe?.error || msg;
-      } catch {}
+      } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Influencer oluşturma başarısız.' }), {
         status: res.status,
         headers: { 'Content-Type': 'application/json; charset=utf-8' },

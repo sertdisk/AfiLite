@@ -30,14 +30,14 @@ export default function SalesStatsPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'İstatistikler alınamadı.');
         setStats(null);
         return;
       }
 
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch { json = {}; }
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
 
       const s: SalesStats = (json?.stats ?? json) as SalesStats;
       setStats(s || null);

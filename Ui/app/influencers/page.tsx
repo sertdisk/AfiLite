@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type Influencer = {
   id: number;
@@ -62,7 +62,7 @@ export default function InfluencersPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Influencer listesi alınamadı.');
         setRows([]);
         setTotal(null);
@@ -72,9 +72,7 @@ export default function InfluencersPage() {
       let json: ListResponse = [];
       try {
         json = JSON.parse(text || '[]');
-      } catch {
-        json = [];
-      }
+      } catch (error) { console.error(error); }
 
       // Backend iki tarz dönebilir: { influencers, total } veya doğrudan array
       if (Array.isArray(json)) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type CommissionRow = {
   id: number | string;
@@ -61,7 +61,7 @@ export default function CommissionsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const maybe = JSON.parse(text || '{}'); msg = maybe?.message || maybe?.error || msg; } catch {}
+        try { const maybe = JSON.parse(text || '{}'); msg = maybe?.message || maybe?.error || msg; } catch (error) { console.error(error); }
         setError(msg || 'Komisyonlar alınamadı.');
         setRows([]);
         setTotal(null);
@@ -69,7 +69,7 @@ export default function CommissionsPage() {
       }
 
       let json: ListResponse = [];
-      try { json = JSON.parse(text || '[]'); } catch { json = []; }
+      try { json = JSON.parse(text || '[]'); } catch (error) { console.error(error); }
 
       if (Array.isArray(json)) {
         setRows(json || []);
@@ -136,7 +136,7 @@ export default function CommissionsPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const maybe = JSON.parse(text || '{}'); msg = maybe?.message || maybe?.error || msg; } catch {}
+        try { const maybe = JSON.parse(text || '{}'); msg = maybe?.message || maybe?.error || msg; } catch (error) { console.error(error); }
         setError(msg || 'Komisyon oluşturulamadı.');
         return;
       }
@@ -149,9 +149,8 @@ export default function CommissionsPage() {
       setNewInfluencerId('');
       setNewCampaignId('');
       setNewNote('');
-    } catch {
-      setError('Beklenmeyen bir hata oluştu (oluşturma).');
-    } finally {
+    } catch (error) { console.error(error); }
+    finally {
       setCreating(false);
     }
   }

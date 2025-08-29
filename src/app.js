@@ -12,6 +12,7 @@ require('dotenv').config(); // Ortam değişkenlerini yükle
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const knex = require('./db/sqlite');
 
 // Middleware imports
@@ -74,6 +75,7 @@ function createApp() {
   app.use(cors(corsOptions));
 
   app.use(express.json());
+  app.use(cookieParser());
 
   // Request logging ve rate limiting
   if (process.env.NODE_ENV !== 'test') {
@@ -127,10 +129,7 @@ function createApp() {
     app.use(`${base}/alerts`, authenticateToken, alertsRouter);
     app.use(`${base}/payouts`, authenticateToken, payoutsRouter);
     app.use(`${base}/commissions`, authenticateToken, commissionsRouter);
-    
-    // Add explicit admin login route
-    app.use(`${base}/admin/login`, authRouter);
-  });
+2  });
 
   // Error handling
   app.use(notFoundHandler);

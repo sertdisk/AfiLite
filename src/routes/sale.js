@@ -10,7 +10,7 @@ const knex = require('../db/sqlite');
 // JWT koruması yalnızca GET uçları için kullanılacak
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { validateSale } = require('../middleware/validation');
+const { validateSale, validateSaleUpdate } = require('../middleware/validation');
 const { saleShortLimiter, saleLongLimiter } = require('../middleware/rateLimiter');
 
 /**
@@ -99,7 +99,7 @@ router.post('/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncHandl
 
 // Satışları listele (korumalı - admin veya yetkili kullanıcılar)
 router.get('/sales', authenticateToken, asyncHandler(async (req, res) => {
-  const { code, start_date, end_date, page = 1, limit = 50 } = req.query;
+  const { code, start_date, end_date, page = 1, limit = 50, influencerId } = req.query; // influencerId eklendi
   
   let query = knex('sales')
     .join('discount_codes', 'sales.code', 'discount_codes.code')
@@ -131,21 +131,31 @@ router.get('/sales', authenticateToken, asyncHandler(async (req, res) => {
   if (end_date) {
     query = query.where('sales.recorded_at', '<=', new Date(end_date));
   }
+
+  if (influencerId) { // influencerId filtresi eklendi
+    query = query.where('discount_codes.influencer_id', influencerId);
+  }
   
   const offset = (page - 1) * limit;
-  query = query.limit(limit).offset(offset);
   
-  const sales = await query;
-  
+  // Önce toplam sayıyı filrelere göre al
   const totalQuery = knex('sales').count('* as count');
   if (code) totalQuery.where('code', code.toUpperCase());
   if (start_date) totalQuery.where('recorded_at', '>=', new Date(start_date));
   if (end_date) totalQuery.where('recorded_at', '<=', new Date(end_date));
-  
+  if (influencerId) { // influencerId filtresi eklendi
+    totalQuery.join('discount_codes', 'sales.code', 'discount_codes.code')
+              .where('discount_codes.influencer_id', influencerId);
+  }
+
   const [{ count }] = await totalQuery;
+
+  // Sonra veriyi sayfalama ile al
+  query = query.limit(limit).offset(offset);
+  const sales = await query;
   
   res.json({
-    sales,
+    items: sales, // `items` olarak değiştirildi, frontend ile uyum için
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -177,6 +187,45 @@ router.get('/sale/:id', authenticateToken, asyncHandler(async (req, res) => {
   }
   
   res.json(sale);
+}));
+
+// Satış güncelle (ADMIN)
+router.patch('/sales/:id', requireAdmin, validateSaleUpdate, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { total_amount, customer_url, product, note } = req.body;
+
+  const sale = await knex('sales').where({ id }).first();
+  if (!sale) {
+    const err = new Error('Satış bulunamadı');
+    err.status = 404;
+    throw err;
+  }
+
+  const updatePayload = {};
+  if (customer_url !== undefined) updatePayload.customer_url = customer_url;
+  if (product !== undefined) updatePayload.product = product;
+  if (note !== undefined) updatePayload.note = note;
+
+  // Tutar değişirse komisyonu yeniden hesapla
+  if (total_amount !== undefined) {
+    const parsedAmount = Number(total_amount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      const err = new Error('Geçersiz tutar');
+      err.status = 400;
+      throw err;
+    }
+    updatePayload.total_amount = parsedAmount;
+
+    const discountCode = await knex('discount_codes').where('code', sale.code).first();
+    if (discountCode) {
+      updatePayload.commission = (parsedAmount * discountCode.commission_pct) / 100;
+    }
+  }
+
+  await knex('sales').where({ id }).update(updatePayload);
+
+  const updatedSale = await knex('sales').where({ id }).first();
+  res.json(updatedSale);
 }));
 
 // Satış istatistikleri endpointi
@@ -274,14 +323,14 @@ router.get('/sales/export', authenticateToken, requireAdmin, asyncHandler(async 
     for (const sale of sales) {
       const row = [
         sale.id,
-        `"${sale.code}"`,
+        `"${sale.code}"`, 
         sale.total_amount,
         sale.commission,
-        `"${sale.customer_url || ''}"`,
-        `"${sale.product || ''}"`,
-        `"${sale.recorded_at}"`,
-        `"${sale.influencer_name || ''}"`,
-        `"${sale.influencer_email || ''}"`,
+        `"${sale.customer_url || ''}"`, 
+        `"${sale.product || ''}"`, 
+        `"${sale.recorded_at}"`, 
+        `"${sale.influencer_name || ''}"`, 
+        `"${sale.influencer_email || ''}"`, 
         sale.discount_pct,
         sale.commission_pct
       ];

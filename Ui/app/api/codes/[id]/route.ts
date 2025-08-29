@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest) {
     }
     const payload = await req.text();
     let json: any = {};
-    try { json = JSON.parse(payload || '{}'); } catch {}
+    try { json = JSON.parse(payload || '{}'); } catch (error) { console.error(error); }
 
     // Basit doğrulamalar (opsiyonel alanlar için varsa kontrol et)
     if (json.discount_percentage !== undefined) {
@@ -97,7 +97,7 @@ export async function PUT(req: NextRequest) {
       try {
         const maybe = JSON.parse(text || '{}');
         msg = maybe?.message || maybe?.error || msg;
-      } catch {}
+      } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Kod güncelleme başarısız.' }), {
         status: res.status,
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -136,7 +136,7 @@ export async function DELETE(req: NextRequest) {
       try {
         const maybe = JSON.parse(text || '{}');
         msg = maybe?.message || maybe?.error || msg;
-      } catch {}
+      } catch (error) { console.error(error); }
       return new Response(JSON.stringify({ message: msg || 'Kod silme başarısız.' }), {
         status: res.status,
         headers: { 'Content-Type': 'application/json; charset=utf-8' },

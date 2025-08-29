@@ -16,7 +16,8 @@ function BalanceCell({ influencerId }: { influencerId: number }) {
           const balance = Number(summary?.balance ?? summary?.total_balance ?? 0);
           setVal(new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(balance));
         }
-      } catch {
+      } catch (error) { console.error(error); }
+      finally {
         if (!abort) setVal('—');
       }
     }
@@ -98,7 +99,7 @@ export default function AdminInfluencersPage() {
       const text = await res.text();
       if (!res.ok) {
         let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch {}
+        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
         // Debug: konsola durum ve header bilgisini not düş
         if (typeof window !== 'undefined') {
           console.warn('Admin influencers list fetch failed', { status: res.status, body: text });
@@ -107,7 +108,7 @@ export default function AdminInfluencersPage() {
       }
 
       let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch {}
+      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
       
       // JSON yapısına göre uygun veriyi al
       const list: InfluencerRow[] = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : json?.influencers || []);
@@ -318,7 +319,16 @@ export default function AdminInfluencersPage() {
                     {r.codes && r.codes.length > 0 ? (
                       <div className="flex flex-col gap-1">
                         {r.codes.map((code, index) => (
-                          <span key={index} className="font-mono text-xs">{code.code}</span>
+                          <span 
+                            key={index} 
+                            className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                              code.is_active 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            {code.is_active ? 'Aktif' : 'Pasif'}
+                          </span>
                         ))}
                       </div>
                     ) : '—'}

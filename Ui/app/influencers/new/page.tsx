@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const STATUS_OPTIONS = [
@@ -46,9 +46,7 @@ export default function NewInfluencerPage() {
       try {
         // eslint-disable-next-line no-new
         new URL(website);
-      } catch {
-        return 'Geçerli bir website adresi giriniz.';
-      }
+      } catch (error) { console.error(error); }
     }
     if (!['pending', 'approved', 'rejected', 'suspended'].includes(status)) {
       return 'Geçersiz status.';
@@ -96,7 +94,7 @@ export default function NewInfluencerPage() {
         try {
           const maybe = JSON.parse(text || '{}');
           msg = maybe?.message || maybe?.error || msg;
-        } catch {}
+        } catch (error) { console.error(error); }
         setError(msg || 'Influencer oluşturma başarısız.');
         return;
       }
@@ -180,7 +178,7 @@ export default function NewInfluencerPage() {
               onChange={(e) => setChannels(e.target.value)}
               placeholder="instagram, tiktok, youtube"
             />
-            <p className="text-xs text-gray-500 mt-1">Örn: instagram, tiktok (gönderimde ['instagram', 'tiktok'] olarak çevrilir)</p>
+            <p className="text-xs text-gray-500 mt-1">Örn: instagram, tiktok (gönderimde [&apos;instagram&apos;, &apos;tiktok&apos;] olarak çevrilir)</p>
           </div>
           <div>
             <label htmlFor="country" className="block text-sm mb-1">Ülke</label>
@@ -193,13 +191,13 @@ export default function NewInfluencerPage() {
             />
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor="bio" className="block text-sm mb-1">Bio</label>
+            <label htmlFor="bio" className="block text-sm mb-1">Biyografi (Hakkınızda açıklama yapmak isterseniz bilmek isteriz)</label>
             <textarea
               id="bio"
               className="w-full min-h-[80px] rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Kısa bir tanıtım…"
+              placeholder="Kendinizden kısaca bahsedin (opsiyonel)"
             />
           </div>
           <div className="sm:col-span-2">

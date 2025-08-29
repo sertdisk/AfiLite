@@ -34,8 +34,30 @@ router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
  res.json({ codes });
 }));
 
+/**
+ * Admin: Belirli bir influencer'ın kodlarını ID ile listeler.
+ * Güvenlik: requireAdmin ile korunmaktadır.
+ */
+router.get('/influencer/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const influencer = await knex('influencers').where('id', id).first();
+  if (!influencer) {
+    const err = new Error('Influencer bulunamadı');
+    err.status = 404;
+    throw err;
+  }
+
+  const codes = await knex('discount_codes')
+    .where('influencer_id', id)
+    .orderBy('created_at', 'desc');
+
+  res.json({ influencer_id: id, codes });
+}));
+
 // Tüm indirim kodlarını listele (Admin)
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
+  const { status } = req.query;
+
   const query = knex('discount_codes')
     .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
     .select(
@@ -45,16 +67,17 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
       'discount_codes.commission_pct',
       'discount_codes.is_active',
       'discount_codes.created_at',
+      'influencers.id as influencer_id',
       'influencers.full_name as influencer_name',
-      'influencers.email as influencer_email'
+      'influencers.email as influencer_email',
+      'influencers.brand_name as influencer_brand_name'
     )
     .orderBy('discount_codes.created_at', 'desc');
   
-  // Status parametresine göre filtreleme
-  const { status } = req.query;
   if (status === 'pending') {
     query.where('discount_codes.is_active', false);
-  } else if (status === 'active') {
+  } else {
+    // Varsayılan olarak veya status belirtilmemişse aktif olanları getir
     query.where('discount_codes.is_active', true);
   }
 
