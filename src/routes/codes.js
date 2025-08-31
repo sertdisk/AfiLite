@@ -63,7 +63,8 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
     order = 'desc',
     startDate,
     endDate,
-    isActive
+    isActive,
+    search // Arama parametresi eklendi
   } = req.query;
 
   const offset = (page - 1) * limit;
@@ -81,6 +82,13 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
   }
   if (endDate) {
     baseQuery.where('discount_codes.created_at', '<=', `${endDate}T23:59:59.999Z`);
+  }
+  if (search) { // Arama filtresi
+    baseQuery.where(function() {
+      this.where('discount_codes.code', 'like', `%${search}%`)
+          .orWhere('influencers.full_name', 'like', `%${search}%`)
+          .orWhere('influencers.email', 'like', `%${search}%`);
+    });
   }
 
   // Count total records with filters
@@ -402,6 +410,83 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
  }
  
  res.json({ message: 'Kod başarıyla silindi' });
+}));
+
+// Kodları Dışa Aktar (Admin)
+router.get('/export', requireAdmin, asyncHandler(async (req, res) => {
+  const { format = 'csv', search, isActive, startDate, endDate } = req.query;
+
+  const query = knex('discount_codes')
+    .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+    .select(
+      'discount_codes.id',
+      'discount_codes.code',
+      'discount_codes.discount_pct',
+      'discount_codes.commission_pct',
+      'discount_codes.is_active',
+      'discount_codes.created_at',
+      'influencers.full_name as influencer_name',
+      'influencers.email as influencer_email',
+      'influencers.brand_name'
+    )
+    .orderBy('discount_codes.created_at', 'desc');
+
+  if (isActive === 'true' || isActive === 'false') {
+    query.where('discount_codes.is_active', isActive === 'true');
+  }
+  if (startDate) {
+    query.where('discount_codes.created_at', '>=', startDate);
+  }
+  if (endDate) {
+    query.where('discount_codes.created_at', '<=', `${endDate}T23:59:59.999Z`);
+  }
+  if (search) {
+    query.where(function() {
+      this.where('discount_codes.code', 'like', `%${search}%`)
+          .orWhere('influencers.full_name', 'like', `%${search}%`)
+          .orWhere('influencers.email', 'like', `%${search}%`);
+    });
+  }
+
+  const codes = await query;
+
+  if (format === 'xlsx') {
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Codes');
+
+    worksheet.columns = [
+      { header: 'Kod', key: 'code', width: 20 },
+      { header: 'Influencer', key: 'influencer_name', width: 30 },
+      { header: 'Marka Adı', key: 'brand_name', width: 25 },
+      { header: 'İndirim %', key: 'discount_pct', width: 15 },
+      { header: 'Komisyon %', key: 'commission_pct', width: 15 },
+      { header: 'Durum', key: 'is_active', width: 10 },
+      { header: 'Oluşturulma Tarihi', key: 'created_at', width: 20 },
+    ];
+
+    codes.forEach(code => {
+      worksheet.addRow({
+        ...code,
+        is_active: code.is_active ? 'Aktif' : 'Pasif',
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=codes.xlsx');
+    await workbook.xlsx.write(res);
+    return res.end();
+  }
+
+  // CSV (default)
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename=codes.csv');
+  const csvHeaders = 'Kod,Influencer,Marka Adı,İndirim %,Komisyon %,Durum,Oluşturulma Tarihi\r\n';
+  res.write('\uFEFF' + csvHeaders); // BOM for Excel UTF-8 compatibility
+  const csvRows = codes.map(c => 
+    [c.code, c.influencer_name, c.brand_name, c.discount_pct, c.commission_pct, c.is_active ? 'Aktif' : 'Pasif', c.created_at].join(',')
+  ).join('\r\n');
+  res.end(csvRows);
 }));
 
 module.exports = router;

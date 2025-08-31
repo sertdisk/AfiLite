@@ -723,6 +723,7 @@ export async function getAdminCodes(params: {
   startDate?: string;
   endDate?: string;
   isActive?: boolean;
+  search?: string; // Eklendi
 } = {}): Promise<{ items: AdminCode[]; total: number; page: number; limit: number; }> {
   const query = new URLSearchParams();
   if (params.page) query.set('page', String(params.page));
@@ -732,6 +733,7 @@ export async function getAdminCodes(params: {
   if (params.startDate) query.set('startDate', params.startDate);
   if (params.endDate) query.set('endDate', params.endDate);
   if (params.isActive !== undefined) query.set('isActive', String(params.isActive));
+  if (params.search) query.set('search', params.search); // Eklendi
   
   // The backend returns { items, total, page, limit }, so we can cast directly.
   return request(`/api/v1/codes?${query.toString()}`, { method: 'GET' });
@@ -874,7 +876,7 @@ export async function exportAdminSales(influencerId: number, format: 'csv' | 'xl
 
 /** Admin: Satış güncelle */
 export async function updateAdminSale(saleId: number, payload: { total_amount?: number; customer_url?: string; product?: string; note?: string; }): Promise<any> {
-  return request(`/api/v1/sales/${saleId}`, {
+  return request(`/api/sales/${saleId}`, {
     method: 'PATCH',
     body: payload,
   });
@@ -888,8 +890,37 @@ export async function postAdminPayout(payload: { influencerId: number; amount: n
   });
 }
 
+/** Admin: Ödemeleri listele (filtreli ve sayfalı) */
+export async function getAdminPayouts(params: { influencerId?: number; page?: number; limit?: number; from?: string; to?: string; }): Promise<{ items: any[]; pagination: { total: number; page: number; limit: number; } }> {
+  const query = new URLSearchParams();
+  if (params.influencerId) {
+    query.set('influencerId', String(params.influencerId));
+  }
+  if (params.page) {
+    query.set('page', String(params.page));
+  }
+  if (params.limit) {
+    query.set('limit', String(params.limit));
+  }
+  if (params.from) {
+    query.set('from', params.from);
+  }
+  if (params.to) {
+    query.set('to', params.to);
+  }
+  return request(`/api/payouts?${query.toString()}`, { method: 'GET' });
+}
+
+/** Admin: Ödeme güncelle */
+export async function adminUpdatePayout(payoutId: number, payload: { note?: string; status?: string; }): Promise<any> {
+  return request(`/api/payouts/${payoutId}`, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
 /** Admin: Influencer'a ait ödemeleri getir */
-export async function getAdminPayouts(params: { influencerId: number; page?: number; limit?: number; }): Promise<{ items: any[]; pagination: { total: number; page: number; limit: number; } }> {
+export async function getAdminPayoutsByInfluencer(params: { influencerId: number; page?: number; limit?: number; }): Promise<{ items: any[]; pagination: { total: number; page: number; limit: number; } }> {
   const query = new URLSearchParams();
   query.set('influencerId', String(params.influencerId));
   if (params.page) {

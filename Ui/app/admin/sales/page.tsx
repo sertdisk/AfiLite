@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import QuickSaleForm from '../(protected)/dashboard/components/QuickSaleForm';
 import EditSaleModal from '../_components/EditSaleModal';
 
@@ -56,7 +55,6 @@ export default function AdminSalesPage() {
       }
       const data = await res.json();
 
-      // Backend'den gelen veriyi frontend'in beklediği formata dönüştür
       const transformedItems = (data.items || []).map((sale: any) => ({
         id: sale.id,
         influencer_code: sale.code,
@@ -77,7 +75,6 @@ export default function AdminSalesPage() {
     }
   }, [influencerSearch, startDate, endDate, page, limit]);
 
-  // Filtre veya sayfa değiştiğinde verileri yeniden çek
   useEffect(() => {
     fetchSales();
   }, [fetchSales]);
@@ -92,42 +89,36 @@ export default function AdminSalesPage() {
     setStartDate('');
     setEndDate('');
     setPage(1);
-    // useEffect will then trigger fetchSales
   };
 
-  // Satış düzenleme modalını aç
   const handleEditClick = (sale: Sale) => {
     setSelectedSale(sale);
     setIsModalOpen(true);
   };
 
-  // Satışı kaydetme (modal'dan çağrılır)
   const handleSaveSale = async (updatedSale: Sale) => {
-    // Burada API'ye PUT/PATCH isteği atılacak
-    const res = await fetch(`/api/sales/${updatedSale.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSale),
-    });
-
-    if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Satış güncellenemedi.');
+    try {
+      await updateAdminSale(updatedSale.id, { 
+        total_amount: updatedSale.sale_amount,
+        customer_url: updatedSale.customer_url,
+        product: updatedSale.product_info,
+      });
+      setIsModalOpen(false);
+      fetchSales();
+    } catch (error) {
+      setError(error.message);
     }
-    
-    // Verileri yenile
-    fetchSales();
   };
 
-  // Export fonksiyonu
-  const exportData = async (format: 'csv' | 'xlsx') => {
+  const handleExport = (format: 'csv' | 'xlsx') => {
     const params = new URLSearchParams();
-    if (influencerSearch) params.set('influencer', influencerSearch);
+    if (influencerSearch) params.set('code', influencerSearch);
     if (startDate) params.set('start_date', startDate);
     if (endDate) params.set('end_date', endDate);
     params.set('format', format);
 
-    window.open(`/api/sales/export?${params.toString()}`, '_blank');
+    const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';
+    window.open(`${baseUrl}/api/sales/export?${params.toString()}`, '_blank');
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -136,10 +127,8 @@ export default function AdminSalesPage() {
     <main className="space-y-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">Satış Yönetimi</h1>
 
-      {/* Hızlı Satış Ekleme Formu */}
-      <QuickSaleForm />
+      <QuickSaleForm onSaleAdded={fetchSales} />
 
-      {/* Filtreleme Alanı */}
       <div className="rounded-md border card-like p-4">
         <h2 className="text-lg font-semibold mb-3">Satışları Filtrele</h2>
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -178,17 +167,15 @@ export default function AdminSalesPage() {
         </div>
       </div>
 
-      {/* Liste ve Export Butonları */}
       <div className="rounded-md border card-like p-4">
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Satış Listesi</h2>
             <div className="flex items-center gap-2">
-                <button onClick={() => exportData('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">CSV Export</button>
-                <button onClick={() => exportData('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">Excel Export</button>
+                <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">CSV Export</button>
+                <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">Excel Export</button>
             </div>
         </div>
 
-        {/* Sayfalama Seçenekleri */}
         <div className="flex items-center gap-2 mb-4">
           <span className="text-sm text-muted">Sayfa başına:</span>
           <select 
@@ -204,7 +191,6 @@ export default function AdminSalesPage() {
 
         {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">Hata: {error}</p>}
 
-        {/* Satış Tablosu */}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 text-gray-700">
@@ -244,7 +230,6 @@ export default function AdminSalesPage() {
           </table>
         </div>
 
-        {/* Sayfalama Kontrolleri */}
         {total > 0 && (
             <div className="flex justify-between items-center mt-4 text-sm">
                 <div>Toplam {total} kayıt bulundu.</div>
@@ -257,13 +242,14 @@ export default function AdminSalesPage() {
         )}
       </div>
 
-      {/* Satış Düzenleme Modalı */}
-      <EditSaleModal 
-        sale={selectedSale}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveSale}
-      />
+      {isModalOpen && (
+        <EditSaleModal 
+          sale={selectedSale}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSaveSale}
+        />
+      )}
     </main>
   );
 }

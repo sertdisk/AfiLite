@@ -128,6 +128,34 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) 
   });
 }));
 
+// PATCH /payouts/:id - Ödemeyi güncelle (Admin)
+router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { note, status } = req.body;
+
+  const payout = await knex('payouts').where({ id }).first();
+  if (!payout) {
+    return res.status(404).json({ message: 'Ödeme bulunamadı' });
+  }
+
+  const updatePayload = {};
+  if (note !== undefined) {
+    updatePayload.note = note;
+  }
+  if (status !== undefined) {
+    updatePayload.status = status;
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return res.status(400).json({ message: 'Güncellenecek alan yok' });
+  }
+
+  await knex('payouts').where({ id }).update(updatePayload);
+
+  const updatedPayout = await knex('payouts').where({ id }).first();
+  res.json(updatedPayout);
+}));
+
 // GET /api/payouts/:id - Tek bir ödeme detayı
 router.get('/api/payouts/:id', authenticateToken, asyncHandler(async (req, res) => {
   const payout = await knex('payouts')
@@ -172,6 +200,8 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
       'payouts.note',
       'payouts.created_at',
       'payouts.updated_at',
+      'payouts.balance_before',
+      'payouts.balance_after',
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email'
     )
@@ -197,24 +227,52 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="payouts.csv"');
     
-    const headers = ['ID', 'Influencer ID', 'Influencer Name', 'Email', 'Amount', 'IBAN', 'Status', 'Note', 'Created At'];
+    const headers = ['ID', 'Influencer ID', 'Influencer Name', 'Email', 'Amount', 'IBAN', 'Status', 'Note', 'Created At', 'Balance Before', 'Balance After'];
     res.write(headers.join(',') + '\n');
     
     for (const payout of payouts) {
       const row = [
         payout.id,
         payout.influencer_id,
-        `"${payout.influencer_name}"`,
-        `"${payout.influencer_email}"`,
+        `"${payout.influencer_name}"`, // Corrected escaping for influencer_name
+        `"${payout.influencer_email}"`, // Corrected escaping for influencer_email
         payout.amount,
-        `"${payout.iban}"`,
+        `"${payout.iban}"`, // Corrected escaping for iban
         payout.status,
-        `"${payout.note || ''}"`,
-        payout.created_at
+        `"${payout.note || ''}"`, // Corrected escaping for note
+        payout.created_at,
+        payout.balance_before,
+        payout.balance_after
       ];
       res.write(row.join(',') + '\n');
     }
     
+    res.end();
+  } else if (format === 'xlsx') {
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Payouts');
+
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Influencer ID', key: 'influencer_id', width: 15 },
+      { header: 'Influencer Name', key: 'influencer_name', width: 25 },
+      { header: 'Email', key: 'influencer_email', width: 30 },
+      { header: 'Amount', key: 'amount', width: 15, style: { numFmt: '#,##0.00 ₺' } },
+      { header: 'IBAN', key: 'iban', width: 30 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Note', key: 'note', width: 30 },
+      { header: 'Created At', key: 'created_at', width: 20, style: { numFmt: 'yyyy-mm-dd hh:mm:ss' } },
+      { header: 'Balance Before', key: 'balance_before', width: 15, style: { numFmt: '#,##0.00 ₺' } },
+      { header: 'Balance After', key: 'balance_after', width: 15, style: { numFmt: '#,##0.00 ₺' } },
+    ];
+
+    worksheet.addRows(payouts);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="payouts.xlsx"');
+    
+    await workbook.xlsx.write(res);
     res.end();
   } else {
     res.json({ payouts });

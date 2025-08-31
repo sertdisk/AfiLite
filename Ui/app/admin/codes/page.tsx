@@ -3,246 +3,247 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getAdminCodes, putAdminCode, AdminCode, AdminCodeUpdatePayload } from '@/lib/api';
 
-// --- Helper Components ---
-
-const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }: { value: string | number, onChange: (value: string | number) => void, debounce?: number } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>) => {
-    const [value, setValue] = useState(initialValue);
-
-    useEffect(() => {
-        setValue(initialValue);
-    }, [initialValue]);
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (value !== initialValue) {
-                onChange(value);
-            }
-        }, debounce);
-
-        return () => clearTimeout(timeout);
-    }, [value, initialValue, onChange, debounce]);
-
-    return <input {...props} value={value} onChange={e => setValue(e.target.value)} />;
-};
-
-// --- Child Components ---
-
-const PendingCodesSection = ({ onApprovalSuccess }: { onApprovalSuccess: () => void }) => {
-    const [pendingCodes, setPendingCodes] = useState<AdminCode[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [inputs, setInputs] = useState<{ [key: number]: { discount: string; commission: string } }>({});
-
-    const fetchPending = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await getAdminCodes({ isActive: false, limit: 100 }); // Get up to 100 pending codes
-            setPendingCodes(data.items);
-            const initialInputs: { [key: number]: { discount: string; commission: string } } = {};
-            data.items.forEach(code => {
-                initialInputs[code.id] = { discount: '10', commission: '40' }; // Default values
-            });
-            setInputs(initialInputs);
-        } catch (error) {
-            console.error("Failed to fetch pending codes:", error);
-            alert("Onay bekleyen kodlar yüklenemedi.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchPending();
-    }, [fetchPending]);
-
-    const handleApprove = async (codeId: number) => {
-        const codeInput = inputs[codeId];
-        if (!codeInput.discount || !codeInput.commission) {
-            return alert('İndirim ve komisyon yüzdeleri zorunludur.');
-        }
-        try {
-            await putAdminCode(codeId, {
-                is_active: true,
-                discount_pct: Number(codeInput.discount),
-                commission_pct: Number(codeInput.commission),
-            });
-            alert('Kod onaylandı!');
-            onApprovalSuccess(); // Refresh all data on parent
-        } catch (error) {
-            console.error("Failed to approve code:", error);
-            alert(`Kod onaylanamadı: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    };
-
-    if (loading) return <div>Yükleniyor...</div>;
-    if (pendingCodes.length === 0) return null; // Don't show the section if there are no pending codes
-
-    return (
-        <section className="mb-8 bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Onay Bekleyen Kodlar</h2>
-            <ul className="space-y-4">
-                {pendingCodes.map(code => (
-                    <li key={code.id} className="p-3 bg-gray-50 rounded-md flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <p className="font-bold text-lg">{code.code}</p>
-                            <p className="text-sm text-gray-600">{code.influencer_name}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <label className="flex flex-col"><span className="text-xs text-gray-500">İndirim %</span><input type="number" value={inputs[code.id]?.discount || ''} onChange={e => setInputs(prev => ({ ...prev, [code.id]: { ...prev[code.id], discount: e.target.value } }))} className="w-24 p-2 border rounded-md" /></label>
-                            <label className="flex flex-col"><span className="text-xs text-gray-500">Komisyon %</span><input type="number" value={inputs[code.id]?.commission || ''} onChange={e => setInputs(prev => ({ ...prev, [code.id]: { ...prev[code.id], commission: e.target.value } }))} className="w-24 p-2 border rounded-md" /></label>
-                            <button onClick={() => handleApprove(code.id)} className="self-end px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Onayla</button>
-                        </div>
-                    </li>
-                ))}
-            </ul>
-        </section>
-    );
-};
-
-const AllCodesList = () => {
+// --- Main Page Component ---
+export default function AdminCodesPage() {
     const [codes, setCodes] = useState<AdminCode[]>([]);
     const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(20);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    const [filters, setFilters] = useState({ 
+        search: '',
+        startDate: '',
+        endDate: '',
+        status: 'all' // all, active, pending
+    });
+    const [error, setError] = useState<string | null>(null);
+
+    // State for inline editing
+    const [editingCodeId, setEditingCodeId] = useState<number | null>(null);
+    const [editedData, setEditedData] = useState<Partial<AdminCode>>({});
 
     const fetchCodes = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
-            const data = await getAdminCodes({ page, limit, startDate, endDate, isActive: true });
-            setCodes(data.items);
-            setTotal(data.total);
-        } catch (error) {
-            console.error("Failed to fetch codes:", error);
-            alert("Kodlar yüklenemedi.");
+            const isActive = filters.status === 'all' ? undefined : filters.status === 'active';
+            const data = await getAdminCodes({ 
+                page, 
+                limit, 
+                startDate: filters.startDate, 
+                endDate: filters.endDate, 
+                search: filters.search, 
+                isActive 
+            });
+            setCodes(data.items || []);
+            setTotal(data.total || 0);
+        } catch (err: any) {
+            setError(err.message || "Kodlar yüklenemedi.");
         }
         setLoading(false);
-    }, [page, limit, startDate, endDate]);
+    }, [page, limit, filters]);
 
     useEffect(() => {
         fetchCodes();
     }, [fetchCodes]);
 
-    const handleUpdateCode = async (id: number, payload: AdminCodeUpdatePayload) => {
+    const handleEditClick = (code: AdminCode) => {
+        setEditingCodeId(code.id);
+        setEditedData({
+            discount_pct: code.discount_pct,
+            commission_pct: code.commission_pct,
+            is_active: code.is_active,
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCodeId(null);
+        setEditedData({});
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingCodeId) return;
         try {
-            await putAdminCode(id, payload);
-            // No alert on success for inline edits to avoid being noisy
+            await putAdminCode(editingCodeId, editedData as AdminCodeUpdatePayload);
+            setEditingCodeId(null);
+            fetchCodes(); // Refresh data after save
         } catch (error) {
-            console.error("Failed to update code:", error);
-            alert(`Kod güncellenemedi: ${error instanceof Error ? error.message : String(error)}`);
-            fetchCodes(); // Re-fetch to revert optimistic update
+            setError(`Kod güncellenemedi: ${error.message}`);
         }
     };
 
-    const handleExport = () => {
-        if (codes.length === 0) return alert("Dışa aktarılacak veri yok.");
-        const headers = ["Influencer Kodu", "Aktif/Pasif", "Influencer Marka Adı", "Influencer Ad Soyad", "Influencer E-posta", "İndirim %", "Komisyon %", "Oluşturulma Tarihi"];
-        const csvContent = [
-            headers.join(','),
-            ...codes.map(c => [
-                c.code,
-                c.is_active ? 'Aktif' : 'Pasif',
-                c.brand_name || 'N/A',
-                c.influencer_name || 'N/A',
-                c.influencer_email || 'N/A',
-                c.discount_pct,
-                c.commission_pct,
-                new Date(c.created_at).toLocaleDateString() // Format date for CSV
-            ].join(','))
-        ].join('\n');
-
-        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', 'kodlar.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleApproveCode = async (id: number) => {
+        const discount = prompt("Onaylamak için indirim % girin:", "10");
+        if (discount === null) return; // User cancelled
+        const commission = prompt("Komisyon % girin:", "40");
+        if (commission === null) return; // User cancelled
+        
+        try {
+            await putAdminCode(id, { 
+                is_active: true, 
+                discount_pct: Number(discount), 
+                commission_pct: Number(commission) 
+            });
+            fetchCodes(); // Refresh list
+        } catch (error) {
+            setError(`Kod onaylanamadı: ${error.message}`);
+        }
     };
 
-    const groupedCodes = codes.reduce((acc, code) => {
-        const key = code.influencer_id ?? 'unassigned';
-        if (!acc[key]) {
-            acc[key] = { influencer_name: code.influencer_name, influencer_email: code.influencer_email, brand_name: code.brand_name, codes: [] };
-        }
-        acc[key].codes.push(code);
-        return acc;
-    }, {} as { [key: string]: { influencer_name?: string; influencer_email?: string; brand_name?: string; codes: AdminCode[] } });
+    const handleExport = (format: 'csv' | 'xlsx') => {
+        const params = new URLSearchParams();
+        if (filters.search) params.set('search', filters.search);
+        if (filters.startDate) params.set('startDate', filters.startDate);
+        if (filters.endDate) params.set('endDate', filters.endDate);
+        const isActive = filters.status === 'all' ? undefined : filters.status === 'active';
+        if (isActive !== undefined) params.set('isActive', String(isActive));
+        params.set('format', format);
+
+        const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';
+        window.open(`${baseUrl}/api/codes/export?${params.toString()}`, '_blank');
+    };
+
+    const totalPages = Math.ceil(total / limit);
 
     return (
-        <section className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Tüm Kodlar</h2>
-            <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
-                <div className="flex items-center gap-4">
-                    <label>Tarih Başlangıç: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2 border rounded-md" /></label>
-                    <label>Tarih Bitiş: <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2 border rounded-md" /></label>
+        <main className="space-y-6 p-4 sm:p-6">
+            <h1 className="text-2xl font-semibold">Kod Yönetimi</h1>
+
+            {/* Filters */}
+            <div className="rounded-md border card-like p-4">
+                <h2 className="text-lg font-semibold mb-3">Kodları Filtrele</h2>
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm text-muted mb-1">Ara (Kod, Influencer Adı/Email)</label>
+                        <input
+                            type="text"
+                            value={filters.search}
+                            onChange={(e) => setFilters({...filters, search: e.target.value, page: 1})}
+                            placeholder="Arama terimi girin..."
+                            className="w-full rounded-md border px-3 py-2"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-muted mb-1">Durum</label>
+                        <select value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value, page: 1})} className="w-full rounded-md border px-3 py-2">
+                            <option value="all">Tümü</option>
+                            <option value="active">Aktif</option>
+                            <option value="pending">Beklemede</option>
+                        </select>
+                    </div>
+                    <div></div> {/* Spacer */}
+                    <div>
+                        <label className="block text-sm text-muted mb-1">Başlangıç Tarihi</label>
+                        <input type="date" value={filters.startDate} onChange={(e) => setFilters({...filters, startDate: e.target.value, page: 1})} className="w-full rounded-md border px-3 py-2" />
+                    </div>
+                    <div>
+                        <label className="block text-sm text-muted mb-1">Bitiş Tarihi</label>
+                        <input type="date" value={filters.endDate} onChange={(e) => setFilters({...filters, endDate: e.target.value, page: 1})} className="w-full rounded-md border px-3 py-2" />
+                    </div>
                 </div>
-                <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Dışa Aktar (CSV)</button>
             </div>
 
-            {loading ? <div>Yükleniyor...</div> : (
-                <div className="space-y-6">
-                    {Object.values(groupedCodes).map(group => (
-                        <div key={group.influencer_email} className="border rounded-md p-4">
-                            <h3 className="font-semibold">{group.influencer_name} ({group.brand_name})</h3>
-                            <p className="text-sm text-gray-500 mb-2">{group.influencer_email}</p>
-                            <table className="min-w-full text-sm">
-                                <thead className="text-left bg-gray-50">
-                                    <tr>
-                                        <th className="p-2">Kod</th>
-                                        <th className="p-2">Durum</th>
-                                        <th className="p-2">İndirim %</th>
-                                        <th className="p-2">Komisyon %</th>
+            {/* Code List */}
+            <div className="rounded-md border card-like p-4">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold">Kod Listesi</h2>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">CSV Export</button>
+                        <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">Excel Export</button>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4">
+                    <span className="text-sm text-muted">Sayfa başına:</span>
+                    <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }} className="rounded-md border px-2 py-1 text-sm">
+                        <option value={20}>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">Hata: {error}</p>}
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                        <thead className="bg-gray-50 text-gray-700">
+                            <tr>
+                                <th className="px-4 py-2 text-left">Kod</th>
+                                <th className="px-4 py-2 text-left">Influencer</th>
+                                <th className="px-4 py-2 text-right">İndirim %</th>
+                                <th className="px-4 py-2 text-right">Komisyon %</th>
+                                <th className="px-4 py-2 text-center">Durum</th>
+                                <th className="px-4 py-2 text-left">Tarih</th>
+                                <th className="px-4 py-2 text-center">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {loading ? (
+                                <tr><td colSpan={7} className="text-center py-10">Yükleniyor...</td></tr>
+                            ) : codes.length === 0 ? (
+                                <tr><td colSpan={7} className="text-center py-10">Filtreye uygun kod bulunamadı.</td></tr>
+                            ) : (
+                                codes.map(code => (
+                                    <tr key={code.id} className={`hover:bg-gray-50 ${editingCodeId === code.id ? 'bg-blue-50' : ''}`}>
+                                        <td className="px-4 py-2 font-mono">{code.code}</td>
+                                        <td className="px-4 py-2">{code.influencer_name} <span className="text-gray-500">({code.brand_name})</span></td>
+                                        <td className="px-4 py-2 text-right">
+                                            {editingCodeId === code.id ? (
+                                                <input type="number" value={editedData.discount_pct} onChange={e => setEditedData({...editedData, discount_pct: Number(e.target.value)})} className="w-20 p-1 border rounded-md text-right bg-white" />
+                                            ) : (
+                                                code.discount_pct
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2 text-right">
+                                            {editingCodeId === code.id ? (
+                                                <input type="number" value={editedData.commission_pct} onChange={e => setEditedData({...editedData, commission_pct: Number(e.target.value)})} className="w-20 p-1 border rounded-md text-right bg-white" />
+                                            ) : (
+                                                code.commission_pct
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                            {editingCodeId === code.id ? (
+                                                <input type="checkbox" checked={!!editedData.is_active} onChange={e => setEditedData({...editedData, is_active: e.target.checked})} />
+                                            ) : (
+                                                <span className={`px-2 py-1 text-xs rounded-full ${code.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                                    {code.is_active ? 'Aktif' : 'Beklemede'}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2">{new Date(code.created_at).toLocaleDateString('tr-TR')}</td>
+                                        <td className="px-4 py-2 text-center">
+                                            {editingCodeId === code.id ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={handleSaveEdit} className="text-green-600 hover:underline text-xs">Kaydet</button>
+                                                    <button onClick={handleCancelEdit} className="text-red-600 hover:underline text-xs">İptal</button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => handleEditClick(code)} className="text-blue-600 hover:underline text-xs">Düzenle</button>
+                                                    {!code.is_active && (
+                                                        <button onClick={() => handleApproveCode(code.id)} className="text-green-600 hover:underline text-xs">Onayla</button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {group.codes.map(code => (
-                                        <tr key={code.id} className="border-t">
-                                            <td className="p-2 font-mono">{code.code}</td>
-                                            <td className="p-2"><input type="checkbox" checked={code.is_active} onChange={e => handleUpdateCode(code.id, { is_active: e.target.checked })} /></td>
-                                            <td className="p-2"><DebouncedInput type="number" value={code.discount_pct} onChange={val => handleUpdateCode(code.id, { discount_pct: Number(val) })} className="w-24 p-1 border rounded-md" /></td>
-                                            <td className="p-2"><DebouncedInput type="number" value={code.commission_pct} onChange={val => handleUpdateCode(code.id, { commission_pct: Number(val) })} className="w-24 p-1 border rounded-md" /></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {total > 0 && (
+                    <div className="flex justify-between items-center mt-4 text-sm">
+                        <div>Toplam {total} kayıt bulundu.</div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-md border px-3 py-1 disabled:opacity-50">Önceki</button>
+                            <span>Sayfa {page} / {totalPages}</span>
+                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-md border px-3 py-1 disabled:opacity-50">Sonraki</button>
                         </div>
-                    ))}
-                </div>
-            )}
-
-            <div className="mt-4 flex justify-between items-center">
-                <select value={limit} onChange={e => setLimit(Number(e.target.value))} className="p-2 border rounded-md">
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                </select>
-                <div className="flex items-center gap-2">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 border rounded-md disabled:opacity-50">Önceki</button>
-                    <span>Sayfa {page} / {Math.ceil(total / limit)}</span>
-                    <button onClick={() => setPage(p => p + 1)} disabled={page * limit >= total} className="px-4 py-2 border rounded-md disabled:opacity-50">Sonraki</button>
-                </div>
+                    </div>
+                )}
             </div>
-        </section>
-    );
-};
-
-// --- Main Page Component ---
-
-export default function AdminCodesPage() {
-    // This key is used to force a re-render of the AllCodesList when a pending code is approved.
-    const [listKey, setListKey] = useState(0);
-
-    const handleRefresh = () => {
-        setListKey(prev => prev + 1);
-    };
-
-    return (
-        <main className="p-4 sm:p-6 space-y-6">
-            <h1 className="text-2xl font-bold">Kod Yönetimi</h1>
-            <PendingCodesSection onApprovalSuccess={handleRefresh} />
-            <AllCodesList key={listKey} />
         </main>
     );
 }
