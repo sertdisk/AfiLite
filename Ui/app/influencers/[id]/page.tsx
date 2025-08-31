@@ -11,6 +11,9 @@ import {
 
 /* Balance tipleri dosyada tekil tanımlı olmalı — yinelenen tanımları kaldırıyoruz */
 type BalanceSummary = {
+  balance: number;
+  total_balance: number;
+  last_settlement_at: string | null;
   total_earnings?: number;
   pending_earnings?: number;
   paid_earnings?: number;

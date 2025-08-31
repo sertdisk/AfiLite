@@ -137,22 +137,8 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
     .first();
   const totalSalesAmount = parseFloat(totalSalesAmountResult.total_sales_amount) || 0;
 
-  // Ödenmemiş komisyonlar
-  const unpaidCommission = totalCommission - totalPayouts;
-
-  // Ödenmemiş komisyonlara karşılık gelen satış tutarı
-  let unpaidSalesAmount = 0;
-  if (totalCommission > 0) {
-    const unpaidCommissionRatio = unpaidCommission / totalCommission;
-    unpaidSalesAmount = totalSalesAmount * unpaidCommissionRatio;
-  }
-
-  // Ödenmiş komisyonlara karşılık gelen satış tutarı
-  const paidSalesAmount = totalSalesAmount - unpaidSalesAmount;
-
-  // Eğer hiç ödeme yapılmamışsa, tüm satışlar ödeme yapılmamış olarak kabul edilir
-  let commissionSinceLastPayout = unpaidCommission;
-  let salesAmountSinceLastPayout = unpaidSalesAmount;
+  let commissionSinceLastPayout = 0;
+  let salesAmountSinceLastPayout = 0;
   
   if (last_settlement_at) {
     // Eğer ödeme yapılmışsa, son ödemeden sonraki satışlar ödeme yapılmamış olarak kabul edilir
@@ -167,6 +153,10 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
       .sum('total_amount as sales_amount_since')
       .first();
     salesAmountSinceLastPayout = parseFloat(salesAmountSinceResult.sales_amount_since) || 0;
+  } else {
+    // Eğer hiç ödeme yapılmamışsa, tüm komisyon ve satış tutarları ödenmemiş olarak kabul edilir
+    commissionSinceLastPayout = totalCommission;
+    salesAmountSinceLastPayout = totalSalesAmount;
   }
 
   // Toplam satış sayısı
@@ -187,7 +177,7 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
     salesAmountSinceLastPayout,
     totalPayouts,
     totalSalesCount,
-    paidSalesAmount
+    
   });
 }));
 

@@ -7,7 +7,7 @@ exports.up = function(knex) {
     table.integer('influencer_id').unsigned().notNullable();
     table.decimal('amount', 10, 2).notNullable(); // Ödeme tutarı
     table.string('iban', 34).notNullable(); // IBAN numarası
-    table.enum('status', ['pending', 'processing', 'completed', 'failed']).defaultTo('pending');
+    table.string('status').defaultTo('completed');
     table.text('note').nullable(); // Notlar
     table.timestamps(true, true);
     

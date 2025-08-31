@@ -56,10 +56,38 @@ router.get('/influencer/:id', requireAdmin, asyncHandler(async (req, res) => {
 
 // Tüm indirim kodlarını listele (Admin)
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { status } = req.query;
+  const { 
+    page = 1, 
+    limit = 20, 
+    sortBy = 'created_at', 
+    order = 'desc',
+    startDate,
+    endDate,
+    isActive
+  } = req.query;
 
-  const query = knex('discount_codes')
-    .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+  const offset = (page - 1) * limit;
+
+  // Base query
+  const baseQuery = knex('discount_codes')
+    .join('influencers', 'discount_codes.influencer_id', 'influencers.id');
+
+  // Filters
+  if (isActive === 'true' || isActive === 'false') {
+    baseQuery.where('discount_codes.is_active', isActive === 'true');
+  }
+  if (startDate) {
+    baseQuery.where('discount_codes.created_at', '>=', startDate);
+  }
+  if (endDate) {
+    baseQuery.where('discount_codes.created_at', '<=', `${endDate}T23:59:59.999Z`);
+  }
+
+  // Count total records with filters
+  const totalQuery = baseQuery.clone().count('discount_codes.id as total').first();
+  
+  // Main data query
+  const dataQuery = baseQuery.clone()
     .select(
       'discount_codes.id',
       'discount_codes.code',
@@ -70,19 +98,34 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
       'influencers.id as influencer_id',
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email',
-      'influencers.brand_name as influencer_brand_name'
-    )
-    .orderBy('discount_codes.created_at', 'desc');
-  
-  if (status === 'pending') {
-    query.where('discount_codes.is_active', false);
-  } else {
-    // Varsayılan olarak veya status belirtilmemişse aktif olanları getir
-    query.where('discount_codes.is_active', true);
-  }
+      'influencers.brand_name'
+    );
 
-  const codes = await query;
-  res.json({ codes });
+  // Sorting
+  const allowedSortBy = ['created_at', 'influencer_name', 'brand_name'];
+  const safeSortBy = allowedSortBy.includes(sortBy) ? sortBy : 'created_at';
+  const safeOrder = order.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+  let orderByColumn = `discount_codes.${safeSortBy}`;
+  if (safeSortBy === 'influencer_name') {
+    orderByColumn = 'influencers.full_name';
+  } else if (safeSortBy === 'brand_name') {
+    orderByColumn = 'influencers.brand_name';
+  }
+  dataQuery.orderBy(orderByColumn, safeOrder);
+
+  // Pagination
+  dataQuery.limit(limit).offset(offset);
+
+  // Execute queries
+  const [items, totalResult] = await Promise.all([
+    dataQuery,
+    totalQuery
+  ]);
+  
+  const total = totalResult.total;
+
+  res.json({ items, total, page: Number(page), limit: Number(limit) });
 }));
 
 // Tek bir kod detayını getir (ID ile)

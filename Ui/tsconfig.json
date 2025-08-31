@@ -12,7 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "types": ["next", "next/image-types/global", "next/navigation-types/compat/navigation", "node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]

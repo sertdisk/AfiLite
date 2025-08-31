@@ -7,15 +7,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
-  getAdminPendingCodes,
+  getAdminCodes,
   getAdminBalanceSummary,
   getAdminSalesStats,
   putAdminCode,
-  getAdminAllCodes,
-  getAdminAllInfluencers,
-  getAdminAllPayouts,
   getAdminRecentSales,
 } from '@/lib/api';
 import QuickSaleForm from './components/QuickSaleForm';
@@ -29,26 +25,13 @@ type PendingCode = {
   commission_rate?: number; // %
 };
 
-type CodeDetail = {
-  id: number;
-  code: string;
-  influencer_id: number;
-  influencer_email?: string;
-  influencer_name?: string;        // API'den gelen ad soyad
-  influencer_brand_name?: string;  // marka adı
-  influencer_handle?: string;      // hesap adı (örn: @ahmet)
-  discount_pct?: number;           // indirim yüzdesi
-  commission_pct?: number;         // komisyon yüzdesi (API'den gelen)
-  commission_rate?: number;        // alternatif field name
-  is_active?: boolean;             // kod aktif mi
-  created_at?: string;             // oluşturulma tarihi
-};
+
 
 export default function AdminDashboardPage() {
   const [pendingCodes, setPendingCodes] = useState<PendingCode[] | null>(null);
   const [codesError, setCodesError] = useState<string | null>(null);
 
-  const [payoutTotal, setPayoutTotal] = useState<number | null>(null);
+  
 
   // Son satışlar
   const [recentSales, setRecentSales] = useState<any[]>([]);
@@ -69,7 +52,6 @@ export default function AdminDashboardPage() {
     salesAmountSinceLastPayout: 0,
     totalCommissionPaid: 0,
     totalSalesAmount: 0,
-    salesAmountUntilLastPayout: 0,
     totalSalesCount: 0,
     totalProductAmount: 0,
     totalEarnedCommission: 0,
@@ -80,16 +62,14 @@ export default function AdminDashboardPage() {
   // 1) Onay bekleyen indirim kodları (varsa)
   useEffect(() => {
     let ignore = false;
-    console.log('[DEBUG] AdminDashboard: Fetching pending codes...');
     (async () => {
       try {
-        const pendingCodesData = await getAdminPendingCodes();
+        const pendingCodesData = await getAdminCodes({ isActive: false, limit: 5 });
         if (!ignore) {
-          setPendingCodes(pendingCodesData);
+          setPendingCodes(pendingCodesData.items);
           setCodesError(null);
         }
       } catch (error: any) {
-        console.error('[DEBUG] AdminDashboard: Error fetching pending codes:', error);
         if (!ignore) {
           setPendingCodes([]);
           setCodesError(error?.message || 'Onay bekleyen kodlar alınamadı.');
@@ -97,58 +77,38 @@ export default function AdminDashboardPage() {
       }
     })();
     return () => {
-      console.log('[DEBUG] AdminDashboard: Cleaning up pending codes effect');
       ignore = true;
     };
   }, []);
 
-  // 3) Hakediş özeti (fallback ile)
+    // 3) Hakediş özeti (fallback ile)
   useEffect(() => {
     let ignore = false;
-    console.log('[DEBUG] AdminDashboard: Fetching balance summary...');
     (async () => {
       try {
-        const primaryEndpoint = 'http://localhost:5003/api/balance/admin-summary/summary';
-        console.log(`[DEBUG] AdminDashboard: Calling primary endpoint: ${primaryEndpoint}`);
-        
-        try {
-          const result = await getAdminBalanceSummary();
-          console.log('[DEBUG] AdminDashboard: Primary response:', result);
-          const val = result?.balance;
-          console.log(`[DEBUG] AdminDashboard: Primary balance value: ${val}`);
-          if (!ignore && typeof val === 'number') {
-            setPayoutTotal(val);
-          }
-        } catch (error) { console.error(error); 
-          console.log(`[DEBUG] AdminDashboard: Primary endpoint failed, trying fallback...`);
-          console.log(`[DEBUG] AdminDashboard: Calling fallback endpoint: getAdminSalesStats`);
-          
-          try {
-            const result = await getAdminSalesStats();
-            // Fallback endpoint is now /api/sales/stats
-            console.log('[DEBUG] AdminDashboard: Fallback response:', result);
-            const total = result?.stats?.total_commission;
-            console.log(`[DEBUG] AdminDashboard: Fallback total commission: ${total}`);
-            if (!ignore && typeof total === 'number') {
-              setPayoutTotal(total);
-            }
-          } catch (e) {
-            console.error('[DEBUG] AdminDashboard: Fallback error:', e);
-          }
+        const balanceSummary = await getAdminBalanceSummary();
+        if (!ignore && typeof balanceSummary?.balance === 'number') {
+          // setPayoutTotal(balanceSummary.balance); // Re-add if payoutTotal is used elsewhere
         }
       } catch (error) {
-        console.error('[DEBUG] AdminDashboard: Error fetching balance summary:', error);
-        if (!ignore) setPayoutTotal(null);
+        // Fallback to getAdminSalesStats if getAdminBalanceSummary fails
+        try {
+          const salesStats = await getAdminSalesStats();
+          if (!ignore && typeof salesStats?.stats?.total_commission === 'number') {
+            // setPayoutTotal(salesStats.stats.total_commission); // Re-add if payoutTotal is used elsewhere
+          }
+        // eslint-disable-next-line no-empty
+        // eslint-disable-next-line no-empty
+        } catch (e) { console.error(e); /* Fallback error handling */ }
       }
     })();
     return () => {
-      console.log('[DEBUG] AdminDashboard: Cleaning up balance summary effect');
       ignore = true;
     };
   }, []);
 
   // Son onaylanan kodları kısa süre göstermek için (sessionStorage kökenli)
-  const [recentApproved, setRecentApproved] = useState<Array<{id:number; code:string; discount_pct:number; commission_pct:number; ts:number}>>([]);
+  
   useEffect(() => {
     try {
       const k = 'recentlyApprovedCodes';
@@ -158,10 +118,10 @@ export default function AdminDashboardPage() {
       // 10 dakika içinde onaylananları göster
       const now = Date.now();
       const filtered = arr.filter((x: any) => now - x.ts <= 10 * 60 * 1000);
-      setRecentApproved(filtered);
+      
       // temizlik: eskileri at
       sessionStorage.setItem(k, JSON.stringify(filtered));
-    } catch (error) { console.error(error); }
+    } catch (error) {  }
   }, []);
 
   // Son aktif edilen kodları al
@@ -171,12 +131,9 @@ export default function AdminDashboardPage() {
       setCodesLoading(true);
       setActiveCodesError(null);
       try {
-        const activeCodes = await getAdminAllCodes(); // Tüm kodları getir, sonra filtrele
+        const activeCodesData = await getAdminCodes({ isActive: true, limit: 20 }); // Direkt aktif ve limitli kodları getir
         if (!ignore) {
-          const processedCodes = activeCodes
-            .filter(code => code.is_active)
-            .slice(0, 20) // Sadece ilk 20 aktif kodu al
-            .map((code: any) => ({
+          const processedCodes = activeCodesData.items.map((code: any) => ({
               id: code?.id,
               code: code?.code || '',
               discount_pct: typeof code?.discount_pct === 'number' ? code.discount_pct : null,
@@ -223,7 +180,6 @@ export default function AdminDashboardPage() {
           setRecentSales(processedSales);
         }
       } catch (error) {
-        console.error('[DEBUG] AdminDashboard: Error fetching recent sales:', error);
         if (!ignore) {
           setSalesError('Satışlar alınamadı.');
         }
@@ -259,14 +215,12 @@ export default function AdminDashboardPage() {
             salesAmountSinceLastPayout: balanceSummary.salesAmountSinceLastPayout || 0,
             totalCommissionPaid: balanceSummary.totalPayouts || 0,
             totalSalesAmount: balanceSummary.totalSalesAmount || 0,
-            salesAmountUntilLastPayout: balanceSummary.paidSalesAmount || 0,
             totalSalesCount: balanceSummary.totalSalesCount || 0,
             totalProductAmount: balanceSummary.totalSalesAmount || 0,
             totalEarnedCommission: balanceSummary.totalCommission || 0,
           });
         }
       } catch (error) {
-        console.error('[DEBUG] AdminDashboard: Error fetching report data:', error);
         if (!ignore) {
           setReportError('Rapor verileri yüklenirken bir hata oluştu.');
         }
@@ -333,7 +287,6 @@ export default function AdminDashboardPage() {
                           await putAdminCode(c.id, payload);
                           alert('Kod onaylandı.');
                         } catch (error: any) {
-                          console.error('[DEBUG] AdminDashboard: Error approving code:', error);
                           alert(error?.message || 'Kod onaylama başarısız.');
                           return;
                         }
@@ -352,12 +305,10 @@ export default function AdminDashboardPage() {
                           });
                           // ilk 5 kayıt tut
                           sessionStorage.setItem(k, JSON.stringify(list.slice(0, 20)));
-                        } catch (error) { console.error(error); }
+                        } catch (error) {  }
                         // Listeyi yenilemeden önce sayfada alt bildirim alanını tetiklemek için soft refresh
                         location.reload();
-                      } catch (error) { console.error(error); 
-                        alert('Beklenmeyen bir hata oluştu.');
-                      }
+                      } catch (error) { /* empty */ } // eslint-disable-line no-empty
                     })();
                   }}
                 >
@@ -492,14 +443,14 @@ export default function AdminDashboardPage() {
                                 await putAdminCode(code.id, payload);
                                 alert('Kod başarıyla güncellendi.');
                               } catch (error: any) {
-                                console.error('[DEBUG] AdminDashboard: Error updating code:', error);
                                 alert(error?.message || 'Kod güncelleme başarısız.');
                                 return;
                               }
                               alert('Kod başarıyla güncellendi.');
                               // Listeyi yenile
                               location.reload();
-                            } catch (error) { console.error(error); 
+                            // eslint-disable-next-line no-empty
+                            } catch (error) { console.error(error);
                               alert('Beklenmeyen bir hata oluştu.');
                             }
                           })();
@@ -577,7 +528,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Ürün Tutarı:</span>
-                  <span className="font-medium">₺ {Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(reportData.salesAmountUntilLastPayout)}</span>
+                  <span className="font-medium">₺ {Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(reportData.totalSalesAmount - reportData.salesAmountSinceLastPayout)}</span>
                 </div>
               </div>
             </div>

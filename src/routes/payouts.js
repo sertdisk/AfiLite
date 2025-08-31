@@ -30,9 +30,7 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
     )
     .orderBy('payouts.created_at', 'desc');
   
-  if (status) {
-    query = query.where('payouts.status', status);
-  }
+
   
   if (influencerId) {
     query = query.where('payouts.influencer_id', influencerId);
@@ -157,42 +155,7 @@ router.get('/api/payouts/:id', authenticateToken, asyncHandler(async (req, res) 
   res.json(payout);
 }));
 
-// PATCH /api/payouts/:id - Ödeme güncelle (Admin)
-router.patch('/api/payouts/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { status } = req.body;
-  
-  if (!status) {
-    const err = new Error('Status alanı zorunludur');
-    err.status = 400;
-    throw err;
-  }
-  
-  const payout = await knex('payouts').where('id', req.params.id).first();
-  if (!payout) {
-    const err = new Error('Ödeme bulunamadı');
-    err.status = 404;
-    throw err;
-  }
-  
-  await knex('payouts')
-    .where('id', req.params.id)
-    .update({
-      status: String(status).trim(),
-      updated_at: knex.fn.now()
-    });
-  
-  const updatedPayout = await knex('payouts')
-    .join('influencers', 'payouts.influencer_id', 'influencers.id')
-    .select(
-      'payouts.*',
-      'influencers.full_name as influencer_name',
-      'influencers.email as influencer_email'
-    )
-    .where('payouts.id', req.params.id)
-    .first();
-  
-  res.json(updatedPayout);
-}));
+
 
 // GET /api/payouts/export - Ödemeleri export et (Admin)
 router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
@@ -214,9 +177,7 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
     )
     .orderBy('payouts.created_at', 'desc');
   
-  if (status) {
-    query = query.where('payouts.status', status);
-  }
+
   
   if (influencerId) {
     query = query.where('payouts.influencer_id', influencerId);

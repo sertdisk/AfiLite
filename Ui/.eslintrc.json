@@ -8,6 +8,7 @@
   "rules": {
     // Kısa açıklama: Proje için minimal ESLint ayarları. Türkçe yorumlar bilgilendiricidir.
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^ignored" }],
-    "no-console": ["warn", { "allow": ["warn", "error"] }]
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-empty": "off"
   }
 }

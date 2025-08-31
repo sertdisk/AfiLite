@@ -9,11 +9,12 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { ApiError, getInfluencerMe } from '@/lib/api';
 
-function StatusBadge({ status }: { status: 'pending' | 'approved' | 'rejected' }) {
+function StatusBadge({ status }: { status: 'pending' | 'approved' | 'rejected' | 'suspended' }) {
   const map: Record<typeof status, { text: string; cls: string }> = {
     pending: { text: 'Beklemede', cls: 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30' },
     approved: { text: 'Onaylandı', cls: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30' },
-    rejected: { text: 'Reddedildi', cls: 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/30' }
+    rejected: { text: 'Reddedildi', cls: 'bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/30' },
+    suspended: { text: 'Askıda', cls: 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-500/30' }
   };
   const s = map[status];
   return (

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getUnreadCount }m '@/lib/api';
+import { getUnreadCount } from '@/lib/api';
 
 interface MenuItem {
   id: string;

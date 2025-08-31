@@ -17,7 +17,7 @@ type PayoutRow = {
   currency?: string;
   iban?: string;
   note?: string;
-  status: 'pending' | 'sent' | 'completed' | string;
+  status: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -25,7 +25,6 @@ type PayoutRow = {
 export default function AdminPayoutsPage() {
   // Filtreler
   const [influencerId, setInfluencerId] = useState('');
-  const [status, setStatus] = useState('');
   const [from, setFrom] = useState(''); // datetime-local
   const [to, setTo] = useState('');
 
@@ -42,7 +41,6 @@ export default function AdminPayoutsPage() {
   const [mAmount, setMAmount] = useState('');
   const [mIban, setMIban] = useState('');
   const [mNote, setMNote] = useState('');
-  const [mStatus, setMStatus] = useState<'pending' | 'sent' | 'completed'>('pending');
   const [creating, setCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState<string | null>(null);
   const [createErr, setCreateErr] = useState<string | null>(null);
@@ -53,7 +51,7 @@ export default function AdminPayoutsPage() {
     try {
       const qs = new URLSearchParams();
       if (influencerId.trim()) qs.set('influencerId', influencerId.trim());
-      if (status) qs.set('status', status);
+
       if (from) {
         const d = new Date(from);
         if (!isNaN(d.getTime())) qs.set('from', d.toISOString());
@@ -113,7 +111,7 @@ export default function AdminPayoutsPage() {
     try {
       const qs = new URLSearchParams();
       if (influencerId.trim()) qs.set('influencerId', influencerId.trim());
-      if (status) qs.set('status', status);
+
       if (from) { const d = new Date(from); if (!isNaN(d.getTime())) qs.set('from', d.toISOString()); }
       if (to) { const d = new Date(to); if (!isNaN(d.getTime())) qs.set('to', d.toISOString()); }
       qs.set('format', format);
@@ -171,24 +169,7 @@ export default function AdminPayoutsPage() {
     }
   }
 
-  async function updateStatus(row: PayoutRow, next: 'pending' | 'sent' | 'completed') {
-    try {
-      const res = await fetch(`/api/payouts/${encodeURIComponent(String(row.id))}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: next })
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
-        alert(msg || 'Durum güncelleme başarısız.');
-        return;
-      }
-      fetchList();
-    } catch (error) { console.error(error); }
-  }
+  
 
   return (
     <main className="space-y-6 p-4 sm:p-6">
@@ -206,15 +187,7 @@ export default function AdminPayoutsPage() {
           <label className="block text-sm text-muted mb-1">Influencer ID</label>
           <input value={influencerId} onChange={(e) => setInfluencerId(e.target.value)} type="number" className="w-full rounded-md border px-3 py-2" />
         </div>
-        <div>
-          <label className="block text-sm text-muted mb-1">Durum</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-md border px-3 py-2">
-            <option value="">— Hepsi —</option>
-            <option value="pending">Bekliyor</option>
-            <option value="sent">Gönderildi</option>
-            <option value="completed">Tamamlandı</option>
-          </select>
-        </div>
+        
         <div>
           <label className="block text-sm text-muted mb-1">Başlangıç</label>
           <input value={from} onChange={(e) => setFrom(e.target.value)} type="datetime-local" className="w-full rounded-md border px-3 py-2" />
@@ -249,14 +222,7 @@ export default function AdminPayoutsPage() {
             <label className="block text-sm text-muted mb-1">Not (opsiyonel)</label>
             <textarea value={mNote} onChange={(e) => setMNote(e.target.value)} className="w-full rounded-md border px-3 py-2" rows={2} placeholder="Açıklama (opsiyonel)" />
           </div>
-          <div>
-            <label className="block text-sm text-muted mb-1">Durum</label>
-            <select value={mStatus} onChange={(e) => setMStatus(e.target.value as any)} className="w-full rounded-md border px-3 py-2">
-              <option value="pending">Bekliyor</option>
-              <option value="sent">Gönderildi</option>
-              <option value="completed">Tamamlandı</option>
-            </select>
-          </div>
+          
 
           <div className="sm:col-span-3 flex items-center gap-3">
             {createErr && <span className="text-sm text-red-500">{createErr}</span>}
@@ -302,14 +268,7 @@ export default function AdminPayoutsPage() {
                 <td className="px-4 py-2 font-mono">{r.iban || '—'}</td>
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-2">
-                    {r.status === 'pending' && <span className="inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Bekliyor</span>}
-                    {r.status === 'sent' && <span className="inline-flex items-center rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Gönderildi</span>}
-                    {r.status === 'completed' && <span className="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Tamamlandı</span>}
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => updateStatus(r, 'pending')} className="rounded border px-2 py-0.5 text-[11px]">Bekliyor</button>
-                      <button onClick={() => updateStatus(r, 'sent')} className="rounded border px-2 py-0.5 text-[11px]">Gönderildi</button>
-                      <button onClick={() => updateStatus(r, 'completed')} className="rounded border px-2 py-0.5 text-[11px]">Tamamlandı</button>
-                    </div>
+                    <span className="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Tamamlandı</span>
                   </div>
                 </td>
                 <td className="px-4 py-2 text-gray-600">{r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</td>

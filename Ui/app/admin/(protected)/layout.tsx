@@ -16,7 +16,7 @@ function hasAnyAuthCookie() {
   return Boolean(adminJwt || jwt || access);
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const ok = hasAnyAuthCookie();
   if (!ok) {
     // 401 mesajı — kullanıcıyı login akışına yönlendirmek için link veriyoruz

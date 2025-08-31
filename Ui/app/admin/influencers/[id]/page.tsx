@@ -36,7 +36,7 @@ function AddCodeSection({ influencerId, onCodeAdded }: { influencerId: number; o
         setSaving(true);
         setError(null);
         try {
-            await adminCreateCode({ influencer_id: influencerId, code: code || undefined, discount_percentage: Number(discountPct), commission_pct: Number(commissionPct) });
+            await adminCreateCode({ influencer_id: influencerId, code: code || '', discount_percentage: Number(discountPct), commission_pct: Number(commissionPct) });
             setCode('');
             setIsOpen(false);
             onCodeAdded();
@@ -182,7 +182,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
     const [payouts, setPayouts] = useState<PayoutRow[]>([]);
     const [showSaleForm, setShowSaleForm] = useState(false);
 
-    const inflId = use(params).id;
+    const inflId = params.id;
 
     const loadAll = useCallback(async () => {
         if (!inflId) return;
@@ -236,7 +236,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
         if (!editingSale || !editingSale.id) return;
         setBusy(true);
         try {
-            await updateAdminSale(editingSale.id, { total_amount: Number(editingSale.total_amount), customer_url: editingSale.customer_url, product: editingSale.product, note: editingSale.note });
+            await updateAdminSale(editingSale.id, { total_amount: Number(editingSale.total_amount), customer_url: editingSale.customer_url ?? undefined, product: editingSale.product ?? undefined, note: editingSale.note ?? undefined });
             setEditingSale(null);
             loadAll();
         } catch (e: any) { setError(e.message); } finally { setBusy(false); }
