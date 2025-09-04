@@ -3,16 +3,6 @@ interface HeadersInit {
   [name: string]: string;
 }
 type RequestCache = "default" | "no-store" | "reload" | "no-cache" | "force-cache" | "only-if-cached";
-/* Açıklama (TR):
- * Bu dosya, admin UI'nin backend ile konuşması için minimal ve güvenli yardımcıları içerir.
- * Server-only API'ler (next/headers gibi) kullanılmaz; kütüphane hem client hem server tüketimine uygundur.
- * - Cookie tabanlı kimlik doğrulama için fetch varsayılan olarak credentials: 'include' kullanır.
- * - Authorization başlığı eklenmez. Gerekirse ileride authMode ile genişletilebilir.
- * - Hata yönetimi: Backend'in döndüğü { error | message } yüzeye taşınır ve Error/ApiError olarak fırlatılır.
- * - Aşağıda influencer başvuru ve profil uçlarına özel istemci fonksiyonları eklenmiştir.
- */
-
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export class ApiError extends Error {
   status: number;
@@ -22,60 +12,14 @@ export class ApiError extends Error {
   }
 }
 
-export interface InfluencerPasswordUpdatePayload {
-  currentPassword: string;
-  newPassword: string;
-}
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export interface SocialAccount {
-  id: number;
-  influencer_id: number;
-  platform: string;
-  handle: string;
-  url?: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SocialAccountPayload {
-  platform: string;
-  handle: string;
-  url?: string | null;
-}
-
-export interface PaymentAccount {
-  id: number;
-  influencer_id: number;
-  bank_name: string;
-  account_holder_name: string;
-  iban: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PaymentAccountPayload {
-  bank_name: string;
-  account_holder_name: string;
-  iban: string;
-}
-
-type AuthMode = 'none' | 'bearer';
-
-/**
- * Ortak istek sarmalayıcısı (TR):
- * - next/headers bağımlılığı yoktur.
- * - Varsayılan olarak JSON içerik türü ve credentials: 'include' ile çalışır.
- * - Authorization eklenmez (authMode === 'bearer' ileride kullanılabilir).
- */
 export async function request<T = unknown>(
   url: string,
   opts: {
     method?: HttpMethod;
     body?: any;
     headers?: HeadersInit;
-    authMode?: AuthMode;
     cache?: RequestCache;
   } = {}
 ): Promise<T> {
@@ -84,10 +28,8 @@ export async function request<T = unknown>(
     ...(opts.headers || {})
   };
 
-  let fullUrl = url;
-  if (!url.startsWith('/api')) { // Eğer URL /api ile başlamıyorsa, backend URL'sini ekle
-    fullUrl = `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003'}${url}`;
-  }
+  let fullUrl = url.startsWith('/') ? `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003'}${url}` : url;
+  
   const res = await fetch(fullUrl, {
     method: opts.method ?? 'GET',
     headers,
@@ -100,834 +42,179 @@ export async function request<T = unknown>(
     throw new ApiError(res.status, 'Yetkilendirme hatası');
   }
 
-  // Başarısız yanıtlarda backend mesajını okumaya çalışalım
   if (!res.ok) {
     let message = 'İstek başarısız.';
     try {
       const data = await res.json();
-      if (data?.error) message = String(data.error);
-      else if (data?.message) message = String(data.message);
-      else message = JSON.stringify(data);
-    } catch (error) { console.error(error); }
+      message = data?.error || data?.message || JSON.stringify(data);
+    } catch (error) { /* ignore */ }
     throw new ApiError(res.status, message);
   }
 
-  // JSON varsayıyoruz; backend farklı dönerse uyarlanabilir.
   return (await res.json()) as T;
 }
 
-/* =========================
- * TypeScript Tipleri (TR):
- * - InfluencerApplyPayload: başvuru formu payload'ı
- * - InfluencerUpdatePayload: profil güncelleme payload'ı
- * - Influencer: backend'in döndürdüğü influencer kaydı
- * - InfluencerSummary: dashboard özet verisi
- * channels string[] olarak tutulur; API ile konuşurken gerekirse join/split yapılır.
- * ========================= */
+//==============================================================================
+// TYPE DEFINITIONS
+//==============================================================================
+
 export type InfluencerStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export interface Influencer {
   id: number;
   name: string;
   email: string;
-  social_handle: string;
-  niche: string;
-  channels: string[]; // UI'da dizi; backend string tutuyorsa dönüştürürüz
-  country: string;
-  terms_accepted: boolean;
-  bio?: string | null;
-  website?: string | null;
-  brandName?: string | null; // Yeni eklenen alan
-  phone?: string; // Added phone
   status: InfluencerStatus;
-  created_at: string; // ISO
-  updated_at?: string;
+  created_at: string;
+  [key: string]: any;
 }
-
-export interface InfluencerApplyPayload {
-  name: string;
-  email: string;
-  social_handle: string;
-  niche: string;
-  channels: string[]; // formdan virgülle ayrılmış -> diziye
-  country: string;
-  terms_accepted: boolean;
-  bio?: string;
-  website?: string;
-  brandName?: string; // Yeni eklenen alan
-  /** Geçici alan (TR): Backend desteği geldiğinde schema uyumu için güncellenecek. */
-  social_accounts?: Array<{
-    platform: 'Instagram' | 'YouTube' | 'TikTok' | 'Other';
-    platformName?: string;
-    handleOrChannel: string;
-    followers: number;
-    avgViews: number;
-  }>;
-}
-
-export interface InfluencerUpdatePayload {
-  name?: string;
-  social_handle?: string;
-  niche?: string;
-  channels?: string[]; // UI tarafında dizi
-  country?: string;
-  bio?: string | null;
-  website?: string | null;
-}
-
-export interface InfluencerSummary {
-  status: InfluencerStatus;
-  created_at: string; // ISO
-  days_since_application: number;
-}
-
-/* Yardımcı: UI <-> API arasında channels alanını dönüştürme
- * Backend TEXT(JSON) saklasa bile, client tarafından dizi göndermek güvenli (server JSON.stringify yapabilir).
- */
-function channelsToApi(value: string[] | undefined | null): string[] | string | undefined {
-  if (value == null) return value ?? undefined;
-  // Backend string[] kabul ettiğinden doğrudan dizi döndür.
-  return value.map((s) => s.trim()).filter(Boolean);
-}
-
-function channelsFromApi(value: string[] | string | null | undefined): string[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  return String(value)
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-/* =========================
- * Influencer API istemci fonksiyonları
- * ========================= */
-
-/** Başvuru oluşturma — POST /api/v1/influencers/apply
- * Not (TR): social_accounts alanı geçici olarak API'ye aynen iletilir. Backend desteği geldiğinde schema uyumu için güncellenecek.
- */
-export async function postInfluencerApply(payload: InfluencerApplyPayload): Promise<{ id: number; status: InfluencerStatus; created_at: string }> {
-  const body = {
-    ...payload,
-    channels: channelsToApi(payload.channels),
-    // social_accounts varsa olduğu gibi gönderilir (router görmezden gelebilir).
-    social_accounts: payload.social_accounts
-  };
-  // Public olabilir; cookie gerekmez. credentials: 'include' zararsızdır.
-  return request<{ id: number; status: InfluencerStatus; created_at: string }>('/api/v1/influencers/apply', {
-    method: 'POST',
-    body
-  });
-}
-
-/** Influencer kendi kodunu oluşturur — POST /api/v1/codes/me (JWT gerekli) */
-export async function createMyDiscountCode(input?: { code?: string; discount_pct?: number; commission_pct?: number }): Promise<{
-  message: string;
-  code_id: number;
-  code: { id: number; influencer_id: number; code: string; discount_pct: number; commission_pct: number; is_active: number; created_at?: string; approved_at?: string; }; // approved_at eklendi
-}> {
-  return request('/api/v1/codes/me', {
-    method: 'POST',
-    body: input ?? {}
-  });
-}
-
-/** Admin: belirli bir influencerın kodlarını listele — GET /api/v1/codes/influencer/:id */
-export async function adminListInfluencerCodes(influencerId: number): Promise<{ influencer_id: number; codes: any[] }> {
-  return request(`/api/v1/codes/influencer/${influencerId}`, { method: 'GET' });
-}
-
-/** Admin: yeni kod oluştur — POST /api/v1/codes */
-export async function adminCreateCode(payload: { influencer_id: number; code: string; discount_percentage: number; commission_pct?: number }): Promise<any> {
-  return request('/api/v1/codes', {
-    method: 'POST',
-    body: payload
-  });
-}
-
-/** Me — GET /api/v1/influencers/me (JWT gerekli) */
-export async function getInfluencerMe(): Promise<Influencer | null> {
-  try {
-    const data = await request<any>('/api/v1/influencers/me', { method: 'GET' });
-    const infl: Influencer = {
-      ...data,
-      brandName: data?.brand_name, // brand_name'i brandName olarak kullan
-      channels: channelsFromApi(data?.channels)
-    };
-    return infl;
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-      return null;
-    }
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Profil güncelleme — PATCH /api/v1/influencers/me */
-export async function patchInfluencerMe(partial: InfluencerUpdatePayload): Promise<Influencer> {
-  try {
-    const body = {
-      ...partial,
-      channels: partial.channels !== undefined ? channelsToApi(partial.channels) : undefined
-    };
-    const data = await request<any>('/api/v1/influencers/me', {
-      method: 'PATCH',
-      body
-    });
-    const infl: Influencer = {
-      ...data,
-      channels: channelsFromApi(data?.channels)
-    };
-    return infl;
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Özet — GET /api/v1/influencers/me/summary */
-export async function getInfluencerSummary(): Promise<InfluencerSummary | null> {
-  try {
-    const data = await request<InfluencerSummary>('/api/v1/influencers/me/summary', { method: 'GET' });
-    return data;
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-      return null;
-    }
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Kendi kodlarımı listele */
-export async function listMyCodesUnsafe(): Promise<{
-  items: Array<{
-    id: number;
-    influencer_id: number;
-    code: string;
-    discount_pct: number;
-    commission_pct: number;
-    is_active: number;
-    created_at?: string;
-    approved_at?: string;
-  }>;
-}> {
-  const response = await request<{ codes: any[] }>('/api/v1/codes/me', { method: 'GET' });
-  return { items: response.codes || [] };
-}
-
-/** (Muhasebe) Toplam bakiye — GET /api/v1/balance/me */
-export async function getMyBalance(): Promise<{ total_balance: number; currency?: string } | null> {
-  try {
-    return await request('/api/v1/balance/me', { method: 'GET' });
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-      return null;
-    }
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** (Muhasebe) İşlem listesi — GET /api/v1/sales/me?code=CODE123 */
-export async function getMySales(params?: { code?: string; limit?: number; offset?: number }): Promise<{
-  items: Array<{
-    id: number;
-    date: string;
-    code: string;
-    customer: string;
-    package_name: string;
-    package_amount: number;
-    commission_amount: number;
-  }>;
-  total_commission: number;
-  total_count?: number; // Toplam öğe sayısı sayfalama için eklendi
-}> {
-  const q: string[] = [];
-  if (params?.code) q.push(`code=${encodeURIComponent(params.code)}`);
-  if (params?.limit) q.push(`limit=${encodeURIComponent(String(params.limit))}`);
-  if (params?.offset) q.push(`offset=${encodeURIComponent(String(params.offset))}`);
-  const qs = q.length ? `?${q.join('&')}` : '';
-  return request(`/api/v1/sales/me${qs}`, { method: 'GET' });
-}
-
-/** (Muhasebe) Ödeme/mahsuplaşma geçmişi — GET /api/v1/balance/me/settlements */
-export async function getMySettlements(params?: { limit?: number; offset?: number; query?: string }): Promise<{
-  items: Array<{
-    id: number;
-    date: string;
-    method: string;
-    account: string;
-    amount: number;
-    note?: string;
-    // Yeni eklenecek alanlar (backend'den geliyorsa)
-    bank_name?: string;
-    account_owner?: string;
-    balance_before_settlement?: number;
-    balance_after_settlement?: number;
-  }>;
-  total_count?: number; // Toplam öğe sayısı sayfalama için eklendi
-}> {
-  const q: string[] = [];
-  if (params?.limit) q.push(`limit=${encodeURIComponent(String(params.limit))}`);
-  if (params?.offset) q.push(`offset=${encodeURIComponent(String(params.offset))}`);
-  if (params?.query) q.push(`query=${encodeURIComponent(params.query)}`);
-  const qs = q.length ? `?${q.join('&')}` : '';
-  return request(`/api/v1/balance/me/settlements${qs}`, { method: 'GET' });
-}
-
-/* =========================
- * Sistem Uyarıları API istemci fonksiyonları
- * ========================= */
 
 export interface SystemAlert {
   id: number;
   message: string;
   created_at: string;
+  target_influencer_ids?: string;
 }
 
-/** Okunmamış uyarıları getir — GET /api/v1/alerts/unread */
-export async function getUnreadAlerts(): Promise<SystemAlert[]> {
-  try {
-    return await request<SystemAlert[]>('/api/v1/alerts/unread', { method: 'GET' });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Uyarıyı okundu olarak işaretle — POST /api/v1/alerts/:id/read */
-export async function markAlertRead(alertId: number): Promise<{ message: string }> {
-  try {
-    return await request(`/api/v1/alerts/${alertId}/read`, {
-      method: 'POST'
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/* =========================
- * Admin Sistem Uyarıları API istemci fonksiyonları
- * ========================= */
-
-export interface SystemAlertAdmin extends SystemAlert {
+export interface Message {
   id: number;
-  message: string;
+  from_user_id: number;
+  to_user_id: number;
+  from_role: 'admin' | 'influencer';
+  to_role: 'admin' | 'influencer';
+  body: string;
   created_at: string;
+  read_at?: string | null;
 }
 
-/** Tüm uyarıları listele (Admin) — GET /api/v1/alerts */
-export async function listAlerts(): Promise<SystemAlertAdmin[]> {
-  try {
-    return await request<SystemAlertAdmin[]>('/api/v1/alerts', { method: 'GET' });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Yeni uyarı oluştur (Admin) — POST /api/v1/alerts */
-export async function createAlert(payload: { message: string }): Promise<SystemAlertAdmin> {
-  try {
-    return await request<SystemAlertAdmin>('/api/v1/alerts', {
-      method: 'POST',
-      body: payload
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Uyarı sil (Admin) — DELETE /api/v1/alerts/:id */
-export async function deleteAlert(id: number): Promise<void> {
-  try {
-    await request(`/api/v1/alerts/${id}`, {
-      method: 'DELETE'
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/* =========================
- * Mesajlaşma API istemci fonksiyonları
- * ========================= */
-
-export async function sendMessage(input: { to: 'admin' | 'influencer'; body: string; influencerId?: number }): Promise<{ message: string; item: any }> {
-  return request('/api/v1/messages', {
-    method: 'POST',
-    body: input
-  });
-}
-
-/** Konuşma — GET /api/v1/messages/thread
- * Admin: ?influencerId=
- * Influencer: parametresiz (admin↔me)
- */
-export async function getThread(params?: { influencerId?: number; limit?: number; before?: string }): Promise<{ items: any[] }> {
-  const q: string[] = [];
-  if (params?.influencerId) q.push(`influencerId=${encodeURIComponent(String(params.influencerId))}`);
-  if (params?.limit) q.push(`limit=${encodeURIComponent(String(params.limit))}`);
-  if (params?.before) q.push(`before=${encodeURIComponent(params.before)}`);
-  const qs = q.length ? `?${q.join('&')}` : '';
-  return request(`/api/v1/messages/thread${qs}`, { method: 'GET' });
-}
-
-/** Okundu — POST /api/v1/messages/read
- * Admin: { influencerId }
- * Influencer: body gereksiz
- */
-export async function markRead(body?: { influencerId?: number }): Promise<{ updated: number }> {
-  return request('/api/v1/messages/read', {
-    method: 'POST',
-    body: body ?? {}
-  });
-}
-
-/** Okunmamış sayısı — GET /api/v1/messages/unread-count
- * Influencer: parametresiz
- * Admin: ?aggregate=true veya ?influencerId=
- */
-export async function getUnreadCount(params?: { aggregate?: boolean; influencerId?: number }): Promise<{ unread: number }> {
-  const q: string[] = [];
-  if (params?.aggregate) q.push('aggregate=true');
-  if (params?.influencerId) q.push(`influencerId=${encodeURIComponent(String(params.influencerId))}`);
-  const qs = q.length ? `?${q.join('&')}` : '';
-  return request(`/api/v1/messages/unread-count${qs}`, { method: 'GET' });
-}
-
-/** Admin arama — GET /api/v1/influencers/search?q= */
-export async function searchInfluencers(q: string): Promise<{ items: Array<{ id: number; name: string; email: string; social_handle: string; status: string; codes: string[] }> }> {
-  const qs = `?q=${encodeURIComponent(q)}`;
-  return request(`/api/v1/influencers/search${qs}`, { method: 'GET' });
-}
-
-/** Şifre güncelleme — PATCH /api/v1/influencers/me/password */
-export async function patchInfluencerMePassword(payload: InfluencerPasswordUpdatePayload): Promise<{ message: string }> {
-  try {
-    return await request('/api/v1/influencers/me/password', {
-      method: 'PATCH',
-      body: payload
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Sosyal hesapları listele — GET /api/v1/influencers/me/social-accounts */
-export async function getInfluencerSocialAccounts(): Promise<SocialAccount[]> {
-  try {
-    return await request<SocialAccount[]>('/api/v1/influencers/me/social-accounts', { method: 'GET' });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Sosyal hesap ekle — POST /api/v1/influencers/me/social-accounts */
-export async function addInfluencerSocialAccount(payload: SocialAccountPayload): Promise<SocialAccount> {
-  try {
-    return await request<SocialAccount>('/api/v1/influencers/me/social-accounts', {
-      method: 'POST',
-      body: payload
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Sosyal hesap güncelle — PATCH /api/v1/influencers/me/social-accounts/:id */
-export async function updateInfluencerSocialAccount(id: number, partial: Partial<SocialAccountPayload & { is_active: boolean }>): Promise<SocialAccount> {
-  try {
-    return await request<SocialAccount>(`/api/v1/influencers/me/social-accounts/${id}`, {
-      method: 'PATCH',
-      body: partial
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Sosyal hesap sil — DELETE /api/v1/influencers/me/social-accounts/:id */
-export async function deleteInfluencerSocialAccount(id: number): Promise<void> {
-  try {
-    await request<void>(`/api/v1/influencers/me/social-accounts/${id}`, {
-      method: 'DELETE'
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Ödeme hesaplarını listele — GET /api/v1/influencers/me/payment-accounts */
-export async function getInfluencerPaymentAccounts(): Promise<PaymentAccount[]> {
-  try {
-    return await request<PaymentAccount[]>('/api/v1/influencers/me/payment-accounts', { method: 'GET' });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Ödeme hesabı ekle — POST /api/v1/influencers/me/payment-accounts */
-export async function addInfluencerPaymentAccount(payload: PaymentAccountPayload): Promise<PaymentAccount> {
-  try {
-    return await request<PaymentAccount>('/api/v1/influencers/me/payment-accounts', {
-      method: 'POST',
-      body: payload
-    });
-  } catch (err) {
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/** Aktif sözleşme içeriğini getir — GET /api/v1/contracts/active */
-export async function getActiveContract(): Promise<{ id: number; content: string; version: number; is_active: boolean; created_at: string; updated_at: string } | null> {
-  try {
-    return await request('/api/v1/contracts/active', { method: 'GET' });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      return null;
-    }
-    if (err instanceof ApiError) throw new Error(err.message);
-    throw err;
-  }
-}
-
-/* =========================
- * Admin Dashboard API istemci fonksiyonları
- * ========================= */
-
-export interface AdminPendingCode {
-  id: number;
-  code: string;
-  influencer_id?: number;
-  influencer_email?: string;
-  created_at?: string;
-  commission_rate?: number;
+export interface MessageThreadSummary {
+  influencerId: number;
+  influencerName: string;
+  influencerEmail: string;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  isAdminSender: boolean;
+  unreadCount: number;
 }
 
 export interface AdminBalanceSummary {
-  balance: number;
-  last_settlement_at: string | null;
-  activeCodesCount: number;
-  pendingCodesCount: number;
-  activeInfluencersCount: number;
-  totalCommission: number;
-  totalSalesAmount: number;
-  commissionSinceLastPayout: number;
-  salesAmountSinceLastPayout: number;
-  totalPayouts: number;
-  totalSalesCount: number;
-  paidSalesAmount: number;
+    balance: number;
+    last_settlement_at: string | null;
+    activeCodesCount: number;
+    pendingCodesCount: number;
+    activeInfluencersCount: number;
+    totalCommission: number;
+    totalSalesAmount: number;
+    commissionSinceLastPayout: number;
+    salesAmountSinceLastPayout: number;
+    totalPayouts: number;
+    totalSalesCount: number;
+    paidSalesAmount: number;
 }
 
 export interface AdminSalesStats {
-  stats: {
-    total_sales: number;
-    total_revenue: number;
-    total_commission: number;
-    avg_sale_amount: number;
-    by_influencer: {
-      total_sales: number;
-      total_revenue: number;
-      total_commission: number;
-      avg_sale_amount: number;
-    };
-  };
+    stats: any;
 }
 
-export interface AdminCodeDetail {
-  id: number;
-  code: string;
-  influencer_id: number;
-  influencer_email?: string;
-  influencer_name?: string;
-  influencer_brand_name?: string;
-  influencer_handle?: string;
-  discount_pct?: number;
-  commission_pct?: number;
-  commission_rate?: number;
-  is_active?: boolean;
-  created_at?: string;
+//==============================================================================
+// INFLUENCER & AUTH API
+//==============================================================================
+
+export async function searchInfluencers(query: string): Promise<Influencer[]> {
+  if (query.length < 2 && query.length > 0) return [];
+  const qs = `?q=${encodeURIComponent(query)}`;
+  const result = await request<{ items: Influencer[] }>(
+    `/api/v1/influencers/search${qs}`,
+    { method: 'GET' }
+  );
+  return result.items || [];
 }
 
-export interface AdminSalePayload {
-  code: string;
-  customer_url?: string;
-  product?: string;
-  amount: number;
-  note?: string;
+//==============================================================================
+// ADMIN ALERTS API
+//==============================================================================
+
+export async function listAlerts(): Promise<SystemAlert[]> {
+  return request<SystemAlert[]>('/api/v1/alerts', { method: 'GET' });
 }
 
-export interface AdminCodeUpdatePayload {
-  status?: string;
-  discount_pct?: number;
-  commission_pct?: number;
-  is_active?: boolean;
-}
-
-export interface AdminCode {
-  id: number;
-  code: string;
-  discount_pct: number;
-  commission_pct: number;
-  is_active: boolean;
-  created_at: string;
-  influencer_name?: string;
-  influencer_email?: string;
-  brand_name?: string; // Added brand_name
-  influencer_id?: number; // Added influencer_id
-  status?: string; // pending, approved, etc.
-}
-
-export interface AdminInfluencer {
-  id: number;
-  name: string;
-  email: string;
-  status: string;
-  created_at: number;
-  brand_name: string | null;
-  active_codes_count: number;
-  total_sales_count: number;
-  total_commission: number;
-}
-
-export interface AdminPayout {
-  id: number;
-  influencer_id: number;
-  amount: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  influencer_name?: string;
-  influencer_email?: string;
-}
-
-/** Admin: Kodları filtreli, sıralı ve sayfalı olarak listele */
-export async function getAdminCodes(params: {
-  page?: number;
-  limit?: number;
-  sortBy?: 'created_at' | 'influencer_name' | 'brand_name';
-  order?: 'asc' | 'desc';
-  startDate?: string;
-  endDate?: string;
-  isActive?: boolean;
-  search?: string; // Eklendi
-} = {}): Promise<{ items: AdminCode[]; total: number; page: number; limit: number; }> {
-  const query = new URLSearchParams();
-  if (params.page) query.set('page', String(params.page));
-  if (params.limit) query.set('limit', String(params.limit));
-  if (params.sortBy) query.set('sortBy', params.sortBy);
-  if (params.order) query.set('order', params.order);
-  if (params.startDate) query.set('startDate', params.startDate);
-  if (params.endDate) query.set('endDate', params.endDate);
-  if (params.isActive !== undefined) query.set('isActive', String(params.isActive));
-  if (params.search) query.set('search', params.search); // Eklendi
-  
-  // The backend returns { items, total, page, limit }, so we can cast directly.
-  return request(`/api/v1/codes?${query.toString()}`, { method: 'GET' });
-}
-
-/** Admin: Onay bekleyen kodları getir */
-export async function getAdminPendingCodes(): Promise<AdminPendingCode[]> {
-  const result = await getAdminCodes({ isActive: false });
-  return result.items.map(item => ({
-    id: item.id,
-    code: item.code,
-    influencer_id: 0, // This info is not available in AdminCode, needs to be fixed if required
-    influencer_email: item.influencer_email,
-    created_at: item.created_at,
-    commission_rate: item.commission_pct,
-  }));
-}
-
-/** Admin: Bakiye özetini getir — GET /api/v1/balance/admin-summary/summary */
-export async function getAdminBalanceSummary(): Promise<AdminBalanceSummary> {
-  return request<AdminBalanceSummary>('/api/v1/balance/admin-summary/summary', { method: 'GET' });
-}
-
-/** Admin: Influencer bakiye özetini getir */
-export async function getAdminInfluencerBalance(influencerId: number): Promise<{ balance: number; total_balance: number; last_settlement_at: string | null }> {
-  return request(`/api/v1/balance/influencer/${influencerId}/summary`, { method: 'GET' });
-}
-
-/** Influencer bakiye özetini getir */
-export async function getInfluencerBalanceSummary(): Promise<any> {
-  return request('/api/balance/summary', { method: 'GET' });
-}
-
-/** Influencer bakiye geçmişini getir */
-export async function getInfluencerBalanceHistory(influencerId: number): Promise<any> {
-  return request(`/api/balance/${influencerId}/history`, { method: 'GET' });
-}
-
-/** Admin: Satış istatistiklerini getir — GET /api/sales/stats */
-export async function getAdminSalesStats(): Promise<AdminSalesStats> {
-  return request<AdminSalesStats>('/api/sales/stats', { method: 'GET' });
-}
-
-/** Admin: Kod ara — GET /api/v1/codes/search/:code */
-export async function searchAdminCode(code: string): Promise<{ code: AdminCodeDetail }> {
-  return request<{ code: AdminCodeDetail }>(`/api/v1/codes/search/${encodeURIComponent(code)}`, { method: 'GET' });
-}
-
-/** Admin: Hızlı satış oluştur — POST /api/sale */
-export async function postAdminSale(payload: AdminSalePayload): Promise<{ message: string }> {
-  // Backend /api/sale endpoint'i total_amount bekliyor, frontend amount gönderiyor
-  const backendPayload = {
-    code: payload.code,
-    total_amount: payload.amount,
-    customer_url: payload.customer_url,
-    product: payload.product
-    // note alanı backend tarafından kullanılmıyor, göndermiyoruz
-  };
-  
-  return request<{ message: string }>('/api/v1/sale', {
+export async function createAlert(payload: { message: string; target_influencer_ids?: number[] }): Promise<SystemAlert> {
+  return request<SystemAlert>('/api/v1/alerts', {
     method: 'POST',
-    body: backendPayload
-  });
-}
-
-/** Admin: Kodu güncelle (onayla/değiştir) — PUT /api/v1/codes/:id */
-export async function putAdminCode(id: number, payload: AdminCodeUpdatePayload): Promise<any> {
-  return request(`/api/v1/codes/${id}`, {
-    method: 'PUT',
     body: payload
   });
 }
 
-/** Admin: Tüm influencerları listele — GET /api/influencers */
-export async function getAdminAllInfluencers(): Promise<AdminInfluencer[]> {
-  return request<AdminInfluencer[]>('/api/influencers', { method: 'GET' });
+export async function deleteAlert(id: number): Promise<void> {
+  await request(`/api/v1/alerts/${id}`, { method: 'DELETE' });
 }
 
-/** Admin: Tüm ödemeleri listele — GET /api/payouts */
-export async function getAdminAllPayouts(): Promise<AdminPayout[]> {
-  const response = await request<{ payouts: AdminPayout[] }>('/api/payouts', { method: 'GET' });
-  return response.payouts || [];
+//==============================================================================
+// ADMIN MESSAGES API
+//==============================================================================
+
+export async function getAdminMessageThreadsSummary(params?: { filter?: 'unread' | 'all' | 'sent' | 'incoming' }): Promise<{ items: MessageThreadSummary[] }> {
+  const qs = params?.filter ? `?filter=${params.filter}` : '';
+  return request(`/api/v1/messages/admin-threads-summary${qs}`);
 }
 
-/** Admin: Son satışları getir — GET /api/sales?limit=20 */
-export async function getAdminRecentSales(limit: number = 20): Promise<any[]> {
-  const response = await request<{ items: any[]; pagination: any }>(`/api/admin/sales?limit=${limit}`, { method: 'GET' });
-  const sales = response.items || [];
-  
-  // Alan isimlerini frontend'in beklediği şekilde değiştir
-  return sales.map(sale => ({
-    id: sale.id,
-    code: sale.code,
-    influencer_brand_name: sale.influencer_brand_name || sale.influencer_name || '',
-    customer_url: sale.customer_url,
-    product: sale.product,
-    amount: sale.total_amount,
-    commission_amount: sale.commission
-  }));
+export async function getThread(params: { influencerId: number }): Promise<{ items: Message[] }> {
+  const qs = `?influencerId=${params.influencerId}`;
+  return request(`/api/v1/messages/thread${qs}`, { method: 'GET' });
 }
 
-/** Admin: Satışları listele (filtreli ve sayfalı) */
-export async function getAdminSales(params: { influencerId?: number; page?: number; limit?: number; }): Promise<{ items: any[]; pagination: { total: number; page: number; limit: number; } }> {
-  const query = new URLSearchParams();
-  if (params.influencerId) {
-    query.set('influencerId', String(params.influencerId));
-  }
-  if (params.page) {
-    query.set('page', String(params.page));
-  }
-  if (params.limit) {
-    query.set('limit', String(params.limit));
-  }
-  return request(`/api/v1/sales?${query.toString()}`, { method: 'GET' });
-}
-
-/** Admin: Influencer detayını getir */
-export async function getAdminInfluencerDetail(id: string): Promise<Influencer> {
-  return request<Influencer>(`/api/influencers/${id}`);
-}
-
-/** Admin: Influencer detayını güncelle */
-export async function patchAdminInfluencerDetail(id: string, payload: Partial<Influencer>): Promise<Influencer> {
-  return request<Influencer>(`/api/influencers/${id}`, {
-    method: 'PATCH',
-    body: payload,
-  });
-}
-
-/** Admin: Satışları export et */
-export async function exportAdminSales(influencerId: number, format: 'csv' | 'xlsx'): Promise<Blob> {
-  const res = await fetch(`http://localhost:5003/api/sales/export?influencerId=${influencerId}&format=${format}`, {
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    throw new Error('Export işlemi başarısız oldu');
-  }
-  return res.blob();
-}
-
-/** Admin: Satış güncelle */
-export async function updateAdminSale(saleId: number, payload: { total_amount?: number; customer_url?: string; product?: string; note?: string; }): Promise<any> {
-  return request(`/api/sales/${saleId}`, {
-    method: 'PATCH',
-    body: payload,
-  });
-}
-
-/** Admin: Ödeme oluştur */
-export async function postAdminPayout(payload: { influencerId: number; amount: number; iban: string; note?: string; }): Promise<any> {
-  return request('/api/v1/payouts', {
+export async function sendAdminMessage(influencerId: number, body: string): Promise<{ message: string; item: Message }> {
+  return request('/api/v1/messages', {
     method: 'POST',
-    body: payload,
+    body: { to: 'influencer', influencerId, body },
   });
 }
 
-/** Admin: Ödemeleri listele (filtreli ve sayfalı) */
-export async function getAdminPayouts(params: { influencerId?: number; page?: number; limit?: number; from?: string; to?: string; }): Promise<{ items: any[]; pagination: { total: number; page: number; limit: number; } }> {
-  const query = new URLSearchParams();
-  if (params.influencerId) {
-    query.set('influencerId', String(params.influencerId));
-  }
-  if (params.page) {
-    query.set('page', String(params.page));
-  }
-  if (params.limit) {
-    query.set('limit', String(params.limit));
-  }
-  if (params.from) {
-    query.set('from', params.from);
-  }
-  if (params.to) {
-    query.set('to', params.to);
-  }
-  return request(`/api/payouts?${query.toString()}`, { method: 'GET' });
-}
-
-/** Admin: Ödeme güncelle */
-export async function adminUpdatePayout(payoutId: number, payload: { note?: string; status?: string; }): Promise<any> {
-  return request(`/api/payouts/${payoutId}`, {
-    method: 'PATCH',
-    body: payload,
+export async function postAdminBulkMessage(payload: { body: string; influencerIds: number[] }): Promise<{ message: string }> {
+  return request('/api/v1/messages/bulk', {
+      method: 'POST',
+      body: payload
   });
 }
 
-/** Admin: Influencer'a ait ödemeleri getir */
-export async function getAdminPayoutsByInfluencer(params: { influencerId: number; page?: number; limit?: number; }): Promise<{ items: any[]; pagination: { total: number; page: number; limit: number; } }> {
-  const query = new URLSearchParams();
-  query.set('influencerId', String(params.influencerId));
-  if (params.page) {
-    query.set('page', String(params.page));
-  }
-  if (params.limit) {
-    query.set('limit', String(params.limit));
-  }
-  return request(`/api/v1/payouts?${query.toString()}`, { method: 'GET' });
+export async function markRead(params: { influencerId: number }): Promise<{ updated: number }> {
+  return request('/api/v1/messages/read', {
+    method: 'POST',
+    body: { influencerId: params.influencerId },
+  });
+}
+
+
+//==============================================================================
+// OTHER ADMIN FUNCTIONS (Restored)
+//==============================================================================
+
+export async function getAdminCodes(params: any): Promise<any> {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/v1/codes?${query}`);
+}
+
+export async function getAdminBalanceSummary(): Promise<AdminBalanceSummary> {
+  return request<AdminBalanceSummary>('/api/v1/balance/admin-summary/summary', { method: 'GET' });
+}
+
+export async function getAdminSalesStats(): Promise<AdminSalesStats> {
+  return request<AdminSalesStats>('/api/v1/sales/stats', { method: 'GET' });
+}
+
+export async function searchAdminCode(code: string): Promise<any> {
+    return request(`/api/v1/codes/search/${code}`);
+}
+
+export async function postAdminSale(payload: any): Promise<any> {
+    return request('/api/v1/sale', { method: 'POST', body: payload });
+}
+
+export async function getAdminRecentSales(limit: number = 20): Promise<any[]> {
+  const response = await request<{ items: any[] }>(`/api/v1/sales?limit=${limit}`);
+  return response.items || [];
+}
+
+export async function putAdminCode(id: number, payload: any): Promise<any> {
+  return request(`/api/v1/codes/${id}`, { method: 'PUT', body: payload });
 }

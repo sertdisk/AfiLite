@@ -7,7 +7,7 @@
 */
 
 // const knex = require('./sqlite'); // Bu satır gereksiz, knex parametresi seed fonksiyonu tarafından sağlanıyor
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs')
 
 exports.seed = async function(knex) {
   const influencers = [
@@ -40,19 +40,19 @@ exports.seed = async function(knex) {
       followers: 2000,
       user_id: 2 // Add user_id to match token
     }
-  ];
+  ]
 
-  const now = knex.fn.now();
-  
+  const now = knex.fn.now()
+
   for (const influencer of influencers) {
-    const { email, password, role, full_name, tax_type, phone, iban, social_media, about, message, status, followers, user_id } = influencer;
-    
+    const { email, password, role, full_name, tax_type, phone, iban, social_media, about, message, status, followers, user_id } = influencer
+
     // Parola hashle
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    const salt = await bcrypt.genSalt(10)
+    const password_hash = await bcrypt.hash(password, salt)
 
     // Mevcut kayıt var mı?
-    const existing = await knex('influencers').where({ email }).first();
+    const existing = await knex('influencers').where({ email }).first()
 
     if (existing) {
       await knex('influencers')
@@ -71,9 +71,9 @@ exports.seed = async function(knex) {
           password_hash,
           role,
           updated_at: now
-        });
-      const updated = await knex('influencers').where({ id: existing.id }).first();
-      console.log(`[seed:influencer] updated -> id=${updated.id}, email=${updated.email}, role=${updated.role}`);
+        })
+      const updated = await knex('influencers').where({ id: existing.id }).first()
+      console.log(`[seed:influencer] updated -> id=${updated.id}, email=${updated.email}, role=${updated.role}`)
     } else {
       // Yoksa yeni oluştur
       const [id] = await knex('influencers').insert({
@@ -92,10 +92,10 @@ exports.seed = async function(knex) {
         role,
         created_at: now,
         updated_at: now
-      });
+      })
 
-      const created = await knex('influencers').where({ id }).first();
-      console.log(`[seed:influencer] created -> id=${created.id}, email=${created.email}, role=${created.role}`);
+      const created = await knex('influencers').where({ id }).first()
+      console.log(`[seed:influencer] created -> id=${created.id}, email=${created.email}, role=${created.role}`)
     }
   }
-};
+}

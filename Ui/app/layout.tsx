@@ -20,7 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Kodlar', href: '/admin/codes', match: (p) => p.startsWith('/admin/codes') },
   { label: 'Satışlar', href: '/admin/sales', match: (p) => p.startsWith('/admin/sales') },
   { label: 'Ödemeler', href: '/admin/payouts', match: (p) => p.startsWith('/admin/payouts') },
-  { label: 'Komisyonlar', href: '/admin/commissions', match: (p) => p.startsWith('/admin/commissions') },
+  { label: 'Mesajlar', href: '/admin/messages', match: (p) => p.startsWith('/admin/messages') },
   { label: 'Ayarlar', href: '/admin/settings', match: (p) => p.startsWith('/admin/settings') },
   { label: 'Çıkış', href: '/admin/logout', match: (p) => p.startsWith('/admin/logout') },
 ];

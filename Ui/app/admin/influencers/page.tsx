@@ -76,6 +76,18 @@ export default function AdminInfluencersPage() {
       params.set('page', String(page));
       params.set('limit', String(limit));
 
+      // Arama parametresi
+      if (search.trim()) {
+        if (search.trim().length === 1) {
+          setRows([]);
+          setTotal(0);
+          setError('Arama terimi en az 2 karakter olmalıdır.');
+          setBusy(false);
+          return;
+        }
+        params.set('search', search.trim());
+      }
+
       // Önce admin UI proxy'sini dene
       let res = await fetch(`/api/influencers?${params.toString()}`, {
         cache: 'no-store',

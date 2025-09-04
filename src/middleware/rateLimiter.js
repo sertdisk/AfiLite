@@ -5,15 +5,15 @@
  * - Üretimde Redis kullanımı zorunlu olmalıdır (yorum). Redis yoksa bellek içi store kullanılır.
  * - Rota-bazlı kısa/uzun pencere kombinasyonları eklenmiştir.
  */
-const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const Redis = require('ioredis');
+const rateLimit = require('express-rate-limit')
+const RedisStore = require('rate-limit-redis')
+const Redis = require('ioredis')
 
 // Test ortamında limiter'lar skip ile devre dışı kalacak
-const isTestEnvironment = process.env.NODE_ENV === 'test';
+const isTestEnvironment = process.env.NODE_ENV === 'test'
 
-let redisClient = null;
-let isRedisAvailable = false;
+let redisClient = null
+let isRedisAvailable = false
 
 if (!isTestEnvironment) {
   try {
@@ -24,46 +24,46 @@ if (!isTestEnvironment) {
       retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
-    });
+    })
 
     redisClient.on('connect', () => {
-      console.log('Redis connected successfully');
-      isRedisAvailable = true;
-    });
+      console.log('Redis connected successfully')
+      isRedisAvailable = true
+    })
 
     redisClient.on('error', (err) => {
-      console.error('Redis connection error:', err);
-      isRedisAvailable = false;
-    });
+      console.error('Redis connection error:', err)
+      isRedisAvailable = false
+    })
 
     redisClient.on('close', () => {
-      console.log('Redis connection closed');
-      isRedisAvailable = false;
-    });
+      console.log('Redis connection closed')
+      isRedisAvailable = false
+    })
 
     // Bağlantı testi
     redisClient.ping().then(() => {
-      isRedisAvailable = true;
+      isRedisAvailable = true
     }).catch(() => {
-      isRedisAvailable = false;
-    });
+      isRedisAvailable = false
+    })
   } catch (error) {
-    console.error('Failed to initialize Redis client:', error);
-    isRedisAvailable = false;
+    console.error('Failed to initialize Redis client:', error)
+    isRedisAvailable = false
   }
 }
 
 // Ortak opsiyonları oluştur, Redis varsa store ekle
 function buildLimiterOptions(baseOptions) {
-  const opts = { ...baseOptions };
+  const opts = { ...baseOptions }
   if (!isTestEnvironment && isRedisAvailable) {
     opts.store = new RedisStore({
       client: redisClient,
       prefix: `rl:${baseOptions.prefix || 'default'}:`,
-    });
+    })
   }
-  delete opts.prefix; // Redis dışı durumda gerek yok
-  return opts;
+  delete opts.prefix // Redis dışı durumda gerek yok
+  return opts
 }
 
 // Genel rate limiter
@@ -78,7 +78,7 @@ const generalLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment || process.env.NODE_ENV === 'development', // Test ve development ortamında tamamen atla
-}));
+}))
 
 // API rate limiter
 const apiLimiter = rateLimit(buildLimiterOptions({
@@ -92,7 +92,7 @@ const apiLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.path === '/health' || req.path === '/api/health' || isTestEnvironment || process.env.NODE_ENV === 'development',
-}));
+}))
 
 // Auth endpointleri için global limiter (mevcut)
 // Geliştirme sürecinde (NODE_ENV=development) devreye alınmasın (geçici olarak dev ortamında devre dışı)
@@ -107,7 +107,7 @@ const authLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment || process.env.NODE_ENV === 'development',
-}));
+}))
 
 // Ek auth login kısa/uzun pencere limiter'ları (rota bazlı birlikte kullanılacak)
 const authShortLimiter = rateLimit(buildLimiterOptions({
@@ -118,7 +118,7 @@ const authShortLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment || process.env.NODE_ENV === 'development',
-}));
+}))
 const authLongLimiter = rateLimit(buildLimiterOptions({
   prefix: 'authLong',
   windowMs: 15 * 60 * 1000, // 15 dakika
@@ -127,7 +127,7 @@ const authLongLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment || process.env.NODE_ENV === 'development',
-}));
+}))
 
 // Influencer oluşturma limiter
 const influencerLimiter = rateLimit(buildLimiterOptions({
@@ -141,7 +141,7 @@ const influencerLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment,
-}));
+}))
 
 // Apply POST için uzun pencere limiter (1 saat / 20)
 const influencerLongLimiter = rateLimit(buildLimiterOptions({
@@ -152,7 +152,7 @@ const influencerLongLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment,
-}));
+}))
 
 // Satış raporu limiter
 const saleReportLimiter = rateLimit(buildLimiterOptions({
@@ -166,7 +166,7 @@ const saleReportLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment,
-}));
+}))
 
 // Sale POST için kısa ve uzun pencere limiter'ları
 const saleShortLimiter = rateLimit(buildLimiterOptions({
@@ -177,7 +177,7 @@ const saleShortLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment,
-}));
+}))
 const saleLongLimiter = rateLimit(buildLimiterOptions({
   prefix: 'saleLong',
   windowMs: 60 * 60 * 1000, // 1 saat
@@ -186,19 +186,19 @@ const saleLongLimiter = rateLimit(buildLimiterOptions({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnvironment,
-}));
+}))
 
 // Graceful shutdown handler
 function closeRedisConnection() {
   if (redisClient && isRedisAvailable) {
-    redisClient.disconnect();
-    console.log('Redis connection closed gracefully');
+    redisClient.disconnect()
+    console.log('Redis connection closed gracefully')
   }
 }
 
 // Uygulama kapanışında Redis'i kapat
-process.on('SIGTERM', closeRedisConnection);
-process.on('SIGINT', closeRedisConnection);
+process.on('SIGTERM', closeRedisConnection)
+process.on('SIGINT', closeRedisConnection)
 
 module.exports = {
   generalLimiter,
@@ -213,4 +213,4 @@ module.exports = {
   saleLongLimiter,
   closeRedisConnection,
   isRedisAvailable
-};
+}

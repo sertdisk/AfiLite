@@ -1,0 +1,21 @@
+{
+    "env": {
+        "commonjs": true,
+        "es2021": true,
+        "node": true,
+        "jest": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
+    "rules": {
+        "semi": ["error", "never"],
+        "space-before-function-paren": ["error", "never"],
+        "no-unused-vars": ["warn"],
+        "no-trailing-spaces": ["warn"],
+        "indent": ["warn", 2],
+        "quotes": ["warn", "single"],
+        "no-multiple-empty-lines": ["warn", { "max": 2 }]
+    }
+}

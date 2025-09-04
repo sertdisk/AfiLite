@@ -4,121 +4,157 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Admin: Create new system alert (sends to all influencers)
+// Admin: Create new system alert (sends to all or selected influencers)
 router.post('/', authenticateToken, async (req, res) => {
+  const user = req.user;
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin yetkisi gerekli' });
+  }
+
+  const { message, target_influencer_ids } = req.body;
+
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    return res.status(400).json({ error: 'Geçerli bir mesaj gerekli' });
+  }
+
+  let trx;
   try {
-    const user = req.user;
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin yetkisi gerekli' });
-    }
+    trx = await knex.transaction();
 
-    const { message } = req.body;
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({ error: 'Geçerli bir mesaj gerekli' });
-    }
-
-    const [id] = await knex('system_alerts').insert({
+    const [alertId] = await trx('system_alerts').insert({
       message: message.trim(),
+      target_influencer_ids: target_influencer_ids && target_influencer_ids.length > 0 ? JSON.stringify(target_influencer_ids) : null,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now()
+      updated_at: knex.fn.now(),
     });
 
-    const alert = await knex('system_alerts').where({ id }).first();
+    let recipientIds = [];
+    if (target_influencer_ids && target_influencer_ids.length > 0) {
+      recipientIds = target_influencer_ids;
+    } else {
+      // Send to all if no specific influencers are targeted
+      const allInfluencers = await trx('influencers').where('status', 'approved').select('id');
+      recipientIds = allInfluencers.map(inf => inf.id);
+    }
+
+    if (recipientIds.length > 0) {
+      const recipients = recipientIds.map(infId => ({
+        alert_id: alertId,
+        influencer_id: infId,
+      }));
+      await trx('alert_recipients').insert(recipients);
+    }
+
+    await trx.commit();
+
+    const alert = await knex('system_alerts').where({ id: alertId }).first();
     return res.status(201).json(alert);
+
   } catch (err) {
+    if (trx) {
+      await trx.rollback();
+    }
     console.error('Sistem uyarısı oluşturma hatası:', err);
     return res.status(500).json({ error: 'Sistem uyarısı oluşturulamadı' });
   }
 });
 
 // Admin: List all alerts
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async(req, res) => {
   try {
-    const user = req.user;
+    const user = req.user
     if (!user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin yetkisi gerekli' });
+      return res.status(403).json({ error: 'Admin yetkisi gerekli' })
     }
 
     const alerts = await knex('system_alerts')
       .select('id', 'message', 'created_at')
-      .orderBy('created_at', 'desc');
+      .orderBy('created_at', 'desc')
 
-    return res.json(alerts);
+    return res.json(alerts)
   } catch (err) {
-    console.error('Sistem uyarıları listeleme hatası:', err);
-    return res.status(500).json({ error: 'Sistem uyarıları listelenemedi' });
+    console.error('Sistem uyarıları listeleme hatası:', err)
+    return res.status(500).json({ error: 'Sistem uyarıları listelenemedi' })
   }
-});
+})
 
 // Admin: Delete alert
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async(req, res) => {
   try {
-    const user = req.user;
+    const user = req.user
     if (!user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin yetkisi gerekli' });
+      return res.status(403).json({ error: 'Admin yetkisi gerekli' })
     }
 
-    const alertId = parseInt(req.params.id);
-    if (isNaN(alertId)) return res.status(400).json({ error: 'Geçersiz uyarı ID' });
+    const alertId = parseInt(req.params.id)
+    if (isNaN(alertId)) return res.status(400).json({ error: 'Geçersiz uyarı ID' })
 
-    // Delete associated reads first
-    await knex('alert_reads').where('alert_id', alertId).del();
+    // Use a transaction to ensure all related data is deleted
+    await knex.transaction(async(trx) => {
+      await trx('alert_reads').where('alert_id', alertId).del()
+      await trx('alert_recipients').where('alert_id', alertId).del()
+      const affected = await trx('system_alerts').where('id', alertId).del()
+      if (!affected) {
+        throw new Error('Uyarı bulunamadı')
+      }
+    })
 
-    const affected = await knex('system_alerts').where('id', alertId).del();
-
-    if (!affected) {
-      return res.status(404).json({ error: 'Uyarı bulunamadı' });
-    }
-
-    return res.status(204).send();
+    return res.status(204).send()
   } catch (err) {
-    console.error('Uyarı silme hatası:', err);
-    return res.status(500).json({ error: 'Uyarı silinemedi' });
+    console.error('Uyarı silme hatası:', err)
+    if (err.message === 'Uyarı bulunamadı') {
+      return res.status(404).json({ error: err.message })
+    }
+    return res.status(500).json({ error: 'Uyarı silinemedi' })
   }
-});
+})
 
 // Influencer: Get unread alerts
-router.get('/unread', authenticateToken, async (req, res) => {
+router.get('/unread', authenticateToken, async(req, res) => {
   try {
-    const userId = req.user?.id || req.user?.user_id;
-    if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
+    const userId = req.user?.id || req.user?.user_id
+    if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' })
 
-    // Get all alerts that haven't been read by this influencer
-    const alerts = await knex('system_alerts as a')
-      .leftJoin('alert_reads as r', function() {
-        this.on('a.id', '=', 'r.alert_id')
-          .andOn('r.influencer_id', '=', knex.raw('?', [userId]));
+    // Get all alerts sent to this influencer that they haven't read yet.
+    const alerts = await knex('system_alerts as sa')
+      .join('alert_recipients as ar', 'sa.id', 'ar.alert_id')
+      .leftJoin('alert_reads as ar_read', function() {
+        this.on('ar.alert_id', '=', 'ar_read.alert_id')
+          .andOn('ar.influencer_id', '=', 'ar_read.influencer_id')
       })
-      .whereNull('r.id')
-      .select('a.id', 'a.message', 'a.created_at');
+      .where('ar.influencer_id', userId)
+      .whereNull('ar_read.id')
+      .select('sa.id', 'sa.message', 'sa.created_at')
 
-    return res.json(alerts);
+    return res.json(alerts)
   } catch (err) {
-    console.error('Okunmamış uyarılar getirme hatası:', err);
-    return res.status(500).json({ error: 'Okunmamış uyarılar getirilemedi' });
+    console.error('Okunmamış uyarılar getirme hatası:', err)
+    return res.status(500).json({ error: 'Okunmamış uyarılar getirilemedi' })
   }
-});
+})
 
 // Influencer: Mark alert as read
-router.post('/:id/read', authenticateToken, async (req, res) => {
+router.post('/:id/read', authenticateToken, async(req, res) => {
   try {
-    const userId = req.user?.id || req.user?.user_id;
-    if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
+    const userId = req.user?.id || req.user?.user_id
+    if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' })
 
-    const alertId = parseInt(req.params.id);
-    if (isNaN(alertId)) return res.status(400).json({ error: 'Geçersiz uyarı ID' });
+    const alertId = parseInt(req.params.id)
+    if (isNaN(alertId)) return res.status(400).json({ error: 'Geçersiz uyarı ID' })
 
-    // Check if alert exists
-    const alert = await knex('system_alerts').where({ id: alertId }).first();
-    if (!alert) return res.status(404).json({ error: 'Uyarı bulunamadı' });
+    // Check if the user was a recipient of this alert
+    const recipient = await knex('alert_recipients').where({ alert_id: alertId, influencer_id: userId }).first()
+    if (!recipient) {
+      return res.status(404).json({ error: 'Bu uyarı size gönderilmemiş veya mevcut değil.' })
+    }
 
     // Check if already read
     const existing = await knex('alert_reads')
       .where({ alert_id: alertId, influencer_id: userId })
-      .first();
-    
+      .first()
+
     if (existing) {
-      return res.json({ message: 'Uyarı zaten okunmuş' });
+      return res.json({ message: 'Uyarı zaten okunmuş' })
     }
 
     // Mark as read
@@ -126,13 +162,13 @@ router.post('/:id/read', authenticateToken, async (req, res) => {
       influencer_id: userId,
       alert_id: alertId,
       read_at: knex.fn.now()
-    });
+    })
 
-    return res.json({ message: 'Uyarı okundu olarak işaretlendi' });
+    return res.json({ message: 'Uyarı okundu olarak işaretlendi' })
   } catch (err) {
-    console.error('Uyarı okundu işaretleme hatası:', err);
-    return res.status(500).json({ error: 'Uyarı okundu olarak işaretlenemedi' });
+    console.error('Uyarı okundu işaretleme hatası:', err)
+    return res.status(500).json({ error: 'Uyarı okundu olarak işaretlenemedi' })
   }
-});
+})
 
-module.exports = router;
+module.exports = router

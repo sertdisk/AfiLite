@@ -1,5 +1,5 @@
-const knex = require('./../src/db/sqlite');
+const knex = require('./../src/db/sqlite')
 
-module.exports = async () => {
-  await knex.destroy();
-};
+module.exports = async() => {
+  await knex.destroy()
+}

@@ -3,15 +3,15 @@
  * - Admin ödemeleri yönetebilir
  * - Influencer ödeme geçmişini görebilir
  */
-const router = require('express').Router();
-const knex = require('../db/sqlite');
-const { asyncHandler } = require('../middleware/errorHandler');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const router = require('express').Router()
+const knex = require('../db/sqlite')
+const { asyncHandler } = require('../middleware/errorHandler')
+const { authenticateToken, requireAdmin } = require('../middleware/auth')
 
 // GET /payouts - Ödemeleri listele (Admin)
-router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { status, influencerId, from, to, page = 1, limit = 50 } = req.query;
-  
+router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
+  const { status, influencerId, from, to, page = 1, limit = 50 } = req.query
+
   let query = knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
     .select(
@@ -28,35 +28,34 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email'
     )
-    .orderBy('payouts.created_at', 'desc');
-  
+    .orderBy('payouts.created_at', 'desc')
 
-  
+
   if (influencerId) {
-    query = query.where('payouts.influencer_id', influencerId);
+    query = query.where('payouts.influencer_id', influencerId)
   }
-  
+
   if (from) {
-    query = query.where('payouts.created_at', '>=', new Date(from));
+    query = query.where('payouts.created_at', '>=', new Date(from))
   }
-  
+
   if (to) {
-    query = query.where('payouts.created_at', '<=', new Date(to));
+    query = query.where('payouts.created_at', '<=', new Date(to))
   }
-  
-  const offset = (page - 1) * limit;
-  query = query.limit(limit).offset(offset);
-  
-  const payouts = await query;
-  
-  const totalQuery = knex('payouts').count('* as count');
-  if (status) totalQuery.where('status', status);
-  if (influencerId) totalQuery.where('influencer_id', influencerId);
-  if (from) totalQuery.where('created_at', '>=', new Date(from));
-  if (to) totalQuery.where('created_at', '<=', new Date(to));
-  
-  const [{ count }] = await totalQuery;
-  
+
+  const offset = (page - 1) * limit
+  query = query.limit(limit).offset(offset)
+
+  const payouts = await query
+
+  const totalQuery = knex('payouts').count('* as count')
+  if (status) totalQuery.where('status', status)
+  if (influencerId) totalQuery.where('influencer_id', influencerId)
+  if (from) totalQuery.where('created_at', '>=', new Date(from))
+  if (to) totalQuery.where('created_at', '<=', new Date(to))
+
+  const [{ count }] = await totalQuery
+
   res.json({
     items: payouts, // Frontend ile uyum için `items` kullanılıyor
     pagination: {
@@ -65,24 +64,24 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
       total: count,
       pages: Math.ceil(count / limit)
     }
-  });
-}));
+  })
+}))
 
 // POST /payouts - Yeni ödeme oluştur (Admin)
-router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { influencerId, amount, iban, note, status = 'completed' } = req.body; // Değiştirildi
-  
+router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
+  const { influencerId, amount, iban, note, status = 'completed' } = req.body // Değiştirildi
+
   if (!influencerId || !amount || !iban) {
-    const err = new Error('Influencer ID, amount ve IBAN zorunludur');
-    err.status = 400;
-    throw err;
+    const err = new Error('Influencer ID, amount ve IBAN zorunludur')
+    err.status = 400
+    throw err
   }
-  
-  const influencer = await knex('influencers').where('id', influencerId).first();
+
+  const influencer = await knex('influencers').where('id', influencerId).first()
   if (!influencer) {
-    const err = new Error('Influencer bulunamadı');
-    err.status = 404;
-    throw err;
+    const err = new Error('Influencer bulunamadı')
+    err.status = 404
+    throw err
   }
 
   // Bakiye hesaplaması
@@ -90,15 +89,15 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) 
     .join('discount_codes', 'sales.code', 'discount_codes.code')
     .where('discount_codes.influencer_id', influencerId)
     .sum('sales.commission as total_commission')
-    .first();
+    .first()
 
   const { total_payouts } = await knex('payouts')
     .where({ influencer_id: influencerId, status: 'completed' })
     .sum('amount as total_payouts')
-    .first();
+    .first()
 
-  const balance_before = (total_commission || 0) - (total_payouts || 0);
-  const balance_after = balance_before - Number(amount);
+  const balance_before = (total_commission || 0) - (total_payouts || 0)
+  const balance_after = balance_before - Number(amount)
 
   // Ödeme oluştur
   const [id] = await knex('payouts').insert({
@@ -109,8 +108,8 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) 
     status: String(status).trim(),
     balance_before,
     balance_after
-  });
-  
+  })
+
   const payout = await knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
     .select(
@@ -119,45 +118,45 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) 
       'influencers.email as influencer_email'
     )
     .where('payouts.id', id)
-    .first();
-  
+    .first()
+
   res.status(201).json({
     message: 'Ödeme oluşturuldu',
     payout_id: id,
     payout
-  });
-}));
+  })
+}))
 
 // PATCH /payouts/:id - Ödemeyi güncelle (Admin)
-router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { note, status } = req.body;
+router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
+  const { id } = req.params
+  const { note, status } = req.body
 
-  const payout = await knex('payouts').where({ id }).first();
+  const payout = await knex('payouts').where({ id }).first()
   if (!payout) {
-    return res.status(404).json({ message: 'Ödeme bulunamadı' });
+    return res.status(404).json({ message: 'Ödeme bulunamadı' })
   }
 
-  const updatePayload = {};
+  const updatePayload = {}
   if (note !== undefined) {
-    updatePayload.note = note;
+    updatePayload.note = note
   }
   if (status !== undefined) {
-    updatePayload.status = status;
+    updatePayload.status = status
   }
 
   if (Object.keys(updatePayload).length === 0) {
-    return res.status(400).json({ message: 'Güncellenecek alan yok' });
+    return res.status(400).json({ message: 'Güncellenecek alan yok' })
   }
 
-  await knex('payouts').where({ id }).update(updatePayload);
+  await knex('payouts').where({ id }).update(updatePayload)
 
-  const updatedPayout = await knex('payouts').where({ id }).first();
-  res.json(updatedPayout);
-}));
+  const updatedPayout = await knex('payouts').where({ id }).first()
+  res.json(updatedPayout)
+}))
 
 // GET /api/payouts/:id - Tek bir ödeme detayı
-router.get('/api/payouts/:id', authenticateToken, asyncHandler(async (req, res) => {
+router.get('/api/payouts/:id', authenticateToken, asyncHandler(async(req, res) => {
   const payout = await knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
     .select(
@@ -166,29 +165,28 @@ router.get('/api/payouts/:id', authenticateToken, asyncHandler(async (req, res) 
       'influencers.email as influencer_email'
     )
     .where('payouts.id', req.params.id)
-    .first();
-  
+    .first()
+
   if (!payout) {
     // Eğer ödeme bulunamazsa boş bir dizi döndür
-    return res.json({});
+    return res.json({})
   }
-  
+
   // Admin değilse sadece kendi ödemelerini görebilir
   if (req.user.role !== 'admin' && payout.influencer_id !== (req.user.userId || req.user.user_id || req.user.id)) {
-    const err = new Error('Bu ödemeye erişim yetkiniz yok');
-    err.status = 403;
-    throw err;
+    const err = new Error('Bu ödemeye erişim yetkiniz yok')
+    err.status = 403
+    throw err
   }
-  
-  res.json(payout);
-}));
 
+  res.json(payout)
+}))
 
 
 // GET /api/payouts/export - Ödemeleri export et (Admin)
-router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { format = 'csv', status, influencerId, from, to } = req.query;
-  
+router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
+  const { format = 'csv', status, influencerId, from, to } = req.query
+
   let query = knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
     .select(
@@ -205,31 +203,30 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email'
     )
-    .orderBy('payouts.created_at', 'desc');
-  
+    .orderBy('payouts.created_at', 'desc')
 
-  
+
   if (influencerId) {
-    query = query.where('payouts.influencer_id', influencerId);
+    query = query.where('payouts.influencer_id', influencerId)
   }
-  
+
   if (from) {
-    query = query.where('payouts.created_at', '>=', new Date(from));
+    query = query.where('payouts.created_at', '>=', new Date(from))
   }
-  
+
   if (to) {
-    query = query.where('payouts.created_at', '<=', new Date(to));
+    query = query.where('payouts.created_at', '<=', new Date(to))
   }
-  
-  const payouts = await query;
-  
+
+  const payouts = await query
+
   if (format === 'csv') {
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="payouts.csv"');
-    
-    const headers = ['ID', 'Influencer ID', 'Influencer Name', 'Email', 'Amount', 'IBAN', 'Status', 'Note', 'Created At', 'Balance Before', 'Balance After'];
-    res.write(headers.join(',') + '\n');
-    
+    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Disposition', 'attachment; filename="payouts.csv"')
+
+    const headers = ['ID', 'Influencer ID', 'Influencer Name', 'Email', 'Amount', 'IBAN', 'Status', 'Note', 'Created At', 'Balance Before', 'Balance After']
+    res.write(headers.join(',') + '\n')
+
     for (const payout of payouts) {
       const row = [
         payout.id,
@@ -243,15 +240,15 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
         payout.created_at,
         payout.balance_before,
         payout.balance_after
-      ];
-      res.write(row.join(',') + '\n');
+      ]
+      res.write(row.join(',') + '\n')
     }
-    
-    res.end();
+
+    res.end()
   } else if (format === 'xlsx') {
-    const ExcelJS = require('exceljs');
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Payouts');
+    const ExcelJS = require('exceljs')
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Payouts')
 
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 10 },
@@ -265,18 +262,18 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
       { header: 'Created At', key: 'created_at', width: 20, style: { numFmt: 'yyyy-mm-dd hh:mm:ss' } },
       { header: 'Balance Before', key: 'balance_before', width: 15, style: { numFmt: '#,##0.00 ₺' } },
       { header: 'Balance After', key: 'balance_after', width: 15, style: { numFmt: '#,##0.00 ₺' } },
-    ];
+    ]
 
-    worksheet.addRows(payouts);
+    worksheet.addRows(payouts)
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="payouts.xlsx"');
-    
-    await workbook.xlsx.write(res);
-    res.end();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.setHeader('Content-Disposition', 'attachment; filename="payouts.xlsx"')
+
+    await workbook.xlsx.write(res)
+    res.end()
   } else {
-    res.json({ payouts });
+    res.json({ payouts })
   }
-}));
+}))
 
-module.exports = router;
+module.exports = router

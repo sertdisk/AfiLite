@@ -1,306 +1,190 @@
-/**
- * Mesajlaşma Uçları (admin ↔ influencer)
- * Varsayım: Admin ve Influencer kullanıcıları 'influencers' tablosunda role alanı ile tutulur.
- * Kimlik doğrulama: authenticateToken zorunlu. Rol bazlı kısıtlar uçlarda uygulanır.
- *
- * Uçlar:
- * - POST   /messages                 : Mesaj oluştur (influencer→admin veya admin→influencer)
- * - GET    /messages/thread          : İki taraf arasındaki konuşmayı getir
- * - POST   /messages/read            : Karşı taraftan gelen okunmamışları okundu yap
- * - GET    /messages/unread-count    : Okunmamış sayısı (aggregate veya belirli hat)
- */
 const router = require('express').Router();
 const knex = require('../db/sqlite');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { authenticateToken } = require('../middleware/auth');
 
-// Yardımcı: güvenli trim ve string doğrulama
-function nonEmptyString(s, min = 1) {
-  return typeof s === 'string' && s.trim().length >= min;
-}
-function now(knex) {
-  return knex.fn.now();
-}
-
-// Kullanıcının role ve id'sini normalize et
 function getActor(req) {
-  // auth middleware req.user'ı influencers tablosundan dolduruyor
   const role = req.user?.role || 'influencer';
-  const id = req.user?.id; // influencers.id
+  const id = req.user?.id;
   return { role, id };
 }
 
-// POST /messages
-// Influencer: { to: 'admin', body }
-// Admin: { to: 'influencer', influencerId, body }
-router.post('/messages', authenticateToken, asyncHandler(async (req, res) => {
+// POST /messages (Birebir Mesaj Gönderme)
+router.post('/', authenticateToken, asyncHandler(async (req, res) => {
   const actor = getActor(req);
   const { to, influencerId, body } = req.body || {};
 
-  if (!nonEmptyString(body, 1)) {
-    const err = new Error('Mesaj içeriği (body) zorunludur');
-    err.status = 400;
-    throw err;
+  if (!body || typeof body !== 'string' || !body.trim()) {
+    return res.status(400).json({ error: 'Mesaj içeriği zorunludur' });
   }
 
-  if (actor.role === 'influencer') {
-    // influencer → admin
-    if (to !== 'admin') {
-      const err = new Error("Influencer yalnızca admin'e mesaj atabilir (to='admin')");
-      err.status = 400;
-      throw err;
-    }
-
-    // Admin hesabı seçimi: İlk admin kaydını hedef al
-    const admin = await knex('influencers').where('role', 'admin').first();
-    if (!admin) {
-      const err = new Error('Admin hesabı bulunamadı');
-      err.status = 500;
-      throw err;
-    }
-
-    const [id] = await knex('messages').insert({
-      from_role: 'influencer',
-      from_user_id: actor.id,
-      to_role: 'admin',
-      to_user_id: admin.id,
-      body: String(body).trim(),
-      created_at: now(knex),
-      read_at: null
-    });
-
-    const created = await knex('messages').where({ id }).first();
-    return res.status(201).json({ message: 'Mesaj gönderildi', item: created });
+  if (actor.role !== 'admin') {
+    return res.status(403).json({ error: 'Bu işlem için sadece admin yetkilidir' });
   }
 
-  if (actor.role === 'admin') {
-    // admin → influencer
-    if (to !== 'influencer') {
-      const err = new Error("Admin yalnızca influencera mesaj atabilir (to='influencer')");
-      err.status = 400;
-      throw err;
-    }
-    const inflId = Number(influencerId);
-    if (!inflId || Number.isNaN(inflId)) {
-      const err = new Error('Geçerli influencerId zorunludur');
-      err.status = 400;
-      throw err;
-    }
-    const influencer = await knex('influencers').where('id', inflId).first();
-    if (!influencer) {
-      const err = new Error('Influencer bulunamadı');
-      err.status = 404;
-      throw err;
-    }
-
-    const [id] = await knex('messages').insert({
-      from_role: 'admin',
-      from_user_id: actor.id,
-      to_role: 'influencer',
-      to_user_id: influencer.id,
-      body: String(body).trim(),
-      created_at: now(knex),
-      read_at: null
-    });
-
-    const created = await knex('messages').where({ id }).first();
-    return res.status(201).json({ message: 'Mesaj gönderildi', item: created });
+  const inflId = Number(influencerId);
+  if (!inflId) {
+    return res.status(400).json({ error: 'Geçerli influencerId zorunludur' });
   }
 
-  const err = new Error('Bu işlem için yetkiniz yok');
-  err.status = 403;
-  throw err;
+  const influencer = await knex('influencers').where('id', inflId).first();
+  if (!influencer) {
+    return res.status(404).json({ error: 'Influencer bulunamadı' });
+  }
+
+  const [id] = await knex('messages').insert({
+    from_role: 'admin',
+    from_user_id: actor.id,
+    to_role: 'influencer',
+    to_user_id: influencer.id,
+    body: body.trim(),
+    created_at: knex.fn.now(),
+  });
+
+  const created = await knex('messages').where({ id }).first();
+  res.status(201).json({ message: 'Mesaj gönderildi', item: created });
 }));
 
-// GET /messages/thread
-// Influencer: admin ↔ me tüm mesajlar
-// Admin: ?influencerId= zorunlu
-// Opsiyonel: ?limit=50&before=timestamp
-router.get('/messages/thread', authenticateToken, asyncHandler(async (req, res) => {
-  const actor = getActor(req);
-  const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
-  const before = req.query.before ? new Date(String(req.query.before)) : null;
+// GET /messages/thread (Konuşma Geçmişi)
+router.get('/thread', authenticateToken, asyncHandler(async (req, res) => {
+    const actor = getActor(req);
+    if (actor.role !== 'admin') return res.status(403).json({ error: 'Yetki gerekli' });
 
-  let aId, bId; // a ↔ b konuşan taraflar (influencerId, adminId)
-  if (actor.role === 'influencer') {
-    // kendim (influencer) ↔ ilk admin
-    const admin = await knex('influencers').where('role', 'admin').first();
-    if (!admin) {
-      const err = new Error('Admin hesabı bulunamadı');
-      err.status = 500;
-      throw err;
-    }
-    aId = actor.id;
-    bId = admin.id;
-  } else if (actor.role === 'admin') {
     const inflId = Number(req.query.influencerId);
-    if (!inflId || Number.isNaN(inflId)) {
-      const err = new Error('influencerId zorunludur');
-      err.status = 400;
-      throw err;
-    }
-    const influencer = await knex('influencers').where('id', inflId).first();
-    if (!influencer) {
-      const err = new Error('Influencer bulunamadı');
-      err.status = 404;
-      throw err;
-    }
-    aId = influencer.id;
-    bId = actor.id;
+    if (!inflId) return res.status(400).json({ error: 'influencerId zorunludur' });
+
+    const messages = await knex('messages')
+        .where(function() {
+            this.where({ from_user_id: actor.id, to_user_id: inflId })
+                .orWhere({ from_user_id: inflId, to_user_id: actor.id });
+        })
+        .orderBy('created_at', 'asc');
+    
+    res.json({ items: messages });
+}));
+
+// POST /messages/read (Okundu Olarak İşaretleme)
+router.post('/read', authenticateToken, asyncHandler(async (req, res) => {
+    const actor = getActor(req);
+    if (actor.role !== 'admin') return res.status(403).json({ error: 'Yetki gerekli' });
+
+    const { influencerId } = req.body;
+    if (!influencerId) return res.status(400).json({ error: 'influencerId zorunludur' });
+
+    const affected = await knex('messages')
+        .where({ from_user_id: influencerId, to_user_id: actor.id })
+        .whereNull('read_at')
+        .update({ read_at: knex.fn.now() });
+
+    res.json({ updated: affected });
+}));
+
+// POST /messages/bulk (Toplu Mesaj Gönderme)
+router.post('/bulk', authenticateToken, asyncHandler(async (req, res) => {
+  const actor = getActor(req);
+  if (actor.role !== 'admin') {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
+  }
+
+  const { body, influencerIds } = req.body;
+
+  if (!body || typeof body !== 'string' || !body.trim()) {
+    return res.status(400).json({ error: 'Mesaj içeriği zorunludur' });
+  }
+
+  let recipientIds = [];
+  if (!influencerIds || influencerIds.length === 0) {
+    // ID listesi boşsa, tüm aktif influencer'lara gönder
+    const allInfluencers = await knex('influencers').where('status', 'approved').select('id');
+    recipientIds = allInfluencers.map(inf => inf.id);
   } else {
-    const err = new Error('Bu işlem için yetkiniz yok');
-    err.status = 403;
-    throw err;
+    recipientIds = influencerIds;
   }
 
-  let q = knex('messages')
-    .where(function() {
-      this.where({ from_user_id: aId, to_user_id: bId })
-        .orWhere({ from_user_id: bId, to_user_id: aId });
-    })
-    .orderBy('created_at', 'desc')
-    .limit(limit);
-
-  if (before && !isNaN(before.getTime())) {
-    q = q.andWhere('created_at', '<', before.toISOString());
+  if (recipientIds.length === 0) {
+      return res.status(400).json({ error: 'Gönderilecek influencer bulunamadı.' });
   }
 
-  const rows = await q;
-  return res.json({ items: rows.reverse() }); // kronolojik artan
+  const messagesToInsert = recipientIds.map(infId => ({
+    from_role: 'admin',
+    from_user_id: actor.id,
+    to_role: 'influencer',
+    to_user_id: infId,
+    body: body.trim(),
+    created_at: knex.fn.now(),
+  }));
+
+  await knex('messages').insert(messagesToInsert);
+
+  res.status(201).json({ message: `${recipientIds.length} kullanıcıya mesaj gönderildi.` });
 }));
 
-// POST /messages/read
-// Influencer: admin→me gelen okunmamışları okundu yap
-// Admin: influencer→admin gelen okunmamışları, influencerId ile okundu yap
-router.post('/messages/read', authenticateToken, asyncHandler(async (req, res) => {
+// GET /admin-threads-summary (Admin için Konuşma Özetleri)
+router.get('/admin-threads-summary', authenticateToken, asyncHandler(async (req, res) => {
   const actor = getActor(req);
-
-  if (actor.role === 'influencer') {
-    // admin → influencer (me) tarafındaki unread'leri okundu yap
-    const admin = await knex('influencers').where('role', 'admin').first();
-    if (!admin) {
-      const err = new Error('Admin hesabı bulunamadı');
-      err.status = 500;
-      throw err;
-    }
-    const affected = await knex('messages')
-      .where({
-        from_role: 'admin',
-        from_user_id: admin.id,
-        to_role: 'influencer',
-        to_user_id: actor.id
-      })
-      .whereNull('read_at')
-      .update({ read_at: now(knex) });
-
-    return res.json({ updated: affected });
+  if (actor.role !== 'admin') {
+    return res.status(403).json({ error: 'Bu işlem için yetkiniz yok' });
   }
 
-  if (actor.role === 'admin') {
-    const inflId = Number(req.body?.influencerId);
-    if (!inflId || Number.isNaN(inflId)) {
-      const err = new Error('influencerId zorunludur');
-      err.status = 400;
-      throw err;
-    }
-    const influencer = await knex('influencers').where('id', inflId).first();
-    if (!influencer) {
-      const err = new Error('Influencer bulunamadı');
-      err.status = 404;
-      throw err;
-    }
+  const adminId = actor.id;
+  const { filter } = req.query;
 
-    const affected = await knex('messages')
-      .where({
-        from_role: 'influencer',
-        from_user_id: influencer.id,
-        to_role: 'admin',
-        to_user_id: actor.id
+  // 1. Admin ile konuşması olan tüm influencer'ların ID'lerini bul
+  const involvedMessages = await knex('messages')
+    .where('from_user_id', adminId)
+    .orWhere('to_user_id', adminId);
+
+  const influencerIds = [...new Set(
+    involvedMessages.map(m => m.from_user_id === adminId ? m.to_user_id : m.from_user_id)
+  )];
+
+  let threads = [];
+
+  // 2. Her bir influencer için özet oluştur
+  for (const influencerId of influencerIds) {
+    const influencer = await knex('influencers').where({ id: influencerId }).first();
+    if (!influencer || influencer.role !== 'influencer') continue;
+
+    const lastMessage = await knex('messages')
+      .where(function() {
+        this.where({ from_user_id: adminId, to_user_id: influencerId })
+          .orWhere({ from_user_id: influencerId, to_user_id: adminId });
       })
-      .whereNull('read_at')
-      .update({ read_at: now(knex) });
-
-    return res.json({ updated: affected });
-  }
-
-  const err = new Error('Bu işlem için yetkiniz yok');
-  err.status = 403;
-  throw err;
-}));
-
-// GET /messages/unread-count
-// Influencer: admin→me okunmamış sayısı
-// Admin: ?influencerId= (spesifik hat) veya ?aggregate=true (tüm influencerlardan gelen toplam)
-router.get('/messages/unread-count', authenticateToken, asyncHandler(async (req, res) => {
-  const actor = getActor(req);
-  const aggregate = String(req.query.aggregate || '').toLowerCase() === 'true';
-  const inflIdQ = req.query.influencerId ? Number(req.query.influencerId) : null;
-
-  if (actor.role === 'influencer') {
-    const admin = await knex('influencers').where('role', 'admin').first();
-    if (!admin) {
-      const err = new Error('Admin hesabı bulunamadı');
-      err.status = 500;
-      throw err;
-    }
-    const row = await knex('messages')
-      .where({
-        from_role: 'admin',
-        from_user_id: admin.id,
-        to_role: 'influencer',
-        to_user_id: actor.id
-      })
-      .whereNull('read_at')
-      .count({ c: '*' })
+      .orderBy('created_at', 'desc')
       .first();
 
-    const count = Number(row?.c || row?.count || 0);
-    return res.json({ unread: count });
+    if (!lastMessage) continue;
+
+    const unreadCount = await knex('messages')
+      .where({ from_user_id: influencerId, to_user_id: adminId, read_at: null })
+      .count({ count: '*' })
+      .first();
+
+    threads.push({
+      influencerId: influencer.id,
+      influencerName: influencer.name,
+      influencerEmail: influencer.email,
+      lastMessage: lastMessage.body,
+      lastMessageAt: lastMessage.created_at,
+      isAdminSender: lastMessage.from_role === 'admin',
+      unreadCount: Number(unreadCount.count),
+    });
   }
 
-  if (actor.role === 'admin') {
-    if (aggregate) {
-      // Tüm influencerlardan gelen unread toplamı
-      const row = await knex('messages')
-        .where({ to_role: 'admin', to_user_id: actor.id, from_role: 'influencer' })
-        .whereNull('read_at')
-        .count({ c: '*' })
-        .first();
-      const count = Number(row?.c || row?.count || 0);
-      return res.json({ unread: count });
-    }
-
-    if (inflIdQ) {
-      // Belirli influencer hattı
-      const influencer = await knex('influencers').where('id', inflIdQ).first();
-      if (!influencer) {
-        const err = new Error('Influencer bulunamadı');
-        err.status = 404;
-        throw err;
-      }
-      const row = await knex('messages')
-        .where({
-          from_role: 'influencer',
-          from_user_id: influencer.id,
-          to_role: 'admin',
-          to_user_id: actor.id
-        })
-        .whereNull('read_at')
-        .count({ c: '*' })
-        .first();
-      const count = Number(row?.c || row?.count || 0);
-      return res.json({ unread: count });
-    }
-
-    // Eğer spesifik veya aggregate verilmediyse, 400
-    const err = new Error('aggregate=true veya influencerId parametresi zorunludur');
-    err.status = 400;
-    throw err;
+  // 3. Filtrelemeyi uygula
+  if (filter) {
+    threads = threads.filter(t => {
+      if (filter === 'unread') return t.unreadCount > 0;
+      if (filter === 'sent') return t.isAdminSender;
+      if (filter === 'incoming') return !t.isAdminSender;
+      return true; // 'all' için
+    });
   }
 
-  const err = new Error('Bu işlem için yetkiniz yok');
-  err.status = 403;
-  throw err;
+  // 4. Sonuca göre sırala
+  threads.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+
+  res.json({ items: threads });
 }));
 
 module.exports = router;

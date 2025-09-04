@@ -3,24 +3,24 @@
  */
 exports.up = function(knex) {
   return knex.schema.createTable('payouts', function(table) {
-    table.increments('id').primary();
-    table.integer('influencer_id').unsigned().notNullable();
-    table.decimal('amount', 10, 2).notNullable(); // Ödeme tutarı
-    table.string('iban', 34).notNullable(); // IBAN numarası
-    table.string('status').defaultTo('completed');
-    table.text('note').nullable(); // Notlar
-    table.timestamps(true, true);
-    
+    table.increments('id').primary()
+    table.integer('influencer_id').unsigned().notNullable()
+    table.decimal('amount', 10, 2).notNullable() // Ödeme tutarı
+    table.string('iban', 34).notNullable() // IBAN numarası
+    table.string('status').defaultTo('completed')
+    table.text('note').nullable() // Notlar
+    table.timestamps(true, true)
+
     // Foreign key constraint
-    table.foreign('influencer_id').references('id').inTable('influencers').onDelete('CASCADE');
-    
+    table.foreign('influencer_id').references('id').inTable('influencers').onDelete('CASCADE')
+
     // Indexler
-    table.index(['influencer_id', 'status']);
-    table.index(['status']);
-    table.index(['created_at']);
-  });
-};
+    table.index(['influencer_id', 'status'])
+    table.index(['status'])
+    table.index(['created_at'])
+  })
+}
 
 exports.down = function(knex) {
-  return knex.schema.dropTable('payouts');
-};
+  return knex.schema.dropTable('payouts')
+}
