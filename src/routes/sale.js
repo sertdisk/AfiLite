@@ -154,6 +154,8 @@ router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
   query = query.limit(limit).offset(offset)
   const sales = await query
 
+  console.log('[Backend] Sales fetched:', sales);
+
   res.json({
     items: sales, // `items` olarak değiştirildi, frontend ile uyum için
     pagination: {

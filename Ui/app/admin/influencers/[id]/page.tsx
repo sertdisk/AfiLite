@@ -16,7 +16,7 @@ import {
 // --- TİPLER ---
 type SocialAccount = { id: number; platform: string; handle: string; url?: string; is_active: boolean; };
 type PaymentAccount = { id: number; bank_name: string; account_holder_name: string; iban: string; is_active: boolean; };
-type InflDetail = { id: number; full_name: string; email: string; phone?: string; status: 'pending' | 'approved' | 'rejected' | 'suspended'; niche?: string; country?: string; about?: string | null; website?: string | null; brand_name?: string | null; tax_type?: 'individual' | 'company'; social_accounts: SocialAccount[]; payment_accounts: PaymentAccount[]; };
+type InflDetail = { id: number; full_name: string; email: string; phone?: string; status: 'pending' | 'approved' | 'rejected' | 'suspended'; niche?: string; country?: string; about?: string | null; website?: string | null; brand_name?: string; tax_type?: 'individual' | 'company'; social_accounts: SocialAccount[]; payment_accounts: PaymentAccount[]; };
 type CodeRow = { id: number; code: string; discount_pct?: number; commission_pct?: number; is_active?: boolean | number; };
 type SaleRow = { id: number; recorded_at?: string | null; code: string; customer_url?: string | null; product?: string | null; total_amount?: number | null; commission?: number | null; note?: string | null; };
 type PayoutRow = { id: number; amount: number; status: string; created_at: string; note?: string; iban?: string; balance_before?: number; balance_after?: number; };
@@ -36,7 +36,7 @@ function AddCodeSection({ influencerId, onCodeAdded }: { influencerId: number; o
         setSaving(true);
         setError(null);
         try {
-            await adminCreateCode({ influencer_id: influencerId, code: code || '', discount_percentage: Number(discountPct), commission_pct: Number(commissionPct) });
+            await adminCreateCode({ influencer_id: String(influencerId), code: code || '', discount_percentage: Number(discountPct), commission_pct: Number(commissionPct) });
             setCode('');
             setIsOpen(false);
             onCodeAdded();
@@ -188,14 +188,33 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
         if (!inflId) return;
         setBusy(true);
         try {
-            const detailRes = await fetch(`/api/v1/influencers/${encodeURIComponent(inflId)}`, { credentials: 'include' });
+            const detailRes = await fetch(`/api/influencers/${encodeURIComponent(inflId)}`, { credentials: 'include' });
             const detailData = await detailRes.json();
             if (!detailRes.ok) throw new Error(detailData.message || 'Detaylar yüklenemedi');
-            setDetail(detailData.influencer || detailData);
-            setForm(detailData.influencer || detailData);
+            // Backend'in döndürdüğü veriyi frontend'in beklediği formata dönüştür
+            const transformedDetail = {
+                id: detailData.id,
+                full_name: detailData.full_name || detailData.name,
+                email: detailData.email,
+                brand_name: detailData.brand_name || undefined,
+                status: detailData.status,
+                about: detailData.notes,
+                created_at: detailData.created_at,
+                updated_at: detailData.updated_at,
+                // Eksik alanlar için varsayılan değerler
+                phone: undefined,
+                niche: undefined,
+                country: undefined,
+                website: undefined,
+                tax_type: undefined,
+                social_accounts: [],
+                payment_accounts: []
+            };
+            setDetail(transformedDetail);
+            setForm(transformedDetail);
 
-            const codesRes = await adminListInfluencerCodes(Number(inflId));
-            setCodes(codesRes.codes || []);
+            const codesRes = await adminListInfluencerCodes(String(inflId));
+            setCodes(codesRes.items || []);
 
             const salesRes = await getAdminSales({ influencerId: Number(inflId), limit: 20 });
             setSales(salesRes.items || []);

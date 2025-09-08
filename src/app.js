@@ -115,12 +115,11 @@ function createApp() {
   const apiBases = ['/api', '/api/v1']
 
   apiBases.forEach(base => {
-    // Mount auth routes under /auth
+    app.use(base, saleRouter)
     app.use(`${base}/auth`, authRouter)
 
     // Mount other routes
-    app.use(base, authenticateToken, applyRouter)
-    app.use(base, saleRouter)
+    app.use(`${base}/apply`, authenticateToken, applyRouter)
     app.use(`${base}/influencers`, authenticateToken, requireAdmin, influencerRouter)
     app.use(`${base}/contracts`, contractRouter)
     app.use(`${base}/codes`, authenticateToken, codesRouter)

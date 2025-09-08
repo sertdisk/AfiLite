@@ -12,6 +12,7 @@ type Sale = {
   product_info: string;
   sale_amount: number;
   commission_amount: number;
+  note?: string;
 };
 
 type EditSaleModalProps = {
@@ -84,6 +85,10 @@ export default function EditSaleModal({ sale, isOpen, onClose, onSave }: EditSal
           <div>
             <label className="block text-sm font-medium text-gray-700">Influencer Komisyonu</label>
             <input type="number" name="commission_amount" value={formData.commission_amount || 0} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Satış Notu</label>
+            <textarea name="note" value={formData.note || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows={3}></textarea>
           </div>
           
           {error && <p className="text-sm text-red-600">{error}</p>}

@@ -14,6 +14,7 @@ type Sale = {
   sale_amount: number;
   commission_amount: number;
   created_at: string;
+  note?: string;
 };
 
 export default function AdminSalesPage() {
@@ -54,6 +55,7 @@ export default function AdminSalesPage() {
         throw new Error(errorData.message || 'Satış verileri alınamadı.');
       }
       const data = await res.json();
+      console.log('[Frontend] Data received from API:', data);
 
       const transformedItems = (data.items || []).map((sale: any) => ({
         id: sale.id,
@@ -64,7 +66,9 @@ export default function AdminSalesPage() {
         sale_amount: sale.total_amount,
         commission_amount: sale.commission,
         created_at: sale.recorded_at,
+        note: sale.note,
       }));
+      console.log('[Frontend] Transformed items:', transformedItems);
 
       setSales(transformedItems);
       setTotal(data.pagination?.total || 0);
@@ -102,6 +106,7 @@ export default function AdminSalesPage() {
         total_amount: updatedSale.sale_amount,
         customer_url: updatedSale.customer_url,
         product: updatedSale.product_info,
+        note: updatedSale.note,
       });
       setIsModalOpen(false);
       fetchSales();
@@ -200,6 +205,7 @@ export default function AdminSalesPage() {
                 <th className="px-4 py-2 text-left">Marka Adı</th>
                 <th className="px-4 py-2 text-left">Müşteri</th>
                 <th className="px-4 py-2 text-left">Ürün</th>
+                <th className="px-4 py-2 text-left">Not</th>
                 <th className="px-4 py-2 text-right">Tutar</th>
                 <th className="px-4 py-2 text-right">Komisyon</th>
                 <th className="px-4 py-2 text-center">İşlemler</th>
@@ -218,6 +224,7 @@ export default function AdminSalesPage() {
                     <td className="px-4 py-2">{sale.influencer_brand_name}</td>
                     <td className="px-4 py-2">{sale.customer_url}</td>
                     <td className="px-4 py-2">{sale.product_info}</td>
+                    <td className="px-4 py-2">{sale.note}</td>
                     <td className="px-4 py-2 text-right">{(sale.sale_amount ?? 0).toFixed(2)} ₺</td>
                     <td className="px-4 py-2 text-right">{(sale.commission_amount ?? 0).toFixed(2)} ₺</td>
                     <td className="px-4 py-2 text-center">

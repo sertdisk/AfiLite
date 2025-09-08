@@ -66,6 +66,7 @@ export interface Influencer {
   email: string;
   status: InfluencerStatus;
   created_at: string;
+  brand_name?: string;
   [key: string]: any;
 }
 
@@ -124,7 +125,7 @@ export async function searchInfluencers(query: string): Promise<Influencer[]> {
   if (query.length < 2 && query.length > 0) return [];
   const qs = `?q=${encodeURIComponent(query)}`;
   const result = await request<{ items: Influencer[] }>(
-    `/api/v1/influencers/search${qs}`,
+    `/api/influencers/search${qs}`,
     { method: 'GET' }
   );
   return result.items || [];
@@ -191,30 +192,116 @@ export async function markRead(params: { influencerId: number }): Promise<{ upda
 
 export async function getAdminCodes(params: any): Promise<any> {
     const query = new URLSearchParams(params).toString();
-    return request(`/api/v1/codes?${query}`);
+    return request(`/api/codes?${query}`);
 }
 
 export async function getAdminBalanceSummary(): Promise<AdminBalanceSummary> {
-  return request<AdminBalanceSummary>('/api/v1/balance/admin-summary/summary', { method: 'GET' });
+  return request<AdminBalanceSummary>('/api/balance/admin-summary/summary', { method: 'GET' });
 }
 
 export async function getAdminSalesStats(): Promise<AdminSalesStats> {
-  return request<AdminSalesStats>('/api/v1/sales/stats', { method: 'GET' });
+  return request<AdminSalesStats>('/api/sales/stats', { method: 'GET' });
 }
 
 export async function searchAdminCode(code: string): Promise<any> {
-    return request(`/api/v1/codes/search/${code}`);
+    return request(`/api/codes/search/${code}`);
 }
 
 export async function postAdminSale(payload: any): Promise<any> {
-    return request('/api/v1/sale', { method: 'POST', body: payload });
+    return request('/api/sale', { method: 'POST', body: payload });
 }
 
 export async function getAdminRecentSales(limit: number = 20): Promise<any[]> {
-  const response = await request<{ items: any[] }>(`/api/v1/sales?limit=${limit}`);
+  const response = await request<{ items: any[] }>(`/api/sales?limit=${limit}`);
   return response.items || [];
 }
 
 export async function putAdminCode(id: number, payload: any): Promise<any> {
-  return request(`/api/v1/codes/${id}`, { method: 'PUT', body: payload });
+  return request(`/api/codes/${id}`, { method: 'PUT', body: payload });
+}
+
+export async function getAdminInfluencers(params: any): Promise<any> {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/influencers?${query}`);
+}
+
+export async function getAdminInfluencerBalance(influencerId: number): Promise<any> {
+    return request(`/api/balance/influencer/${influencerId}/summary`);
+}
+
+export async function getAdminPayouts(params: any): Promise<any> {
+    // Parametre isimlerini backend ile uyumlu hale getir
+    const backendParams: any = {};
+    if (params.influencerId) backendParams.influencer_id = params.influencerId;
+    if (params.from) backendParams.start_date = params.from;
+    if (params.to) backendParams.end_date = params.to;
+    if (params.page) backendParams.page = params.page;
+    if (params.limit) backendParams.limit = params.limit;
+    if (params.status) backendParams.status = params.status;
+    
+    const query = new URLSearchParams(backendParams).toString();
+    return request(`/api/payouts?${query}`);
+}
+
+export async function postAdminPayout(payload: any): Promise<any> {
+    // Parametre isimlerini backend ile uyumlu hale getir
+    const backendPayload: any = {
+        amount: payload.amount,
+        iban: payload.iban,
+        note: payload.note,
+        status: payload.status
+    };
+    if (payload.influencerId) backendPayload.influencer_id = payload.influencerId;
+    
+    return request('/api/payouts', { method: 'POST', body: backendPayload });
+}
+
+export async function adminUpdatePayout(id: number, payload: any): Promise<any> {
+    return request(`/api/payouts/${id}`, { method: 'PATCH', body: payload });
+}
+
+// Functions for Influencer Detail Page
+
+export async function getAdminInfluencerDetail(id: string): Promise<Influencer> {
+  return request<Influencer>(`/api/influencers/${id}`);
+}
+
+export async function patchAdminInfluencerDetail(id: string, data: Partial<Influencer>): Promise<Influencer> {
+  // Parametre isimlerini backend ile uyumlu hale getir
+  const backendData: any = {};
+  if (data.name !== undefined) backendData.full_name = data.name;
+  if (data.email !== undefined) backendData.email = data.email;
+  if (data.brand_name !== undefined) backendData.brand_name = data.brand_name;
+  if (data.status !== undefined) backendData.status = data.status;
+  if (data.notes !== undefined) backendData.notes = data.notes;
+  
+  return request<Influencer>(`/api/influencers/${id}`, {
+    method: 'PATCH',
+    body: backendData,
+  });
+}
+
+export async function adminListInfluencerCodes(influencerId: string): Promise<{ items: any[] }> {
+  const result = await request<{ codes: any[] }>(`/api/codes/influencer/${influencerId}`);
+  return { items: result.codes }; // Adapt to { items: [...] } structure
+}
+
+export async function adminCreateCode(payload: { influencer_id: string; code: string; commission_pct: number, discount_percentage: number }): Promise<any> {
+  // Backend expects commission_pct and discount_percentage
+  const body = {
+      influencer_id: payload.influencer_id,
+      code: payload.code,
+      commission_pct: payload.commission_pct,
+      discount_percentage: payload.discount_percentage
+  };
+  return request('/api/codes', { method: 'POST', body: body });
+}
+
+export async function getAdminSales(params: any): Promise<any> {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/sales?${query}`);
+}
+
+export async function updateAdminSale(id: number, payload: any): Promise<any> {
+    return request(`/api/sales/${id}`, { method: 'PATCH', body: payload });
 }

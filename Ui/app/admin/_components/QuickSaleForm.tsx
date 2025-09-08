@@ -28,9 +28,9 @@ export default function QuickSaleForm({ onSaleAdded }: QuickSaleFormProps) {
         credentials: 'include',
         body: JSON.stringify({
           code: saleCode,
-          amount: parseFloat(saleAmount),
-          customer_name: saleCustomer,
-          product_name: saleProduct,
+          total_amount: parseFloat(saleAmount),
+          customer_url: saleCustomer,
+          product: saleProduct,
         }),
       });
       const text = await res.text();

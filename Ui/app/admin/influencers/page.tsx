@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { getAdminInfluencerBalance } from '@/lib/api';
+import { getAdminInfluencerBalance, getAdminInfluencers } from '@/lib/api';
 
 // Bakiye hücre bileşeni
 function BalanceCell({ influencerId }: { influencerId: number }) {
@@ -16,9 +16,9 @@ function BalanceCell({ influencerId }: { influencerId: number }) {
           const balance = Number(summary?.balance ?? summary?.total_balance ?? 0);
           setVal(new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(balance));
         }
-      } catch (error) { console.error(error); }
-      finally {
-        if (!abort) setVal('—');
+      } catch (error) { 
+        console.error(error);
+        if (!abort) setVal('Hata');
       }
     }
     fetchSummary();
@@ -63,67 +63,22 @@ export default function AdminInfluencersPage() {
     setBusy(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      
-      // Arama parametresi
-      if (search.trim()) params.set('search', search.trim());
-      
-      // Tarih aralığı parametreleri
-      if (startDate) params.set('start_date', startDate);
-      if (endDate) params.set('end_date', endDate);
-      
-      // Sayfalama parametreleri
-      params.set('page', String(page));
-      params.set('limit', String(limit));
+      const params: any = { page, limit };
+      if (search.trim()) params.search = search.trim();
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
 
-      // Arama parametresi
-      if (search.trim()) {
-        if (search.trim().length === 1) {
-          setRows([]);
-          setTotal(0);
-          setError('Arama terimi en az 2 karakter olmalıdır.');
-          setBusy(false);
-          return;
-        }
-        params.set('search', search.trim());
+      if (params.search && params.search.length < 2) {
+        setRows([]);
+        setTotal(0);
+        setError('Arama terimi en az 2 karakter olmalıdır.');
+        setBusy(false);
+        return;
       }
 
-      // Önce admin UI proxy'sini dene
-      let res = await fetch(`/api/influencers?${params.toString()}`, {
-        cache: 'no-store',
-        credentials: 'include',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      // Eğer proxy route bulunamadıysa (404 Not Found) doğrudan backend'e düş (geçici fallback)
-      if (res.status === 404) {
-        const origin = process.env.NEXT_PUBLIC_BACKEND_ORIGIN || (typeof window !== 'undefined' ? (window as any).__BACKEND_ORIGIN__ : '') || '';
-        const base = origin || '';
-        if (base) {
-          res = await fetch(`${base.replace(/\/$/, '')}/api/v1/influencers?${params.toString()}`, {
-            cache: 'no-store',
-            credentials: 'include',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          });
-        }
-      }
-
-      const text = await res.text();
-      if (!res.ok) {
-        let msg = text;
-        try { const j = JSON.parse(text || '{}'); msg = j?.message || j?.error || msg; } catch (error) { console.error(error); }
-        // Debug: konsola durum ve header bilgisini not düş
-        if (typeof window !== 'undefined') {
-          console.warn('Admin influencers list fetch failed', { status: res.status, body: text });
-        }
-        throw new Error(msg || (res.status === 404 ? 'Endpoint not found' : 'Listeleme hatası'));
-      }
-
-      let json: any = {};
-      try { json = JSON.parse(text || '{}'); } catch (error) { console.error(error); }
+      const data = await getAdminInfluencers(params);
       
-      // JSON yapısına göre uygun veriyi al
-      const list: InfluencerRow[] = Array.isArray(json?.items) ? json.items : (Array.isArray(json) ? json : json?.influencers || []);
+      const list: InfluencerRow[] = Array.isArray(data?.items) ? data.items : [];
       
       setRows((list || []).map((r: any) => ({
         id: Number(r?.id),
@@ -138,7 +93,7 @@ export default function AdminInfluencersPage() {
         created_at: r?.created_at
       })));
       
-      setTotal(Number.isFinite(json?.total) ? Number(json.total) : null);
+      setTotal(Number.isFinite(data?.total) ? Number(data.total) : null);
     } catch (e: any) {
       setError(e?.message || 'Listeleme başarısız.');
     } finally {

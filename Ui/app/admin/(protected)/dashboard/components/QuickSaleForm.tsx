@@ -171,7 +171,7 @@ export default function QuickSaleForm() {
         code: formData.code.trim(),
         customer_url: formData.customer.trim(),
         product: formData.product.trim(),
-        amount: amountNum,
+        total_amount: amountNum,
         note: formData.note.trim() || undefined
       };
       

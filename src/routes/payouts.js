@@ -23,46 +23,42 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =>
       'payouts.note',
       'payouts.created_at',
       'payouts.updated_at',
-      'payouts.balance_before', // Eklendi
-      'payouts.balance_after', // Eklendi
+      'payouts.balance_before',
+      'payouts.balance_after',
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email'
     )
-    .orderBy('payouts.created_at', 'desc')
 
+  if (status) {
+    query.where('payouts.status', status)
+  }
 
   if (influencerId) {
-    query = query.where('payouts.influencer_id', influencerId)
+    query.where('payouts.influencer_id', influencerId)
   }
 
   if (from) {
-    query = query.where('payouts.created_at', '>=', new Date(from))
+    query.where('payouts.created_at', '>=', new Date(from))
   }
 
   if (to) {
-    query = query.where('payouts.created_at', '<=', new Date(to))
+    query.where('payouts.created_at', '<=', new Date(to))
   }
 
-  const offset = (page - 1) * limit
-  query = query.limit(limit).offset(offset)
+  // Get total count with filters applied
+  const totalResult = await query.clone().count('* as count').first();
+  const total = totalResult.count;
 
-  const payouts = await query
-
-  const totalQuery = knex('payouts').count('* as count')
-  if (status) totalQuery.where('status', status)
-  if (influencerId) totalQuery.where('influencer_id', influencerId)
-  if (from) totalQuery.where('created_at', '>=', new Date(from))
-  if (to) totalQuery.where('created_at', '<=', new Date(to))
-
-  const [{ count }] = await totalQuery
+  // Apply ordering and pagination
+  const payouts = await query.orderBy('payouts.created_at', 'desc').limit(limit).offset((page - 1) * limit);
 
   res.json({
-    items: payouts, // Frontend ile uyum için `items` kullanılıyor
+    items: payouts,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
-      total: count,
-      pages: Math.ceil(count / limit)
+      total: total,
+      pages: Math.ceil(total / limit)
     }
   })
 }))

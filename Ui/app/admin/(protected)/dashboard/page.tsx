@@ -174,8 +174,8 @@ export default function AdminDashboardPage() {
             influencer_brand_name: sale?.influencer_brand_name || '',
             customer_url: sale?.customer_url || '',
             product: sale?.product || '',
-            amount: typeof sale?.amount === 'number' ? sale.amount : null,
-            commission_amount: typeof sale?.commission_amount === 'number' ? sale.commission_amount : null,
+            amount: typeof sale?.total_amount === 'number' ? sale.total_amount : null, // FIX: total_amount
+            commission: typeof sale?.commission === 'number' ? sale.commission : null, // FIX: commission
           }));
           setRecentSales(processedSales);
         }
@@ -371,7 +371,7 @@ export default function AdminDashboardPage() {
                     </td>
                     <td>{sale.product || '-'}</td>
                     <td>{typeof sale.amount === 'number' ? Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(sale.amount) : '-'}</td>
-                    <td>{typeof sale.commission_amount === 'number' ? Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(sale.commission_amount) : '-'}</td>
+                    <td>{typeof sale.commission === 'number' ? Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(sale.commission) : '-'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -12,7 +12,7 @@ const { requireAdmin } = require('../middleware/auth')
 const { influencerLimiter, influencerLongLimiter } = require('../middleware/rateLimiter')
 
 // Influencer başvurusu oluşturma
-router.post('/apply', influencerLimiter, influencerLongLimiter, validateInfluencerApplication, asyncHandler(async(req, res) => {
+router.post('/', influencerLimiter, influencerLongLimiter, validateInfluencerApplication, asyncHandler(async(req, res) => {
   const {
     full_name,
     email,
@@ -57,7 +57,7 @@ router.post('/apply', influencerLimiter, influencerLongLimiter, validateInfluenc
 }))
 
 // Tüm başvuruları listeleme (admin için)
-router.get('/apply', requireAdmin, asyncHandler(async(req, res) => {
+router.get('/', requireAdmin, asyncHandler(async(req, res) => {
   const { status, page = 1, limit = 20 } = req.query
 
   let query = knex('influencers')
@@ -99,7 +99,7 @@ router.get('/apply', requireAdmin, asyncHandler(async(req, res) => {
 }))
 
 // Başvuru durumu kontrolü (admin için)
-router.get('/apply/:id', requireAdmin, asyncHandler(async(req, res) => {
+router.get('/:id', requireAdmin, asyncHandler(async(req, res) => {
   const { id } = req.params
 
   const influencer = await knex('influencers')
@@ -133,7 +133,7 @@ router.get('/apply/:id', requireAdmin, asyncHandler(async(req, res) => {
 }))
 
 // Başvuru durumu güncelleme (admin için)
-router.patch('/apply/:id/status', requireAdmin, asyncHandler(async(req, res) => {
+router.patch('/:id/status', requireAdmin, asyncHandler(async(req, res) => {
   const { id } = req.params
   const { status } = req.body
 

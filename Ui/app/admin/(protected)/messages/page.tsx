@@ -16,7 +16,7 @@ import {
 } from '@/lib/api';
 
 // Tipler (Interfaces)
-interface Influencer { id: number; name: string; email: string; }
+interface Influencer { id: number; name: string; email: string; brand_name?: string; }
 interface Alert { id: number; message: string; created_at: string; target_influencer_ids?: string; }
 interface Message { id: number; from_user_id: number; body: string; created_at: string; from_role: string; }
 interface ThreadSummary { influencerId: number; influencerName: string; lastMessage: string | null; lastMessageAt: string | null; isAdminSender: boolean; unreadCount: number; }
@@ -94,7 +94,7 @@ function InfluencerSelector({ onSelectionChange, selectionMode = 'multiple' }: {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Influencer ara (isim veya e-posta)..."
+            placeholder="Influencer ara (isim, e-posta veya marka adı)..."
             className="w-full px-3 py-2 rounded-lg border border-gray-600 bg-gray-700 text-white placeholder-gray-400"
           />
           {isSearching && <p className="absolute right-3 top-2.5 text-sm text-gray-400">Aranıyor...</p>}
@@ -104,6 +104,7 @@ function InfluencerSelector({ onSelectionChange, selectionMode = 'multiple' }: {
                 <div key={inf.id} onClick={() => handleSelect(inf)} className="px-4 py-2 hover:bg-gray-600 cursor-pointer">
                   <p className="font-semibold">{inf.name}</p>
                   <p className="text-sm text-gray-400">{inf.email}</p>
+                  {inf.brand_name && <p className="text-xs text-gray-500">Marka: {inf.brand_name}</p>}
                 </div>
               ))}
             </div>
