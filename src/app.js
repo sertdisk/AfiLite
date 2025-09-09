@@ -110,6 +110,7 @@ function createApp() {
   const payoutsRouter = require('./routes/payouts')
   const authRouter = require('./routes/auth')
   const commissionsRouter = require('./routes/commissions')
+  const settingsRouter = require('./routes/settings')
 
   // Mount routers for both /api and /api/v1
   const apiBases = ['/api', '/api/v1']
@@ -128,7 +129,8 @@ function createApp() {
     app.use(`${base}/alerts`, authenticateToken, alertsRouter)
     app.use(`${base}/payouts`, authenticateToken, payoutsRouter)
     app.use(`${base}/commissions`, authenticateToken, commissionsRouter)
-    2  })
+    app.use(`${base}/admin/settings`, requireAdmin, settingsRouter)
+  })
 
   // Error handling
   app.use(notFoundHandler)
