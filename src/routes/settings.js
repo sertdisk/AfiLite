@@ -9,7 +9,7 @@ const { asyncHandler } = require('../middleware/errorHandler')
 const { requireAdmin } = require('../middleware/auth')
 
 // Komisyon oranlarını güncelle (ADMIN)
-router.post('/commission-rates', requireAdmin, asyncHandler(async(req, res) => {
+router.post('/commission-rates', asyncHandler(async(req, res) => {
   const { discount_pct, commission_pct } = req.body
 
   // Validasyon

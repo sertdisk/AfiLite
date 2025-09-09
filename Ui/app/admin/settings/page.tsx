@@ -22,9 +22,16 @@ export default function AdminSettingsPage() {
   const fetchContracts = async () => {
     setLoadingContracts(true);
     try {
-      const response = await fetch('/api/contracts');
+      const response = await fetch('/api/contracts', {
+        credentials: 'include' // Oturum çerezlerini göndermek için eklendi
+      });
       const data = await response.json();
-      setContracts(data);
+      if (Array.isArray(data)) {
+        setContracts(data);
+      } else {
+        console.error('API did not return an array:', data);
+        setContracts([]); // Fallback to empty array
+      }
     } catch (error) {
       console.error('Sözleşmeler yüklenirken hata:', error);
     } finally {
@@ -53,7 +60,8 @@ export default function AdminSettingsPage() {
       const response = await fetch('/api/admin/settings/commission-rates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(commissionSettings)
+        body: JSON.stringify(commissionSettings),
+        credentials: 'include' // Oturum çerezlerini göndermek için eklendi
       });
       const result = await response.json();
       setCommissionUpdateResult(result);
@@ -81,7 +89,8 @@ export default function AdminSettingsPage() {
       const response = await fetch('/api/contracts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: contractContent })
+        body: JSON.stringify({ content: contractContent }),
+        credentials: 'include' // Oturum çerezlerini göndermek için eklendi
       });
       const result = await response.json();
       setContractCreateResult(result);

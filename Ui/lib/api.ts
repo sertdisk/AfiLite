@@ -302,6 +302,30 @@ export async function getAdminSales(params: any): Promise<any> {
     return request(`/api/sales?${query}`);
 }
 
+
 export async function updateAdminSale(id: number, payload: any): Promise<any> {
     return request(`/api/sales/${id}`, { method: 'PATCH', body: payload });
+}
+
+// Influencer Dashboard Functions
+export async function getInfluencerSummary(): Promise<any> {
+    return request('/api/influencer/summary');
+}
+
+export async function listMyCodesUnsafe(): Promise<{ items: any[] }> {
+    const result = await request<{ codes: any[] }>('/api/codes/my');
+    return { items: result.codes };
+}
+
+export async function getMyBalance(): Promise<any> {
+    return request('/api/balance');
+}
+
+export async function getMySettlements(): Promise<any> {
+    return request('/api/balance/history');
+}
+
+export async function getMySales(params: any): Promise<any> {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/sales?${query}`);
 }

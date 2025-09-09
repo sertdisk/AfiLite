@@ -1,64 +1,94 @@
-import { NextResponse } from 'next/server';
-import knex from '@/../src/db/sqlite';
+// Proxy: /api/contracts → backend /api/v1/contracts (GET, POST)
+import { cookies, headers } from 'next/headers';
+import type { NextRequest } from 'next/server';
 
-// Tüm sözleşme versiyonlarını getir (sadece admin için)
-export async function GET() {
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:5003';
+
+function buildCookieHeader() {
+  return cookies()
+    .getAll()
+    .map((c) => `${c.name}=${encodeURIComponent(c.value)}`)
+    .join('; ');
+}
+
+function passThroughHeaders() {
+  const h = headers();
+  return {
+    'User-Agent': h.get('user-agent') || '',
+    'Accept': h.get('accept') || 'application/json',
+  };
+}
+
+export async function GET(req: NextRequest) {
   try {
-    const db = knex;
+    const cookieHeader = buildCookieHeader();
+    const backendUrl = new URL(`${BACKEND_ORIGIN}/api/v1/contracts`);
     
-    // Tüm sözleşmeleri versiyon sırasına göre getir
-    const contracts = await db.select('*').from('contracts').orderBy('version', 'desc');
-    
-    return NextResponse.json(contracts);
-  } catch (error) {
-    console.error('Sözleşmeler getirilirken hata:', error);
-    return NextResponse.json(
-      { error: 'Sözleşmeler getirilemedi' },
-      { status: 500 }
-    );
+    const res = await fetch(backendUrl.toString(), {
+      method: 'GET',
+      headers: {
+        ...passThroughHeaders(),
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+      cache: 'no-store',
+    });
+
+    const contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
+    const body = await res.text();
+    return new Response(body, { status: res.status, headers: { 'Content-Type': contentType } });
+  } catch (err: any) {
+    const message = err?.message || 'Proxy sırasında beklenmeyen bir hata oluştu';
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
   }
 }
 
-// Yeni sözleşme versiyonu oluştur (sadece admin için)
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const db = knex;
-    const { content } = await request.json();
-    
+    const payload = await req.json();
+    const { content } = payload;
+
     if (!content || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Sözleşme içeriği boş olamaz' },
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ message: 'Sözleşme içeriği boş olamaz' }), {
+        status: 400, headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      });
     }
-    
-    // Mevcut en yüksek versiyonu bul
-    const latestContract = await db.max('version as maxVersion').from('contracts').first();
-    
-    const newVersion = latestContract?.maxVersion ? latestContract.maxVersion + 1 : 1;
-    
-    // Önceki aktif sözleşmeleri pasif yap
-    await db.from('contracts').where('is_active', true).update({ is_active: false });
-    
-    // Yeni sözleşmeyi oluştur ve aktif yap
-    const [newContractId] = await db('contracts').insert({
-      content: content.trim(),
-      version: newVersion,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+
+    const cookieHeader = buildCookieHeader();
+    const url = `${BACKEND_ORIGIN}/api/v1/contracts`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...passThroughHeaders(),
+        'Content-Type': 'application/json',
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+      body: JSON.stringify({ content }),
     });
-    
-    const newContract = await db('contracts')
-      .where('id', newContractId)
-      .first();
-    
-    return NextResponse.json(newContract);
-  } catch (error) {
-    console.error('Yeni sözleşme oluşturulurken hata:', error);
-    return NextResponse.json(
-      { error: 'Yeni sözleşme oluşturulamadı' },
-      { status: 500 }
-    );
+
+    const contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
+    const text = await res.text();
+
+    if (!res.ok) {
+      let msg = text;
+      try {
+        const maybe = JSON.parse(text || '{}');
+        msg = maybe?.message || maybe?.error || msg;
+      } catch (error) { console.error(error); }
+      return new Response(JSON.stringify({ message: msg || 'Sözleşme oluşturma başarısız.' }), {
+        status: res.status,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      });
+    }
+
+    return new Response(text, { status: res.status, headers: { 'Content-Type': contentType } });
+  } catch (err: any) {
+    const message = err?.message || 'Proxy sırasında beklenmeyen bir hata oluştu (POST /api/contracts)';
+    return new Response(JSON.stringify({ message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
   }
 }

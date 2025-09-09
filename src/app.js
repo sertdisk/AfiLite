@@ -64,7 +64,7 @@ function createApp() {
       },
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: false,
+      credentials: true,
     }
     : {
       origin: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:5002'], // Frontend portlarına izin ver
@@ -129,7 +129,7 @@ function createApp() {
     app.use(`${base}/alerts`, authenticateToken, alertsRouter)
     app.use(`${base}/payouts`, authenticateToken, payoutsRouter)
     app.use(`${base}/commissions`, authenticateToken, commissionsRouter)
-    app.use(`${base}/admin/settings`, requireAdmin, settingsRouter)
+    app.use(`${base}/admin/settings`, authenticateToken, requireAdmin, settingsRouter)
   })
 
   // Error handling
