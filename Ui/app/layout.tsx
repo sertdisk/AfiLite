@@ -32,7 +32,7 @@ function cls(...arr: Array<string | false | null | undefined>) {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || ''; // usePathname hook'unu kullan ve null kontrolü ekle
 
-  const isAuthOrInfluencerPath = pathname.startsWith('/influencer') || pathname.startsWith('/login') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password') || pathname.startsWith('/admin/login');
+  const isAuthOrInfluencerPath = pathname.startsWith('/influencer') || pathname.startsWith('/login') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password') || pathname.startsWith('/admin/login') || pathname.startsWith('/contract');
 
   return (
     <html lang="tr" className="dark">

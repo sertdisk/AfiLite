@@ -1,4 +1,4 @@
-// Proxy: /api/sales → backend /api/v1/sales/me (GET)
+// Proxy: /api/balance → backend /api/v1/balance/me (GET)
 import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
@@ -22,16 +22,9 @@ function passThroughHeaders() {
 export async function GET(req: NextRequest) {
   try {
     const cookieHeader = buildCookieHeader();
-    // Query parametrelerini al ve backend'e ilet
-    const url = new URL(req.url);
-    const backendUrl = new URL(`${BACKEND_ORIGIN}/api/v1/sales/me`);
+    const url = `${BACKEND_ORIGIN}/api/v1/balance/me`;
     
-    // Mevcut query parametrelerini backend URL'sine kopyala
-    url.searchParams.forEach((value, key) => {
-      backendUrl.searchParams.set(key, value);
-    });
-    
-    const res = await fetch(backendUrl.toString(), {
+    const res = await fetch(url, {
       method: 'GET',
       headers: {
         ...passThroughHeaders(),

@@ -85,7 +85,7 @@ export interface Message {
   to_role: 'admin' | 'influencer';
   body: string;
   created_at: string;
-  read_at?: string | null;
+  read_at: string | null;
 }
 
 export interface MessageThreadSummary {
@@ -164,10 +164,16 @@ export async function getThread(params: { influencerId: number }): Promise<{ ite
   return request(`/api/v1/messages/thread${qs}`, { method: 'GET' });
 }
 
-export async function sendAdminMessage(influencerId: number, body: string): Promise<{ message: string; item: Message }> {
+export async function sendMessage(influencerId: number | null, body: string): Promise<{ message: string; item: Message }> {
+  const payload: any = { body };
+  // Admin mesaj gönderiyorsa influencerId gerekli
+  if (influencerId !== null) {
+    payload.to = 'influencer';
+    payload.influencerId = influencerId;
+  }
   return request('/api/v1/messages', {
     method: 'POST',
-    body: { to: 'influencer', influencerId, body },
+    body: payload,
   });
 }
 
@@ -312,6 +318,18 @@ export async function getInfluencerSummary(): Promise<any> {
     return request('/api/influencer/summary');
 }
 
+export async function createMyDiscountCode(payload: { code: string }): Promise<any> {
+    return request('/api/codes/my', { method: 'POST', body: payload });
+}
+
+export async function getMyThread(): Promise<{ items: Message[] }> {
+  return request('/api/messages/my-thread', { method: 'GET' });
+}
+
+export async function getUnreadCount(): Promise<{ unread: number }> {
+    return request('/api/messages/unread-count');
+}
+
 export async function listMyCodesUnsafe(): Promise<{ items: any[] }> {
     const result = await request<{ codes: any[] }>('/api/codes/my');
     return { items: result.codes };
@@ -328,4 +346,32 @@ export async function getMySettlements(): Promise<any> {
 export async function getMySales(params: any): Promise<any> {
     const query = new URLSearchParams(params).toString();
     return request(`/api/sales?${query}`);
+}
+
+//==============================================================================
+// INFLUENCER PROFILE FUNCTIONS
+//==============================================================================
+
+export async function getInfluencerSocialAccounts(): Promise<any> {
+  return request('/api/influencer/social-accounts');
+}
+
+export async function getInfluencerPaymentAccounts(): Promise<any> {
+  return request('/api/influencer/payment-accounts');
+}
+
+export async function patchInfluencerMe(payload: any): Promise<any> {
+  return request('/api/influencer/me', { method: 'PATCH', body: payload });
+}
+
+export async function patchInfluencerMePassword(payload: any): Promise<any> {
+  return request('/api/influencer/me/password', { method: 'PATCH', body: payload });
+}
+
+export async function addInfluencerSocialAccount(payload: any): Promise<any> {
+  return request('/api/influencer/social-accounts', { method: 'POST', body: payload });
+}
+
+export async function getInfluencerMe(): Promise<any> {
+  return request('/api/influencer/me', { method: 'GET' });
 }

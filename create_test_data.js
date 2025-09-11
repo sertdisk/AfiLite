@@ -15,6 +15,11 @@ async function createTestData() {
   console.log('Test verisi oluşturuluyor...');
   
   try {
+    // Tabloları temizle
+    await db('sales').del();
+    await db('discount_codes').del();
+    await db('influencers').del();
+
     // Influencer oluşturma fonksiyonu
     async function createInfluencer(email, password, fullName, status = 'approved', withCode = false, codeApproved = false) {
       // Önce influencer'ı oluştur

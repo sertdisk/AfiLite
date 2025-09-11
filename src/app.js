@@ -15,6 +15,17 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const knex = require('./db/sqlite')
 
+// Run migrations on startup (development only)
+if (process.env.NODE_ENV === 'development') {
+  knex.migrate.latest()
+    .then(() => {
+      console.log('Migrations ran successfully');
+    })
+    .catch(err => {
+      console.error('Error running migrations:', err);
+    });
+}
+
 // Middleware imports
 const { errorHandler, notFoundHandler, requestLogger } = require('./middleware/errorHandler')
 const { generalLimiter, apiLimiter, authLimiter, authShortLimiter, authLongLimiter } = require('./middleware/rateLimiter')
@@ -52,26 +63,14 @@ function createApp() {
   }))
 
   // CORS whitelist – Türkçe: Production’da whitelist zorunlu; development/test’te gevşek bırakılabilir
-  const isProd = process.env.NODE_ENV === 'production'
-  const corsOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean)
-  const corsOptions = isProd
-    ? {
-      origin: (origin, callback) => {
-        // origin yoksa (örn. curl) yalnızca prod’da reddet
-        if (!origin) return callback(new Error('CORS: Origin eksik'), false)
-        if (corsOrigins.includes(origin)) return callback(null, true)
-        return callback(new Error('CORS: Origin izinli değil'), false)
-      },
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
-    }
-    : {
-      origin: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:5002'], // Frontend portlarına izin ver
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
-    }
+  // CORS ayarları - hem development hem production için aynı esnek ayarları kullan
+  // Bu şekilde admin tarafı etkilenmez
+  const corsOptions = {
+    origin: ['http://localhost:3000', 'http://localhost:4000', 'http://localhost:5002'], // Frontend portlarına izin ver
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }
   app.use(cors(corsOptions))
 
   app.use(express.json())
@@ -102,15 +101,18 @@ function createApp() {
   const applyRouter = require('./routes/apply')
   const saleRouter = require('./routes/sale')
   const influencerRouter = require('./routes/influencer')
+  const influencerDashboardRouter = require('./routes/influencer-dashboard')
   const contractRouter = require('./routes/contract')
   const codesRouter = require('./routes/codes')
   const balanceRouter = require('./routes/balance')
   const messagesRouter = require('./routes/messages')
   const alertsRouter = require('./routes/alerts')
-  const payoutsRouter = require('./routes/payouts')
+ const payoutsRouter = require('./routes/payouts')
   const authRouter = require('./routes/auth')
   const commissionsRouter = require('./routes/commissions')
   const settingsRouter = require('./routes/settings')
+  const influencerSettingsRouter = require('./routes/influencer-settings')
+  const influencerSummaryRouter = require('./routes/influencer-summary')
 
   // Mount routers for both /api and /api/v1
   const apiBases = ['/api', '/api/v1']
@@ -122,6 +124,13 @@ function createApp() {
     // Mount other routes
     app.use(`${base}/apply`, authenticateToken, applyRouter)
     app.use(`${base}/influencers`, authenticateToken, requireAdmin, influencerRouter)
+    // Önce daha spesifik route'ları mount et
+    app.use(`${base}/influencer/summary`, authenticateToken, influencerSummaryRouter)
+    app.use(`${base}/influencer-summary`, authenticateToken, influencerSummaryRouter)
+    // Sonra genel influencer route'larını mount et
+    app.use(`${base}/influencer`, authenticateToken, influencerRouter)
+    app.use(`${base}/influencer`, authenticateToken, influencerDashboardRouter)
+    app.use(`${base}/influencer`, authenticateToken, influencerSettingsRouter)
     app.use(`${base}/contracts`, contractRouter)
     app.use(`${base}/codes`, authenticateToken, codesRouter)
     app.use(`${base}/balance`, authenticateToken, balanceRouter)

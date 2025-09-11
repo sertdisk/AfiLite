@@ -1,21 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getThread, getUnreadCount, markRead, sendMessage } from '@/lib/api';
-
-type ThreadItem = {
-  id: number;
-  from_role: 'admin' | 'influencer';
-  from_user_id: number;
-  to_role: 'admin' | 'influencer';
-  to_user_id: number;
-  body: string;
-  read_at: string | null;
-  created_at: string;
-};
+import { getMyThread, getUnreadCount, markRead, sendMessage, getInfluencerMe } from '@/lib/api';
 
 export default function InfluencerMessagesPage() {
-  const [thread, setThread] = useState<ThreadItem[]>([]);
+  const [thread, setThread] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [composer, setComposer] = useState('');
   const [sending, setSending] = useState(false);
@@ -27,7 +16,7 @@ export default function InfluencerMessagesPage() {
     try {
       const r = await getUnreadCount();
       setUnread(r.unread);
-    } catch (error) { console.error(error); 
+    } catch (error) { console.error(error);
       // sessiz geç
     }
   }
@@ -35,10 +24,15 @@ export default function InfluencerMessagesPage() {
   async function loadThread() {
     setLoading(true);
     try {
-      const res = await getThread(); // influencer: admin↔me
+      const res = await getMyThread(); // influencer: admin↔me
       setThread(res.items);
       // admin → me gelenleri okundu yap
-      await markRead();
+      try {
+        await markRead({ influencerId: res.items[0].to_user_id });
+      } catch (e) {
+        // Okunmamış mesaj sayısı için gerekli değil, yutulabilir
+        console.warn('Mesaj okundu olarak işaretlenemedi:', e);
+      }
       await refreshUnread();
     } catch (e) {
       console.error(e);
@@ -48,81 +42,84 @@ export default function InfluencerMessagesPage() {
   }
 
   async function handleSend() {
-    const body = composer.trim();
-    if (!body) return;
+    if (!composer.trim()) return;
     setSending(true);
     try {
-      await sendMessage({ to: 'admin', body });
+      // Influencer kendi mesajını gönderiyor, backend artık bunu destekliyor
+      await sendMessage(null, composer); // to ve influencerId backend tarafından belirleniyor
       setComposer('');
-      await loadThread();
+      await loadThread(); // Yeni mesajı yükle
     } catch (e) {
-      console.error(e);
+      console.error('Mesaj gönderilemedi:', e);
+      alert('Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setSending(false);
     }
   }
 
   useEffect(() => {
-    // İlk yükleme ve 10sn polling
-    (async () => {
-      await loadThread();
-    })();
-    pollRef.current = setInterval(async () => {
-      await loadThread();
-    }, 10000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    loadThread();
   }, []);
 
-  const list = useMemo(() => {
-    if (loading) {
-      return <div className="p-3 text-sm text-muted">Yükleniyor…</div>;
-    }
-    if (!thread.length) {
-      return <div className="p-3 text-sm text-muted">Henüz mesaj yok. Admin ile iletişime geçmek için aşağıdan yazın.</div>;
-    }
-    return thread.map(m => {
-      const isMine = m.from_role === 'influencer';
-      return (
-        <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-          <div className={`max-w-[75%] rounded px-3 py-2 text-sm border ${isMine ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-panel text-app border-app'}`}>
-            <div>{m.body}</div>
-            <div className="text-[10px] opacity-70 mt-1">
-              {new Date(m.created_at).toLocaleString()} {isMine ? (m.read_at ? '✓✓' : '✓') : null}
-            </div>
-          </div>
-        </div>
-      );
-    });
-  }, [thread, loading]);
+  if (loading) {
+    return <div className="p-4">Yükleniyor...</div>;
+  }
 
   return (
-    <div className="max-w-3xl mx-auto border border-app rounded bg-panel h-[calc(100vh-140px)] flex flex-col overflow-hidden">
-      <div className="p-3 border-b border-app flex items-center justify-between">
-        <div>
-          <div className="font-semibold">Admin ile Mesajlar</div>
-          <div className="text-xs text-muted">Okunmamış: {unread}</div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        
+        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700/50 p-6 mb-8 transition-all duration-300 hover:shadow-purple-500/10">
+          <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+            {thread.map((msg) => (
+              <div
+                key={msg.id}
+                className={`p-4 rounded-xl transition-all duration-200 ${
+                  msg.from_role === 'admin'
+                    ? 'bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-l-4 border-blue-500'
+                    : 'bg-gradient-to-r from-gray-700/50 to-gray-800/50 border-l-4 border-gray-500'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <p className="text-sm font-medium text-purple-300">
+                    {msg.from_role === 'admin' ? 'Admin' : 'Influencer'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(msg.created_at).toLocaleString('tr-TR')}
+                  </p>
+                </div>
+                <p className="mt-2 text-gray-200">{msg.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex-1 overflow-auto p-3 space-y-2">
-        {list}
-      </div>
-      <div className="border-t border-app p-3 flex gap-2">
-        <textarea
-          className="flex-1 rounded-md border border-app bg-transparent p-2 text-sm"
-          placeholder="Mesaj yazın…"
-          rows={2}
-          value={composer}
-          onChange={(e) => setComposer(e.target.value)}
-        />
-        <button
-          onClick={handleSend}
-          disabled={sending || !composer.trim()}
-          className={`px-3 py-2 rounded-md border ${sending || !composer.trim() ? 'bg-gray-700 text-gray-300 cursor-not-allowed' : 'bg-gray-800 text-gray-200 hover:bg-gray-700'} transition`}
-        >
-          Gönder
-        </button>
+        
+        <div className="bg-gray-800/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-700/50 p-6 transition-all duration-300 hover:shadow-purple-500/10">
+          <div className="mb-4">
+            <textarea
+              value={composer}
+              onChange={(e) => setComposer(e.target.value)}
+              placeholder="Mesajınızı yazın..."
+              className="w-full p-4 rounded-xl border border-gray-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-900/50 transition-all duration-200 resize-none bg-gray-900/50 text-white"
+              rows={3}
+            />
+          </div>
+          <button
+            onClick={handleSend}
+            disabled={sending}
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sending ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Gönderiliyor...
+              </span>
+            ) : 'Mesaj Gönder'}
+          </button>
+        </div>
       </div>
     </div>
   );

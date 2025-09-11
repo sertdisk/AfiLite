@@ -1,8 +1,8 @@
 const express = require('express');
 const knex = require('../db/sqlite');
 const { asyncHandler } = require('../middleware/errorHandler');
-
 const router = express.Router();
+const { authenticateToken } = require('../middleware/auth');
 
 // Admin için arama ucu: GET /influencers/search?q=
 router.get('/search', asyncHandler(async (req, res) => {
@@ -30,12 +30,8 @@ router.get('/search', asyncHandler(async (req, res) => {
     .where(function() {
       this.where('full_name', 'like', like)
         .orWhere('email', 'like', like)
-        .orWhere('brand_name', 'like', like);
-        
-      // Eğer kod eşleşmesi varsa onları da ekle
-      if (codeMatchIds.length > 0) {
-        this.orWhereIn('id', codeMatchIds);
-      }
+        .orWhere('brand_name', 'like', like)
+        .orWhereIn('id', codeMatchIds);
     })
     .andWhere('role', 'influencer')
     .limit(20);
@@ -44,6 +40,32 @@ router.get('/search', asyncHandler(async (req, res) => {
 
   return res.json({ items: results });
 }));
+
+// GET /api/influencer/me - Influencer'ın kendi bilgilerini getirir
+router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const influencer = await knex('influencers')
+    .select(
+      'id',
+      'full_name as name',
+      'email',
+      'brand_name',
+      'status',
+      'created_at',
+      'updated_at'
+    )
+    .where({ id: influencerId, role: 'influencer' })
+    .first();
+
+  if (!influencer) {
+    return res.status(404).json({ error: 'Influencer bulunamadı.' });
+  }
+
+  res.json(influencer);
+}));
+
+
+// GET /api/influencers - Admin için influencer listeleme
 
 
 // GET /api/influencers - Admin için influencer listeleme

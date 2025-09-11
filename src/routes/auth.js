@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const knex = require('../db/sqlite')
 const { asyncHandler } = require('../middleware/errorHandler')
-const { authenticateToken, requireAdmin, JWT_SECRET } = require('../middleware/auth')
+const { authenticateToken, requireAdmin } = require('../middleware/auth')
 const { validateAuthLogin } = require('../middleware/validation')
 
 // Şifreleme ve token ömrü sabitleri (sertleştirme)
@@ -17,14 +17,12 @@ const ACCESS_TOKEN_TTL = '15m' // access token 15 dakika
 
 // Admin login endpoint (kimlik doğrulama)
 router.post('/admin/login', validateAuthLogin, asyncHandler(async(req, res) => {
-  console.log('[ADMIN LOGIN ATTEMPT]', req.body.email)
   const { email, password } = req.body
 
   let query = knex('influencers').where('email', email)
   try {
     const hasRole = await knex.schema.hasColumn('influencers', 'role')
     if (hasRole) {
-      console.log('Role column exists, adding role filter')
       query = query.where('role', 'admin')
     }
   } catch (e) {
@@ -34,45 +32,34 @@ router.post('/admin/login', validateAuthLogin, asyncHandler(async(req, res) => {
   const user = await query.first()
 
   if (!user) {
-    console.log('Admin user not found:', email)
     const err = new Error('Geçersiz email veya şifre')
     err.status = 401
     throw err
   }
 
-  console.log('Admin user found:', user.email)
-
   let isValidPassword = false
   if (user.password_hash) {
     try {
-      console.log('Comparing passwords...')
       isValidPassword = await bcrypt.compare(password, user.password_hash)
-      console.log('Password comparison result:', isValidPassword)
     } catch (e) {
       console.error('Bcrypt compare error:', e)
       isValidPassword = false
     }
   } else {
-    console.log('No password_hash found, treating as valid (dev mode)')
     isValidPassword = true
   }
 
   if (!isValidPassword) {
-    console.log('Invalid password for user:', email)
     const err = new Error('Geçersiz email veya şifre')
     err.status = 401
     throw err
   }
 
-  console.log('Password is valid, creating token...')
-
   const token = jwt.sign(
     { userId: user.id, email: user.email, role: 'admin' },
-    JWT_SECRET,
+    process.env.JWT_SECRET,
     { expiresIn: ACCESS_TOKEN_TTL }
   )
-
-  console.log('Token created, setting cookie and sending response.')
 
   res.cookie('jwt_admin', token, {
     httpOnly: true,
@@ -106,9 +93,6 @@ router.post('/influencer/login', validateAuthLogin, asyncHandler(async(req, res)
   }
 
   // Parola doğrulama: tablo şemasında password_hash olmayabilir
-  console.log('Influencer email:', influencer.email)
-  console.log('Provided password:', password)
-  console.log('Stored password hash:', influencer.password_hash)
   let passwordOk = false
   if (influencer.password_hash) {
     try {
@@ -134,7 +118,7 @@ router.post('/influencer/login', validateAuthLogin, asyncHandler(async(req, res)
       email: influencer.email,
       role: 'influencer'
     },
-    JWT_SECRET,
+    process.env.JWT_SECRET,
     { expiresIn: ACCESS_TOKEN_TTL }
   )
 
@@ -192,8 +176,8 @@ router.post('/setup-admin', validateAuthLogin, asyncHandler(async(req, res) => {
     role: 'admin',
     full_name: 'Admin User',
     tax_type: 'individual',
-    phone: '0000000000',
-    iban: 'TR000000000000000000000000',
+    phone: '00000000',
+    iban: 'TR00000',
     social_media: null,
     about: null,
     status: 'approved', // Admin hemen onaylı
@@ -230,7 +214,7 @@ router.post('/api/auth/forgot-password', asyncHandler(async(req, res) => {
   const resetToken = require('crypto').randomBytes(32).toString('hex')
   const resetTokenExpiresAt = new Date(Date.now() + 3600000) // 1 saat geçerli
 
-  await knex('influencers')
+ await knex('influencers')
     .where('id', user.id)
     .update({
       reset_token: resetToken,

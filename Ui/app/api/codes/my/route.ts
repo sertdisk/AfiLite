@@ -1,4 +1,4 @@
-// Proxy: /api/sales → backend /api/v1/sales/me (GET)
+// Proxy: /api/codes/my → backend /api/v1/codes/me (GET)
 import { cookies, headers } from 'next/headers';
 import type { NextRequest } from 'next/server';
 
@@ -22,16 +22,10 @@ function passThroughHeaders() {
 export async function GET(req: NextRequest) {
   try {
     const cookieHeader = buildCookieHeader();
-    // Query parametrelerini al ve backend'e ilet
-    const url = new URL(req.url);
-    const backendUrl = new URL(`${BACKEND_ORIGIN}/api/v1/sales/me`);
+    const url = `${BACKEND_ORIGIN}/api/v1/codes/me`;
     
-    // Mevcut query parametrelerini backend URL'sine kopyala
-    url.searchParams.forEach((value, key) => {
-      backendUrl.searchParams.set(key, value);
-    });
-    
-    const res = await fetch(backendUrl.toString(), {
+    console.log('[Frontend Proxy] GET /api/codes/my called with url:', url); // DEBUG LOG
+    const res = await fetch(url, {
       method: 'GET',
       headers: {
         ...passThroughHeaders(),
@@ -39,10 +33,13 @@ export async function GET(req: NextRequest) {
       },
       cache: 'no-store',
     });
+    console.log('[Frontend Proxy] Backend response status:', res.status); // DEBUG LOG
     const contentType = res.headers.get('content-type') || 'application/json; charset=utf-8';
     const body = await res.text();
+    console.log('[Frontend Proxy] Backend response text:', body); // DEBUG LOG
     return new Response(body, { status: res.status, headers: { 'Content-Type': contentType } });
   } catch (err: any) {
+    console.log('[Frontend Proxy] Error:', err); // DEBUG LOG
     const message = err?.message || 'Proxy sırasında beklenmeyen bir hata oluştu';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,

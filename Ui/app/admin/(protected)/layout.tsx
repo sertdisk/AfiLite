@@ -32,5 +32,5 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </main>
     );
   }
-  return <>{children}</>;
+  return <div key={Math.random()}>{children}</div>;
 }

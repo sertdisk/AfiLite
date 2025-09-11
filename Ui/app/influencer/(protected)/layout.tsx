@@ -20,7 +20,9 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
   const [isMenuExpanded, setIsMenuExpanded] = useState(false); // Menü genişletme durumu
   const pollRef = useRef<any>(null);
   const pathname = usePathname() || '';
-  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   // Menü öğeleri istenen sırayla - alt öğeler kaldırıldı
   const menuItems: MenuItem[] = [
     {
@@ -77,7 +79,7 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
     },
     {
       id: 'contract',
-      href: '/contract',
+      href: '/influencer/contract',
       label: 'Güncel Sözleşme',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,53 +89,38 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
     }
   ];
 
-  async function refresh() {
-    try {
-      const r = await getUnreadCount();
-      setUnread(r.unread);
-      setIsAuthenticated(true); // API çağrısı başarılıysa kimlik doğrulandı
-    } catch (error) {
-      setUnread(0); // Hata durumunda okunmamış mesaj sayısını sıfırla
-      setIsAuthenticated(false); // API çağrısı başarısızsa kimlik doğrulanmadı
-      // console.error("Failed to fetch unread count:", error); // Hata logu, isteğe bağlı
-    }
-  }
-
   useEffect(() => {
-    refresh();
-    pollRef.current = setInterval(refresh, 10000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
-
-  const isApplyPage = pathname === '/influencer/apply';
-
-  // Menüyü sadece kullanıcı login olduğunda göster
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  useEffect(() => {
-    async function checkAuthStatus() {
+    async function checkAuth() {
       try {
-        await getUnreadCount(); // Kimlik doğrulaması gerektiren bir API çağrısı
+        await getUnreadCount();
         setIsAuthenticated(true);
       } catch (error) {
         setIsAuthenticated(false);
-        // console.error("Authentication check failed:", error); // Hata durumunda log
+        window.location.href = '/login';
+      } finally {
+        setLoading(false);
       }
     }
-    
-    checkAuthStatus();
+    checkAuth();
+
+    const interval = setInterval(async () => {
+      try {
+        const r = await getUnreadCount();
+        setUnread(r.unread);
+      } catch (error) {
+        setUnread(0);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  if (isApplyPage || !isAuthenticated) {
-    return (
-      <div className="min-h-screen">
-        <main className="p-4">
-          {children}
-        </main>
-      </div>
-    );
+  if (loading) {
+    return <div>Yükleniyor...</div>; // Veya bir yükleme bileşeni
+  }
+
+  if (!isAuthenticated) {
+    return null; // Yönlendirme gerçekleşirken hiçbir şey gösterme
   }
 
   return (

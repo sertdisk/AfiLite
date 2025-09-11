@@ -27,7 +27,6 @@ if (!isTestEnvironment) {
     })
 
     redisClient.on('connect', () => {
-      console.log('Redis connected successfully')
       isRedisAvailable = true
     })
 
@@ -37,7 +36,6 @@ if (!isTestEnvironment) {
     })
 
     redisClient.on('close', () => {
-      console.log('Redis connection closed')
       isRedisAvailable = false
     })
 
@@ -192,7 +190,6 @@ const saleLongLimiter = rateLimit(buildLimiterOptions({
 function closeRedisConnection() {
   if (redisClient && isRedisAvailable) {
     redisClient.disconnect()
-    console.log('Redis connection closed gracefully')
   }
 }
 

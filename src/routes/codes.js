@@ -15,7 +15,7 @@ const { validateDiscountCode } = require('../middleware/validation')
 * Influencer kendi kodlarını listeler (AUTH gerekli)
 * Not: Sadece kendi influencer_id'si ile ilişkilendirilmiş kodlar döner
 */
-router.get('/me', authenticateToken, asyncHandler(async(req, res) => {
+router.get('/my', authenticateToken, asyncHandler(async(req, res) => {
   const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null
   if (!userId) {
     const err = new Error('Kimlik doğrulama gerekli')
@@ -278,7 +278,7 @@ router.post('/', requireAdmin, validateDiscountCode, asyncHandler(async(req, res
 * - Eğer influencer daha önce kod oluşturmuşsa 409 döner (ek kodlar yalnızca admin ile eklenebilir)
 * - Kod formatı: A-Z0-9, 4-16 karakter arası, DB'de benzersiz
 */
-router.post('/me', authenticateToken, asyncHandler(async(req, res) => {
+router.post('/my', authenticateToken, asyncHandler(async(req, res) => {
   const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null
   if (!userId) {
     const err = new Error('Kimlik doğrulama gerekli')

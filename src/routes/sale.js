@@ -97,6 +97,95 @@ router.post('/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncHandl
   })
 }))
 
+// Influencer'ın kendi satışlarını listele (korumalı)
+router.get('/sales/me', authenticateToken, asyncHandler(async(req, res) => {
+  const userId = (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null
+  if (!userId) {
+    const err = new Error('Kimlik doğrulama gerekli')
+    err.status = 401
+    throw err
+  }
+
+  const { code, start_date, end_date, page = 1, limit = 50 } = req.query
+
+  // Önce influencer'ın kendi kodlarını bul
+  const discountCodes = await knex('discount_codes')
+    .where('influencer_id', userId)
+    .select('code')
+  
+  const codes = discountCodes.map(c => c.code)
+  
+  if (codes.length === 0) {
+    // Influencer'ın hiç kodu yoksa boş liste döndür
+    return res.json({
+      items: [],
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: 0,
+        pages: 0
+      }
+    })
+  }
+
+  let query = knex('sales')
+    .join('discount_codes', 'sales.code', 'discount_codes.code')
+    .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
+    .select(
+      'sales.id',
+      'sales.code',
+      'sales.total_amount',
+      'sales.commission',
+      'sales.customer_url',
+      'sales.product',
+      'sales.recorded_at',
+      'influencers.full_name as influencer_name',
+      'influencers.brand_name as influencer_brand_name',
+      'influencers.email as influencer_email',
+      'discount_codes.discount_pct',
+      'discount_codes.commission_pct'
+    )
+    .whereIn('sales.code', codes)
+    .orderBy('sales.recorded_at', 'desc')
+
+  if (code) {
+    query = query.where('sales.code', code.toUpperCase())
+  }
+
+  if (start_date) {
+    query = query.where('sales.recorded_at', '>=', new Date(start_date))
+  }
+
+  if (end_date) {
+    query = query.where('sales.recorded_at', '<=', new Date(end_date))
+  }
+
+  const offset = (page - 1) * limit
+
+  // Önce toplam sayıyı filrelere göre al
+  const totalQuery = knex('sales')
+    .whereIn('code', codes)
+  if (code) totalQuery.where('code', code.toUpperCase())
+  if (start_date) totalQuery.where('recorded_at', '>=', new Date(start_date))
+  if (end_date) totalQuery.where('recorded_at', '<=', new Date(end_date))
+
+  const [{ count }] = await totalQuery.count('* as count')
+
+  // Sonra veriyi sayfalama ile al
+  query = query.limit(limit).offset(offset)
+  const sales = await query
+
+  res.json({
+    items: sales,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: count,
+      pages: Math.ceil(count / limit)
+    }
+  })
+}))
+
 // Satışları listele (korumalı - admin veya yetkili kullanıcılar)
 router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
   const { code, start_date, end_date, page = 1, limit = 50, influencerId } = req.query // influencerId eklendi
@@ -153,8 +242,6 @@ router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
   // Sonra veriyi sayfalama ile al
   query = query.limit(limit).offset(offset)
   const sales = await query
-
-  console.log('[Backend] Sales fetched:', sales);
 
   res.json({
     items: sales, // `items` olarak değiştirildi, frontend ile uyum için

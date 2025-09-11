@@ -11,7 +11,7 @@ export default function ContractPage() {
   useEffect(() => {
     const fetchContract = async () => {
       try {
-        const response = await fetch('/api/admin/settings/contract/active');
+        const response = await fetch('/api/contracts/active');
         if (!response.ok) {
           throw new Error('Sözleşme yüklenirken hata oluştu');
         }
