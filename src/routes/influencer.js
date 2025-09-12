@@ -83,7 +83,7 @@ router.get('/', asyncHandler(async (req, res) => {
             'created_at'
         )
         .where('role', 'influencer')
-        .orderBy('created_at', 'desc')
+        .orderBy(knex.raw('datetime(created_at)'), 'desc')
         .limit(limit)
         .offset(offset);
 

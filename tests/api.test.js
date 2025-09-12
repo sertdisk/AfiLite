@@ -5,18 +5,14 @@ const knex = require('../src/db/sqlite')
 
 describe('AfiLite API Tests', () => {
   let adminToken
-  let influencerToken
-  let testInfluencerId
-  let testCodeId
 
   beforeAll(async() => {
-    app = createApp() // Her test süiti için yeni bir uygulama örneği oluştur
-    // Global setup migrasyonları çalıştırdı; yalnızca tablo temizliği yap
+    app = createApp()
+    await knex.migrate.latest();
     await knex('sales').del()
     await knex('discount_codes').del()
     await knex('influencers').del()
 
-    // Test admin kullanıcı oluştur (influencers tablosunda)
     const bcrypt = require('bcrypt')
     const passwordHash = await bcrypt.hash('testpassword', 10)
 
@@ -31,24 +27,22 @@ describe('AfiLite API Tests', () => {
       role: 'admin'
     })
 
-    // Admin token al
-          const loginResponse = await request(app)
-        .post('/admin/login')
+    const loginResponse = await request(app)
+      .post('/api/auth/admin/login')
       .send({
         email: 'admin@test.com',
         password: 'testpassword'
       })
-
     adminToken = loginResponse.body.token
-    console.log('Admin Token:', adminToken);
   })
 
-  // Global teardown knex.destroy'ı yönetecek; suite içinde kapatma/rollback yok
-
   describe('Influencer Application Tests', () => {
+    let testInfluencerId;
+
     test('POST /api/apply - Başarılı başvuru', async() => {
       const response = await request(app)
         .post('/api/apply')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           full_name: 'Test Influencer',
           email: 'influencer@test.com',
@@ -62,16 +56,15 @@ describe('AfiLite API Tests', () => {
         })
 
       expect(response.status).toBe(201)
-      expect(response.body.message).toBe('Başvurunuz başarıyla alındı')
+      expect(response.body.message).toBe('Başvurunuz otomatik olarak onaylandı')
       expect(response.body.influencer_id).toBeDefined()
-      if (response.status === 201) { // Koruyucu assertion
-        testInfluencerId = response.body.influencer_id
-      }
+      testInfluencerId = response.body.influencer_id;
     })
 
     test('POST /api/apply - Eksik alan hatası', async() => {
       const response = await request(app)
         .post('/api/apply')
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           full_name: 'Test',
           email: 'invalid-email'
@@ -82,7 +75,6 @@ describe('AfiLite API Tests', () => {
     })
 
     test('GET /api/apply - Tüm başvuruları listele', async() => {
-      console.log('Using adminToken for /api/apply:', adminToken);
       const response = await request(app)
         .get('/api/apply')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -93,8 +85,18 @@ describe('AfiLite API Tests', () => {
     })
 
     test('PATCH /api/apply/:id/status - Başvuru durumu güncelleme', async() => {
+        const [influencerToUpdate] = await knex('influencers').insert({
+            full_name: 'Influencer to Update',
+            email: 'update@test.com',
+            phone: '+905551234568',
+            iban: 'TR11223344556677889900112234',
+            tax_type: 'individual',
+            status: 'pending',
+            role: 'influencer'
+        });
+
       const response = await request(app)
-        .patch(`/api/apply/${testInfluencerId}/status`)
+        .patch(`/api/apply/${influencerToUpdate}/status`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'approved' })
 
@@ -103,13 +105,40 @@ describe('AfiLite API Tests', () => {
     })
   })
 
-  describe('Discount Code Tests', () => {
+  describe('Discount Code, Sale and Balance Tests', () => {
+    let testInfluencerId;
+    let testCodeId;
+
+    beforeAll(async () => {
+        const bcrypt = require('bcrypt')
+        const passwordHash = await bcrypt.hash('testpassword', 10)
+        const [influencerId] = await knex('influencers').insert({
+            full_name: 'Test Influencer For Code',
+            email: 'code_influencer@test.com',
+            phone: '+905551234569',
+            iban: 'TR11223344556677889900112235',
+            tax_type: 'individual',
+            status: 'approved',
+            password_hash: passwordHash,
+            role: 'influencer'
+        }).returning('id');
+        testInfluencerId = influencerId;
+
+        const [codeId] = await knex('discount_codes').insert({
+            code: 'SALE_TEST10',
+            discount_percentage: 10,
+            influencer_id: testInfluencerId,
+            is_active: true
+        }).returning('id');
+        testCodeId = codeId;
+    });
+
     test('POST /api/codes - Kod oluşturma', async() => {
       const response = await request(app)
         .post('/api/codes')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          code: 'TEST10',
+          code: 'NEWCODE10',
           discount_percentage: 10,
           influencer_id: testInfluencerId
         })
@@ -117,9 +146,6 @@ describe('AfiLite API Tests', () => {
       expect(response.status).toBe(201)
       expect(response.body.message).toBe('İndirim kodu oluşturuldu')
       expect(response.body.code_id).toBeDefined()
-      if (response.status === 201) { // Koruyucu assertion
-        testCodeId = response.body.code_id
-      }
     })
 
     test('GET /api/codes - Tüm kodları listele', async() => {
@@ -141,14 +167,12 @@ describe('AfiLite API Tests', () => {
       expect(response.body.code).toBeDefined()
       expect(response.body.code.id).toBe(testCodeId)
     })
-  })
 
-  describe('Sale Tests', () => {
     test('POST /api/sale - Satış kaydetme', async() => {
       const response = await request(app)
         .post('/api/sale')
         .send({
-          code: 'TEST10',
+          code: 'SALE_TEST10',
           total_amount: 100
         })
 
@@ -176,9 +200,7 @@ describe('AfiLite API Tests', () => {
       expect(response.body.stats).toBeDefined()
       expect(response.body.stats.total_sales).toBeDefined()
     })
-  })
 
-  describe('Balance Tests', () => {
     test('GET /api/balance/:influencer_id - Bakiye kontrolü', async() => {
       const response = await request(app)
         .get(`/api/balance/${testInfluencerId}`)
@@ -203,7 +225,7 @@ describe('AfiLite API Tests', () => {
   describe('Authentication Tests', () => {
     test('POST /api/login - Admin login', async() => {
       const response = await request(app)
-        .post('/api/login')
+        .post('/api/auth/admin/login')
         .send({
           email: 'admin@test.com',
           password: 'testpassword'
@@ -212,12 +234,11 @@ describe('AfiLite API Tests', () => {
       expect(response.status).toBe(200)
       expect(response.body.token).toBeDefined()
       expect(response.body.user.email).toBe('admin@test.com')
-      console.log('Admin Token after login:', adminToken);
     })
 
     test('POST /api/login - Geçersiz şifre', async() => {
       const response = await request(app)
-        .post('/api/login')
+        .post('/api/auth/admin/login')
         .send({
           email: 'admin@test.com',
           password: 'wrongpassword'
@@ -229,7 +250,7 @@ describe('AfiLite API Tests', () => {
 
     test('GET /api/verify - Token doğrulama', async() => {
       const response = await request(app)
-        .get('/api/verify')
+        .get('/api/auth/verify')
         .set('Authorization', `Bearer ${adminToken}`)
 
       expect(response.status).toBe(200)

@@ -75,14 +75,40 @@ router.get('/thread', authenticateToken, asyncHandler(async (req, res) => {
     const inflId = Number(req.query.influencerId);
     if (!inflId) return res.status(400).json({ error: 'influencerId zorunludur' });
 
-    const messages = await knex('messages')
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let messagesQuery = knex('messages')
         .where(function() {
             this.where({ from_user_id: actor.id, to_user_id: inflId })
                 .orWhere({ from_user_id: inflId, to_user_id: actor.id });
         })
-        .orderBy('created_at', 'asc');
+        .orderBy(knex.raw('datetime(created_at)'), 'desc') // Order by desc for infinite scroll
+        .limit(limit)
+        .offset(offset);
     
-    res.json({ items: messages });
+    let countQuery = knex('messages')
+        .where(function() {
+            this.where({ from_user_id: actor.id, to_user_id: inflId })
+                .orWhere({ from_user_id: inflId, to_user_id: actor.id });
+        });
+
+    const [messages, totalResult] = await Promise.all([
+        messagesQuery,
+        countQuery.count('* as count').first()
+    ]);
+
+    const total = totalResult.count;
+
+    res.json({
+        items: messages.reverse(), // Reverse for chronological order on frontend
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: total,
+            pages: Math.ceil(total / limit)
+        }
+    });
 }));
 
 // GET /messages/my-thread (Influencer'ın Kendi Konuşma Geçmişi)
@@ -171,64 +197,72 @@ router.get('/admin-threads-summary', authenticateToken, asyncHandler(async (req,
   }
 
   const adminId = actor.id;
-  const { filter } = req.query;
+  const { filter, page = 1, limit = 20 } = req.query;
+  const offset = (page - 1) * limit;
 
-  // 1. Admin ile konuşması olan tüm influencer'ların ID'lerini bul
-  const involvedMessages = await knex('messages')
+  // Subquery to get the last message for each conversation
+  const lastMessageSubquery = knex('messages')
+    .select('*', knex.raw('ROW_NUMBER() OVER(PARTITION BY CASE WHEN from_user_id = ? THEN to_user_id ELSE from_user_id END ORDER BY created_at DESC) as rn', [adminId]))
     .where('from_user_id', adminId)
-    .orWhere('to_user_id', adminId);
+    .orWhere('to_user_id', adminId)
+    .as('last_messages');
 
-  const influencerIds = [...new Set(
-    involvedMessages.map(m => m.from_user_id === adminId ? m.to_user_id : m.from_user_id)
-  )];
+  // Main query
+  let query = knex.from(function() {
+    this.from(lastMessageSubquery).where('rn', 1).as('lm');
+  })
+  .join('influencers as i', 'i.id', knex.raw('CASE WHEN lm.from_user_id = ? THEN lm.to_user_id ELSE lm.from_user_id END', [adminId]))
+  .leftJoin(knex.raw(`(
+    SELECT from_user_id, COUNT(*) as unread_count
+    FROM messages
+    WHERE to_user_id = ? AND read_at IS NULL
+    GROUP BY from_user_id
+  ) as unread_counts ON unread_counts.from_user_id = i.id`, [adminId]))
+  .select(
+    'i.id as influencerId',
+    'i.full_name as influencerName',
+    'i.email as influencerEmail',
+    'lm.body as lastMessage',
+    'lm.created_at as lastMessageAt',
+    'lm.from_role as lastMessageFromRole',
+    knex.raw('COALESCE(unread_counts.unread_count, 0) as unreadCount')
+  );
 
-  let threads = [];
-
-  // 2. Her bir influencer için özet oluştur
-  for (const influencerId of influencerIds) {
-    const influencer = await knex('influencers').where({ id: influencerId }).first();
-    if (!influencer || influencer.role !== 'influencer') continue;
-
-    const lastMessage = await knex('messages')
-      .where(function() {
-        this.where({ from_user_id: adminId, to_user_id: influencerId })
-          .orWhere({ from_user_id: influencerId, to_user_id: adminId });
-      })
-      .orderBy('created_at', 'desc')
-      .first();
-
-    if (!lastMessage) continue;
-
-    const unreadCount = await knex('messages')
-      .where({ from_user_id: influencerId, to_user_id: adminId, read_at: null })
-      .count({ count: '*' })
-      .first();
-
-    threads.push({
-      influencerId: influencer.id,
-      influencerName: influencer.name,
-      influencerEmail: influencer.email,
-      lastMessage: lastMessage.body,
-      lastMessageAt: lastMessage.created_at,
-      isAdminSender: lastMessage.from_role === 'admin',
-      unreadCount: Number(unreadCount.count),
-    });
-  }
-
-  // 3. Filtrelemeyi uygula
+  // Apply filtering
   if (filter) {
-    threads = threads.filter(t => {
-      if (filter === 'unread') return t.unreadCount > 0;
-      if (filter === 'sent') return t.isAdminSender;
-      if (filter === 'incoming') return !t.isAdminSender;
-      return true; // 'all' için
+    query.where(function() {
+      if (filter === 'unread') {
+        this.where('unread_counts.unread_count', '>', 0);
+      } else if (filter === 'sent') {
+        this.where('lm.from_role', 'admin');
+      } else if (filter === 'incoming') {
+        this.where('lm.from_role', 'influencer');
+      }
     });
   }
 
-  // 4. Sonuca göre sırala
-  threads.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+  // Get total count
+  const totalQuery = query.clone().count('* as count').first();
 
-  res.json({ items: threads });
+  // Apply ordering and pagination
+  query.orderBy('lastMessageAt', 'desc').limit(limit).offset(offset);
+
+  const [threads, totalResult] = await Promise.all([query, totalQuery]);
+
+  const formattedThreads = threads.map(t => ({
+    ...t,
+    isAdminSender: t.lastMessageFromRole === 'admin',
+  }));
+
+  res.json({
+    items: formattedThreads,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: totalResult.count,
+      pages: Math.ceil(totalResult.count / limit)
+    }
+  });
 }));
 
 // GET /messages/unread-count (Influencer için okunmamış mesaj sayısı)

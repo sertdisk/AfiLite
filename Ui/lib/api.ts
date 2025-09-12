@@ -135,8 +135,9 @@ export async function searchInfluencers(query: string): Promise<Influencer[]> {
 // ADMIN ALERTS API
 //==============================================================================
 
-export async function listAlerts(): Promise<SystemAlert[]> {
-  return request<SystemAlert[]>('/api/v1/alerts', { method: 'GET' });
+export async function listAlerts(params: { page?: number, limit?: number } = {}): Promise<{ items: SystemAlert[], pagination: any }> {
+  const query = new URLSearchParams(params as any).toString();
+  return request(`/api/v1/alerts?${query}`);
 }
 
 export async function createAlert(payload: { message: string; target_influencer_ids?: number[] }): Promise<SystemAlert> {
@@ -154,17 +155,17 @@ export async function deleteAlert(id: number): Promise<void> {
 // ADMIN MESSAGES API
 //==============================================================================
 
-export async function getAdminMessageThreadsSummary(params?: { filter?: 'unread' | 'all' | 'sent' | 'incoming' }): Promise<{ items: MessageThreadSummary[] }> {
-  const qs = params?.filter ? `?filter=${params.filter}` : '';
-  return request(`/api/v1/messages/admin-threads-summary${qs}`);
+export async function getAdminMessageThreadsSummary(params?: { filter?: 'unread' | 'all' | 'sent' | 'incoming', page?: number, limit?: number }): Promise<{ items: MessageThreadSummary[], pagination: any }> {
+  const qs = new URLSearchParams(params as any).toString();
+  return request(`/api/v1/messages/admin-threads-summary?${qs}`);
 }
 
-export async function getThread(params: { influencerId: number }): Promise<{ items: Message[] }> {
-  const qs = `?influencerId=${params.influencerId}`;
-  return request(`/api/v1/messages/thread${qs}`, { method: 'GET' });
+export async function getThread(params: { influencerId: number, page?: number, limit?: number }): Promise<{ items: Message[], pagination: any }> {
+  const qs = new URLSearchParams(params as any).toString();
+  return request(`/api/v1/messages/thread?${qs}`, { method: 'GET' });
 }
 
-export async function sendMessage(influencerId: number | null, body: string): Promise<{ message: string; item: Message }> {
+export async function sendAdminMessage(influencerId: number | null, body: string): Promise<{ message: string; item: Message }> {
   const payload: any = { body };
   // Admin mesaj gönderiyorsa influencerId gerekli
   if (influencerId !== null) {

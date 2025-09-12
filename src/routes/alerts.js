@@ -67,11 +67,29 @@ router.get('/', authenticateToken, async(req, res) => {
       return res.status(403).json({ error: 'Admin yetkisi gerekli' })
     }
 
-    const alerts = await knex('system_alerts')
-      .select('id', 'message', 'created_at')
-      .orderBy('created_at', 'desc')
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
 
-    return res.json(alerts)
+    const alertsQuery = knex('system_alerts')
+      .select('id', 'message', 'created_at', 'target_influencer_ids')
+      .orderBy(knex.raw('datetime(created_at)'), 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    const totalQuery = knex('system_alerts').count('id as count').first();
+
+    const [alerts, totalResult] = await Promise.all([alertsQuery, totalQuery]);
+    const total = totalResult.count;
+
+    return res.json({
+        items: alerts,
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: total,
+            pages: Math.ceil(total / limit)
+        }
+    });
   } catch (err) {
     console.error('Sistem uyarıları listeleme hatası:', err)
     return res.status(500).json({ error: 'Sistem uyarıları listelenemedi' })

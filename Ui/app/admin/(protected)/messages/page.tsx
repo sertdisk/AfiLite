@@ -141,13 +141,19 @@ function AnnouncementsTab() {
   const [pastAlerts, setPastAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const fetchAlerts = useCallback(async () => {
+    setLoading(true);
     try {
-      const alerts = await listAlerts();
-      setPastAlerts(alerts);
+      const data = await listAlerts({ page, limit });
+      setPastAlerts(data.items || []);
+      setTotal(data.pagination?.total || 0);
     } catch (e: any) { console.error(e); setError('Geçmiş duyurular yüklenemedi.'); }
-  }, []);
+    finally { setLoading(false); }
+  }, [page, limit]);
 
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
 
@@ -168,6 +174,8 @@ function AnnouncementsTab() {
       setLoading(false);
     }
   };
+
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="space-y-6">
@@ -201,6 +209,16 @@ function AnnouncementsTab() {
             <p className="text-gray-500">Henüz gönderilmiş bir duyuru yok.</p>
           )}
         </div>
+        {totalPages > 1 && (
+            <div className="flex justify-between items-center mt-4 text-sm text-white">
+                <div>Toplam {total} duyuru</div>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-md border px-3 py-1 disabled:opacity-50">Önceki</button>
+                    <span>Sayfa {page} / {totalPages}</span>
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-md border px-3 py-1 disabled:opacity-50">Sonraki</button>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );
@@ -212,10 +230,16 @@ function MessagesTab() {
     const [loadingThreads, setLoadingThreads] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState('unread');
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(15);
+    const [total, setTotal] = useState(0);
     
     const [activeConvo, setActiveConvo] = useState<{id: number, name: string} | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
+    const [messagePage, setMessagePage] = useState(1);
+    const [messageLimit, setMessageLimit] = useState(20);
+    const [messageTotal, setMessageTotal] = useState(0);
 
     const [bulkMessage, setBulkMessage] = useState('');
     const [bulkTargetIds, setBulkTargetIds] = useState<number[] | null>(null);
@@ -227,20 +251,23 @@ function MessagesTab() {
     const fetchThreads = useCallback(async () => {
         setLoadingThreads(true);
         try {
-            const data = await getAdminMessageThreadsSummary({ filter: filter as any });
+            const data = await getAdminMessageThreadsSummary({ filter: filter as any, page, limit });
             setThreads(data.items || []);
+            setTotal(data.pagination?.total || 0);
         } catch (e: any) { setError(e.message || 'Konuşmalar yüklenemedi.'); }
         finally { setLoadingThreads(false); }
-    }, [filter]);
+    }, [filter, page, limit]);
 
     useEffect(() => { fetchThreads(); }, [fetchThreads]);
 
-    const openConversation = async (id: number, name: string) => {
+    const openConversation = async (id: number, name: string, resetPage = true) => {
+        if (resetPage) setMessagePage(1);
         setActiveConvo({id, name});
         setLoadingMessages(true);
         try {
-            const data = await getThread({ influencerId: id });
-            setMessages(data.items || []);
+            const data = await getThread({ influencerId: id, page: resetPage ? 1 : messagePage, limit: messageLimit });
+            setMessages(prev => resetPage ? (data.items || []) : [...(data.items || []), ...prev]);
+            setMessageTotal(data.pagination?.total || 0);
             await markRead({ influencerId: id });
             fetchThreads(); // Refresh unread counts
         } catch (e: any) { setError(e.message || 'Mesajlar yüklenemedi.'); }
@@ -275,6 +302,9 @@ function MessagesTab() {
         finally { setIsSendingBulk(false); }
     };
 
+    const totalPages = Math.ceil(total / limit);
+    const messageTotalPages = Math.ceil(messageTotal / messageLimit);
+
     if (activeConvo) {
         return (
             <div>
@@ -291,6 +321,16 @@ function MessagesTab() {
                             </div>
                         ))}
                 </div>
+                {messagePage < messageTotalPages && (
+                    <div className="text-center mt-2">
+                        <button onClick={() => {
+                            setMessagePage(prev => prev + 1);
+                            openConversation(activeConvo.id, activeConvo.name, false);
+                        }} disabled={loadingMessages} className="px-4 py-2 rounded-lg font-bold bg-gray-700 hover:bg-gray-600 transition-colors text-white">
+                            {loadingMessages ? 'Yükleniyor...' : 'Daha Fazla Yükle'}
+                        </button>
+                    </div>
+                )}
                 <form onSubmit={handleSendReply} className="space-y-3">
                     <textarea value={replyMessage} onChange={e => setReplyMessage(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-600 bg-gray-800 text-white" placeholder="Cevabınızı yazın..." />
                     <button type="submit" disabled={isSendingReply} className="px-6 py-2 rounded-lg font-bold bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600">{isSendingReply ? '...' : 'Gönder'}</button>
@@ -336,6 +376,16 @@ function MessagesTab() {
                                 </div>
                             ))}
                     </div>
+                    {totalPages > 1 && (
+                        <div className="flex justify-between items-center mt-4 text-sm text-white">
+                            <div>Toplam {total} konuşma</div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-md border px-3 py-1 disabled:opacity-50">Önceki</button>
+                                <span>Sayfa {page} / {totalPages}</span>
+                                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-md border px-3 py-1 disabled:opacity-50">Sonraki</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

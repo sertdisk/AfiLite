@@ -1,6 +1,7 @@
-# AfiLite API ve Rota Mimarisi
+# AfiLite Mimarisi
 
-Bu doküman, AfiLite projesinin Admin ve Influencer alanları için kullanılan backend API rotalarını ve frontend (UI) dosyalarını özetlemektedir.
+Bu doküman, AfiLite projesinin dosya/dizin yapısını, Admin ve Influencer alanları için kullanılan backend API rotalarını ve frontend (UI) dosyalarını özetlemektedir. yazılım geliştiriciye çalışmalarında neyin nerede oldugü, nasıl çalıştığı hakkında rehberlik etmesi için hazırlanmıştır.
+
 
 ## Genel Bakış
 
@@ -8,6 +9,13 @@ Bu doküman, AfiLite projesinin Admin ve Influencer alanları için kullanılan 
 - **Frontend Sunucusu**: `http://localhost:4000`
 - **API Temel Yolu (Base Path)**: `/api/v1/`
 - **Kimlik Doğrulama**: JWT (JSON Web Token) tabanlıdır. Token, login sonrası `jwt_admin` veya `jwt_influencer` adıyla HTTP-only cookie olarak saklanır.
+
+---
+
+## Veritabanı Şeması Notları
+
+- **`influencers` Tablosu**: Influencer'ın tam adını tutan sütun `full_name`'dir. Rota dosyalarında (`*.js`) sorgular bu sütunu kullanmalıdır. API yanıtlarında bu alan `name` olarak alias (takma ad) ile gönderilebilir, ancak veritabanı sorguları doğrudan `full_name`'i hedeflemelidir.
+- **Migration Dosyaları**: `src/db/migrations` altında `20240802100000_init.js` ve `20240804120000_influencers.js` gibi birden fazla `influencers` tablosu oluşturma girişimi bulunmaktadır. Bu durum kafa karışıklığına yol açabilir. Mevcut durumda, `20240802100000_init.js` dosyasındaki şema (`full_name` içeren) geçerli olarak kabul edilmektedir. Yeni geliştirmelerde bu tutarlılığın korunması önemlidir.
 
 ---
 

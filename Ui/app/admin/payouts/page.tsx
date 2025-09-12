@@ -243,9 +243,9 @@ export default function AdminPayoutsPage() {
 
   const handleExport = (format) => {
     const params = new URLSearchParams();
-      if (filters.influencer) params.set('influencerId', filters.influencer.id);
-      if (filters.startDate) params.set('from', filters.startDate);
-      if (filters.endDate) params.set('to', filters.endDate);
+      if (filters.influencer) params.set('influencer_id', filters.influencer.id);
+      if (filters.startDate) params.set('start_date', filters.startDate);
+      if (filters.endDate) params.set('end_date', filters.endDate);
       params.set('format', format);
       // Direct call to backend for file download
       const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';

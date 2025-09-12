@@ -15,8 +15,9 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const knex = require('./db/sqlite')
 
-// Run migrations on startup (development only)
-if (process.env.NODE_ENV === 'development') {
+// Run migrations on startup (development and production)
+// Production ortamında da migration'ların çalıştırılması için
+if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
   knex.migrate.latest()
     .then(() => {
       console.log('Migrations ran successfully');

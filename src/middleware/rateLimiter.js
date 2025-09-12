@@ -82,7 +82,7 @@ const generalLimiter = rateLimit(buildLimiterOptions({
 const apiLimiter = rateLimit(buildLimiterOptions({
   prefix: 'api',
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 500,
   message: {
     error: 'API rate limit exceeded, please try again later.',
     retryAfter: '15 minutes'

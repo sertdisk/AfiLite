@@ -10,7 +10,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth')
 
 // GET /payouts - Ödemeleri listele (Admin)
 router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
-  const { status, influencerId, from, to, page = 1, limit = 50 } = req.query
+  const { status, influencer_id, start_date, end_date, page = 1, limit = 50 } = req.query
 
   let query = knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
@@ -33,16 +33,16 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =>
     query.where('payouts.status', status)
   }
 
-  if (influencerId) {
-    query.where('payouts.influencer_id', influencerId)
+  if (influencer_id) {
+    query.where('payouts.influencer_id', influencer_id)
   }
 
-  if (from) {
-    query.where('payouts.created_at', '>=', new Date(from))
+  if (start_date) {
+    query.where('payouts.created_at', '>=', new Date(start_date))
   }
 
-  if (to) {
-    query.where('payouts.created_at', '<=', new Date(to))
+  if (end_date) {
+    query.where('payouts.created_at', '<=', new Date(end_date))
   }
 
   // Get total count with filters applied
@@ -50,7 +50,7 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =>
   const total = totalResult.count;
 
   // Apply ordering and pagination
-  const payouts = await query.orderBy('payouts.created_at', 'desc').limit(limit).offset((page - 1) * limit);
+  const payouts = await query.orderBy(knex.raw('datetime(payouts.created_at)'), 'desc').limit(limit).offset((page - 1) * limit);
 
   res.json({
     items: payouts,
@@ -65,15 +65,15 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =>
 
 // POST /payouts - Yeni ödeme oluştur (Admin)
 router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
-  const { influencerId, amount, iban, note, status = 'completed' } = req.body // Değiştirildi
+  const { influencer_id, amount, iban, note, status = 'completed' } = req.body
 
-  if (!influencerId || !amount || !iban) {
+  if (!influencer_id || !amount || !iban) {
     const err = new Error('Influencer ID, amount ve IBAN zorunludur')
     err.status = 400
     throw err
   }
 
-  const influencer = await knex('influencers').where('id', influencerId).first()
+  const influencer = await knex('influencers').where('id', influencer_id).first()
   if (!influencer) {
     const err = new Error('Influencer bulunamadı')
     err.status = 404
@@ -83,12 +83,12 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =
   // Bakiye hesaplaması
   const { total_commission } = await knex('sales')
     .join('discount_codes', 'sales.code', 'discount_codes.code')
-    .where('discount_codes.influencer_id', influencerId)
+    .where('discount_codes.influencer_id', influencer_id)
     .sum('sales.commission as total_commission')
     .first()
 
   const { total_payouts } = await knex('payouts')
-    .where({ influencer_id: influencerId, status: 'completed' })
+    .where({ influencer_id: influencer_id, status: 'completed' })
     .sum('amount as total_payouts')
     .first()
 
@@ -97,7 +97,7 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =
 
   // Ödeme oluştur
   const [id] = await knex('payouts').insert({
-    influencer_id: influencerId,
+    influencer_id: influencer_id,
     amount: Number(amount),
     iban: String(iban).trim(),
     note: note || null,
@@ -179,9 +179,9 @@ router.get('/api/payouts/:id', authenticateToken, asyncHandler(async(req, res) =
 }))
 
 
-// GET /api/payouts/export - Ödemeleri export et (Admin)
-router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
-  const { format = 'csv', status, influencerId, from, to } = req.query
+// GET /export - Ödemeleri export et (Admin)
+router.get('/export', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
+  const { format = 'csv', status, influencer_id, start_date, end_date } = req.query
 
   let query = knex('payouts')
     .join('influencers', 'payouts.influencer_id', 'influencers.id')
@@ -202,16 +202,16 @@ router.get('/api/payouts/export', authenticateToken, requireAdmin, asyncHandler(
     .orderBy('payouts.created_at', 'desc')
 
 
-  if (influencerId) {
-    query = query.where('payouts.influencer_id', influencerId)
+  if (influencer_id) {
+    query = query.where('payouts.influencer_id', influencer_id)
   }
 
-  if (from) {
-    query = query.where('payouts.created_at', '>=', new Date(from))
+  if (start_date) {
+    query = query.where('payouts.created_at', '>=', new Date(start_date))
   }
 
-  if (to) {
-    query = query.where('payouts.created_at', '<=', new Date(to))
+  if (end_date) {
+    query = query.where('payouts.created_at', '<=', new Date(end_date))
   }
 
   const payouts = await query

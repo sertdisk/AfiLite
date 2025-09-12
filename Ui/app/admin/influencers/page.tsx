@@ -93,7 +93,7 @@ export default function AdminInfluencersPage() {
         created_at: r?.created_at
       })));
       
-      setTotal(Number.isFinite(data?.total) ? Number(data.total) : null);
+      setTotal(Number.isFinite(data?.pagination?.total) ? Number(data.pagination.total) : null);
     } catch (e: any) {
       setError(e?.message || 'Listeleme başarısız.');
     } finally {
