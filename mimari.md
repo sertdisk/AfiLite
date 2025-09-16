@@ -67,6 +67,7 @@ Admin paneli, tüm sistemi yönetme yetkisine sahip olan kullanıcılar içindir
 | `POST` | `/alerts` | Tüm veya seçili influencer'lara sistem geneli uyarı gönderir. | `src/routes/alerts.js` |
 | `GET` | `/alerts` | Gönderilmiş tüm sistem uyarılarını listeler. | `src/routes/alerts.js` |
 | `DELETE` | `/alerts/:id` | Bir sistem uyarısını siler. | `src/routes/alerts.js` |
+| `POST` | `/alerts/:id/read` | Bir sistem uyarısını okundu olarak işaretler. | `src/routes/alerts.js` |
 | **Ayarlar ve Sözleşme** | |
 | `POST` | `/admin/settings/commission-rates` | Tüm aktif kodların komisyon ve indirim oranlarını günceller. | `src/routes/settings.js` |
 | `GET` | `/contracts` | Tüm sözleşme versiyonlarını listeler. | `src/routes/contract.js` |
@@ -123,7 +124,20 @@ Influencer'ların kendi bilgilerini, kodlarını, kazançlarını ve mesajların
 | `POST` | `/influencer/social-accounts` | Influencer için yeni bir sosyal medya hesabı ekler. | `src/routes/influencer-settings.js` |
 | **Sözleşme** | |
 | `GET` | `/contracts/active` | Sistemdeki mevcut aktif sözleşmeyi getirir. | `src/routes/contract.js` |
+| `PUT` | `/api/influencer/social-accounts/:id` | Influencer'ın sosyal medya hesabını günceller. | `src/routes/influencer-settings.js` |
+| `DELETE` | `/api/influencer/social-accounts/:id` | Influencer'ın sosyal medya hesabını siler. | `src/routes/influencer-settings.js` |
+| `POST` | `/api/influencer/payment-accounts` | Influencer için yeni bir ödeme hesabı ekler. | `src/routes/influencer-settings.js` |
 
+### Yeni Eklenen API Fonksiyonları
+
+| Fonksiyon Adı | Açıklama |
+| --- | --- |
+| `updateInfluencerSocialAccount` | Influencer'ın sosyal medya hesabını günceller. |
+| `deleteInfluencerSocialAccount` | Influencer'ın sosyal medya hesabını siler. |
+| `addInfluencerPaymentAccount` | Influencer için yeni bir ödeme hesabı ekler. |
+| `sendMessage` | Bir influencer'a mesaj gönderir. |
+| `getUnreadAlerts` | Influencer'ın okunmamış sistem uyarılarını getirir. |
+| `markAlertRead` | Bir uyarıyı okundu olarak işaretler. |
 ### Frontend Rotaları ve Dosyaları (Influencer)
 
 Influencer paneli `Ui/app/influencer/(protected)/` dizini altında yer alır.
@@ -148,7 +162,27 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 | Metot | Rota | Açıklama | Kaynak Dosya |
 | --- | --- | --- | --- |
 | `POST` | `/apply` | Yeni bir influencer başvurusu alır. | `src/routes/apply.js` |
+### Dosya/Dizin Yapısındaki Değişiklikler
+
+- `Ui/lib/api.ts` dosyasına yeni fonksiyonlar eklendi
+- `src/routes/influencer-settings.js` dosyasına yeni endpoint'ler eklendi
+- `Ui/lib/api.ts` dosyasına `markAlertRead` fonksiyonu eklendi
+- `Ui/lib/api.ts` dosyasına `updateInfluencerSocialAccount` fonksiyonu eklendi
+- `Ui/lib/api.ts` dosyasına `deleteInfluencerSocialAccount` fonksiyonu eklendi
+- `Ui/lib/api.ts` dosyasına `addInfluencerPaymentAccount` fonksiyonu eklendi
+- `Ui/lib/api.ts` dosyasına `sendMessage` fonksiyonu eklendi
+- `Ui/lib/api.ts` dosyasına `getUnreadAlerts` fonksiyonu eklendi
+### Rotalardaki Değişiklikler
+
+- Influencer paneli için yeni sosyal medya ve ödeme hesabı yönetimi rotaları eklendi
 | `POST` | `/sale` | Bir indirim kodu kullanarak yeni bir satış kaydı oluşturur. | `src/routes/sale.js` |
+| `POST` | `/alerts/:id/read` | Bir uyarıyı okundu olarak işaretler. | `src/routes/alerts.js` |
+- Admin paneli için `/alerts/:id/read` rotası kullanıma açıldı
+### 10 Kurala Uygunluk İçin Yapılan Değişiklikler
+
+- API fonksiyonları ve endpoint'ler 10 kuralına uygun olarak güncellendi
+- API fonksiyonları ve endpoint'ler 10 kuralına uygun olarak güncellendi (markAlertRead fonksiyonu dahil)
+- Yeni eklenen API fonksiyonları (updateInfluencerSocialAccount, deleteInfluencerSocialAccount, addInfluencerPaymentAccount, sendMessage, getUnreadAlerts) 10 kuralına uygun olarak geliştirildi
 | `GET` | `/codes/search/:code` | Bir indirim kodunun geçerli ve aktif olup olmadığını kontrol eder. | `src/routes/codes.js` |
 | `GET` | `/contracts/active` | Sistemdeki mevcut aktif sözleşmeyi getirir. | `src/routes/contract.js` |
 

@@ -376,3 +376,38 @@ export async function addInfluencerSocialAccount(payload: any): Promise<any> {
 export async function getInfluencerMe(): Promise<any> {
   return request('/api/influencer/me', { method: 'GET' });
 }
+
+//==============================================================================
+// YENİ EKLENEN FONKSİYONLAR
+//==============================================================================
+
+export async function updateInfluencerSocialAccount(id: number, payload: any): Promise<any> {
+  return request(`/api/influencer/social-accounts/${id}`, { method: 'PUT', body: payload });
+}
+
+export async function deleteInfluencerSocialAccount(id: number): Promise<void> {
+  await request(`/api/influencer/social-accounts/${id}`, { method: 'DELETE' });
+}
+
+export async function addInfluencerPaymentAccount(payload: any): Promise<any> {
+  return request('/api/influencer/payment-accounts', { method: 'POST', body: payload });
+}
+
+export async function sendMessage(to: string | null, body: string, influencerId?: number): Promise<any> {
+  const payload: any = { body };
+  if (to !== null) {
+    payload.to = to;
+  }
+  if (influencerId !== undefined) {
+    payload.influencerId = influencerId;
+  }
+  return request('/api/messages', { method: 'POST', body: payload });
+}
+
+export async function getUnreadAlerts(): Promise<SystemAlert[]> {
+  return request<SystemAlert[]>('/api/alerts/unread', { method: 'GET' });
+}
+
+export async function markAlertRead(alertId: number): Promise<{ message: string }> {
+  return request(`/api/alerts/${alertId}/read`, { method: 'POST' });
+}

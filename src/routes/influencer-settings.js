@@ -109,4 +109,93 @@ router.post('/social-accounts', authenticateToken, asyncHandler(async (req, res)
   res.status(201).json({ message: 'Sosyal medya hesabı eklendi.', account: newAccount });
 }));
 
+// PUT /influencer/social-accounts/:id (Update social account)
+router.put('/social-accounts/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
+
+  const accountId = parseInt(req.params.id);
+  if (isNaN(accountId)) return res.status(400).json({ error: 'Geçersiz hesap ID' });
+
+  const { platform, username, url, followers, is_active } = req.body;
+
+  if (!platform || !username || !url) {
+    return res.status(400).json({ error: 'Platform, kullanıcı adı ve URL zorunludur.' });
+  }
+
+  // Önce hesabın kullanıcının hesabı olduğundan emin ol
+  const existingAccount = await knex('influencer_social_accounts')
+    .where({ id: accountId, influencer_id: userId })
+    .first();
+
+  if (!existingAccount) {
+    return res.status(404).json({ error: 'Hesap bulunamadı veya size ait değil.' });
+  }
+
+  await knex('influencer_social_accounts')
+    .where({ id: accountId })
+    .update({
+      platform,
+      username,
+      url,
+      followers: followers || 0,
+      is_active: is_active !== undefined ? is_active : existingAccount.is_active,
+      updated_at: knex.fn.now(),
+    });
+
+  const updatedAccount = await knex('influencer_social_accounts').where({ id: accountId }).first();
+  res.json({ message: 'Sosyal medya hesabı güncellendi.', account: updatedAccount });
+}));
+
+// DELETE /influencer/social-accounts/:id (Delete social account)
+router.delete('/social-accounts/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
+
+  const accountId = parseInt(req.params.id);
+  if (isNaN(accountId)) return res.status(400).json({ error: 'Geçersiz hesap ID' });
+
+  // Önce hesabın kullanıcının hesabı olduğundan emin ol
+  const existingAccount = await knex('influencer_social_accounts')
+    .where({ id: accountId, influencer_id: userId })
+    .first();
+
+  if (!existingAccount) {
+    return res.status(404).json({ error: 'Hesap bulunamadı veya size ait değil.' });
+  }
+
+  await knex('influencer_social_accounts').where({ id: accountId }).del();
+
+  res.json({ message: 'Sosyal medya hesabı silindi.' });
+}));
+
+// POST /influencer/payment-accounts (Add payment account)
+router.post('/payment-accounts', authenticateToken, asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
+
+  const { bank_name, iban, account_holder_name } = req.body;
+
+  if (!bank_name || !iban || !account_holder_name) {
+    return res.status(400).json({ error: 'Banka adı, IBAN ve hesap sahibi adı zorunludur.' });
+  }
+
+  // IBAN format kontrolü (basit)
+  if (iban.length < 15 || iban.length > 34) {
+    return res.status(400).json({ error: 'Geçersiz IBAN formatı.' });
+  }
+
+  const [id] = await knex('influencer_payment_accounts').insert({
+    influencer_id: userId,
+    bank_name,
+    iban,
+    account_holder_name,
+    is_active: true,
+    created_at: knex.fn.now(),
+  });
+
+  const newAccount = await knex('influencer_payment_accounts').where({ id }).first();
+  res.status(201).json({ message: 'Ödeme hesabı eklendi.', account: newAccount });
+}));
+
 module.exports = router;
