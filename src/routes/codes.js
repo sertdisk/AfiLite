@@ -114,13 +114,17 @@ router.get('/', requireAdmin, asyncHandler(async(req, res) => {
   const safeSortBy = allowedSortBy.includes(sortBy) ? sortBy : 'created_at'
   const safeOrder = order.toLowerCase() === 'asc' ? 'asc' : 'desc'
 
-  let orderByColumn = `discount_codes.${safeSortBy}`
-  if (safeSortBy === 'influencer_name') {
-    orderByColumn = 'influencers.full_name'
-  } else if (safeSortBy === 'brand_name') {
-    orderByColumn = 'influencers.brand_name'
+  if (safeSortBy === 'created_at') {
+    dataQuery.orderBy(knex.raw('datetime(discount_codes.created_at)'), safeOrder)
+  } else {
+    let orderByColumn = `discount_codes.${safeSortBy}`
+    if (safeSortBy === 'influencer_name') {
+      orderByColumn = 'influencers.full_name'
+    } else if (safeSortBy === 'brand_name') {
+      orderByColumn = 'influencers.brand_name'
+    }
+    dataQuery.orderBy(orderByColumn, safeOrder)
   }
-  dataQuery.orderBy(orderByColumn, safeOrder)
 
   // Pagination
   dataQuery.limit(limit).offset(offset)
@@ -429,7 +433,7 @@ router.get('/export', requireAdmin, asyncHandler(async(req, res) => {
       'influencers.email as influencer_email',
       'influencers.brand_name'
     )
-    .orderBy('discount_codes.created_at', 'desc')
+    .orderBy(knex.raw('datetime(discount_codes.created_at)'), 'desc')
 
   if (isActive === 'true' || isActive === 'false') {
     query.where('discount_codes.is_active', isActive === 'true')

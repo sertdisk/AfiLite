@@ -199,7 +199,7 @@ router.get('/export', authenticateToken, requireAdmin, asyncHandler(async(req, r
       'influencers.full_name as influencer_name',
       'influencers.email as influencer_email'
     )
-    .orderBy('payouts.created_at', 'desc')
+    .orderBy(knex.raw('datetime(payouts.created_at)'), 'desc')
 
 
   if (influencer_id) {

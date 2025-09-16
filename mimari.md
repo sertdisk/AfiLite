@@ -172,6 +172,9 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 - `Ui/lib/api.ts` dosyasına `addInfluencerPaymentAccount` fonksiyonu eklendi
 - `Ui/lib/api.ts` dosyasına `sendMessage` fonksiyonu eklendi
 - `Ui/lib/api.ts` dosyasına `getUnreadAlerts` fonksiyonu eklendi
+- `src/routes/codes.js` dosyasında sıralama düzeltmeleri yapıldı
+- `src/routes/sale.js` dosyasında sıralama düzeltmeleri yapıldı
+- `src/routes/payouts.js` dosyasında sıralama düzeltmeleri yapıldı
 ### Rotalardaki Değişiklikler
 
 - Influencer paneli için yeni sosyal medya ve ödeme hesabı yönetimi rotaları eklendi
@@ -183,6 +186,7 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 - API fonksiyonları ve endpoint'ler 10 kuralına uygun olarak güncellendi
 - API fonksiyonları ve endpoint'ler 10 kuralına uygun olarak güncellendi (markAlertRead fonksiyonu dahil)
 - Yeni eklenen API fonksiyonları (updateInfluencerSocialAccount, deleteInfluencerSocialAccount, addInfluencerPaymentAccount, sendMessage, getUnreadAlerts) 10 kuralına uygun olarak geliştirildi
+- Admin panelindeki listeler için sıralama düzeltmeleri yapıldı (kodlar, ödemeler ve satışlar listesi)
 | `GET` | `/codes/search/:code` | Bir indirim kodunun geçerli ve aktif olup olmadığını kontrol eder. | `src/routes/codes.js` |
 | `GET` | `/contracts/active` | Sistemdeki mevcut aktif sözleşmeyi getirir. | `src/routes/contract.js` |
 

@@ -146,7 +146,7 @@ router.get('/sales/me', authenticateToken, asyncHandler(async(req, res) => {
       'discount_codes.commission_pct'
     )
     .whereIn('sales.code', codes)
-    .orderBy('sales.recorded_at', 'desc')
+    .orderBy(knex.raw('datetime(sales.recorded_at)'), 'desc')
 
   if (code) {
     query = query.where('sales.code', code.toUpperCase())
@@ -382,7 +382,7 @@ router.get('/sales/export', authenticateToken, requireAdmin, asyncHandler(async(
       'discount_codes.discount_pct',
       'discount_codes.commission_pct'
     )
-    .orderBy('sales.recorded_at', 'desc')
+    .orderBy(knex.raw('datetime(sales.recorded_at)'), 'desc')
 
   if (code) {
     query = query.where('sales.code', code.toUpperCase())
