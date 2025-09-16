@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -7,6 +5,8 @@ import {
   patchAdminInfluencerDetail,
   getAdminInfluencerBalance,
   getInfluencerBalanceHistory,
+  adminListInfluencerSocialAccounts, // Import the new function
+  SocialAccount, // Import the type
 } from '@/lib/api';
 
 /* Balance tipleri dosyada tekil tanımlı olmalı — yinelenen tanımları kaldırıyoruz */
@@ -90,12 +90,17 @@ export default function InfluencerDetailPage() {
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
   const [status, setStatus] = useState<'pending' | 'approved' | 'rejected' | 'suspended'>('pending');
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]); // State for social accounts
 
   async function fetchDetail(ctrl?: AbortController) {
     setLoading(true);
     setError(null);
     try {
-      const row = await getAdminInfluencerDetail(id);
+      const [row, socialData] = await Promise.all([
+        getAdminInfluencerDetail(id),
+        adminListInfluencerSocialAccounts(id),
+      ]);
+
       setName(row.name || '');
       setEmail(row.email || '');
       setSocialHandle(row.social_handle || '');
@@ -105,6 +110,7 @@ export default function InfluencerDetailPage() {
       setBio((row.bio ?? '') || '');
       setWebsite((row.website ?? '') || '');
       setStatus((row.status as any) || 'pending');
+      setSocialAccounts(socialData.items || []);
     } catch (e) {
       if ((e as any)?.name !== 'AbortError') {
         setError('Beklenmeyen bir hata oluştu.');
@@ -179,10 +185,11 @@ export default function InfluencerDetailPage() {
   }
 
   // Sekme durumu: Profil, Kodlar, Bakiye
-  const [tab, setTab] = useState<'profile' | 'codes' | 'balance'>('profile');
+  const [tab, setTab] = useState<'profile' | 'codes' | 'balance' | 'social'>('profile');
 
   const tabs = useMemo(() => ([
     { key: 'profile', label: 'Profil' },
+    { key: 'social', label: 'Sosyal Hesaplar' },
     { key: 'codes', label: 'Kodlar' },
     { key: 'balance', label: 'Bakiye' },
   ] as const), []);
@@ -328,6 +335,49 @@ export default function InfluencerDetailPage() {
             <a href="/influencers" className="text-sm text-blue-600 hover:text-blue-800">Vazgeç</a>
           </div>
         </form>
+      )}
+
+      {!loading && !error && tab === 'social' && (
+        <section className="space-y-4 max-w-3xl bg-white rounded-md border p-6">
+            <h2 className="text-xl font-semibold">Sosyal Medya Hesapları</h2>
+            {socialAccounts.length > 0 ? (
+              <ul className="space-y-4">
+                {socialAccounts.map((account) => (
+                  <li key={account.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-bold text-lg">{account.platform}: {account.username}</p>
+                        {account.address && <a href={account.address} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{account.address}</a>}
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${account.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {account.is_active ? 'Aktif' : 'Pasif'}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-500 font-semibold">Niş</p>
+                        <p>{account.niche || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-semibold">Rol</p>
+                        <p>{account.role || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-semibold">Takipçi</p>
+                        <p>{account.followers?.toLocaleString('tr-TR') || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-semibold">Ort. İzlenme</p>
+                        <p>{account.avgViews?.toLocaleString('tr-TR') || '-'}</p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-600">Bu influencer için sosyal medya hesabı bulunamadı.</p>
+            )}
+        </section>
       )}
 
       {!loading && !error && tab === 'codes' && (

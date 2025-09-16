@@ -35,7 +35,7 @@ export default function InfluencerProfilePage() {
         const summaryData = await getInfluencerSummary();
         setSummary(summaryData);
       } catch (err: any) {
-        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403 || err.status === 404)) {
           redirect('/login');
         }
         setError('Veriler yüklenemedi. Lütfen daha sonra tekrar deneyin.');

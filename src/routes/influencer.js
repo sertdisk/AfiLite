@@ -3,6 +3,8 @@ const knex = require('../db/sqlite');
 const { asyncHandler } = require('../middleware/errorHandler');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
+
 
 // Admin için arama ucu: GET /influencers/search?q=
 router.get('/search', asyncHandler(async (req, res) => {
@@ -49,10 +51,14 @@ router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
       'id',
       'full_name as name',
       'email',
-      'brand_name',
+      'phone',
+      'brand_name as brandName',
       'status',
       'created_at',
-      'updated_at'
+      'updated_at',
+      'bio',
+      'website',
+      'notes as platformMessage'
     )
     .where({ id: influencerId, role: 'influencer' })
     .first();
@@ -64,8 +70,136 @@ router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
   res.json(influencer);
 }));
 
+// PATCH /api/influencer/me - Influencer'ın kendi bilgilerini günceller
+router.patch('/me', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  // Destructure only the fields that exist in the database
+  const { name, bio, website } = req.body;
 
-// GET /api/influencers - Admin için influencer listeleme
+  const updatePayload = {};
+  if (name !== undefined) updatePayload.full_name = name;
+  if (bio !== undefined) updatePayload.bio = bio;
+  if (website !== undefined) updatePayload.website = website;
+
+  if (Object.keys(updatePayload).length === 0) {
+    return res.status(400).json({ error: 'Güncellenecek veri yok.' });
+  }
+
+  await knex('influencers').where({ id: influencerId }).update(updatePayload);
+
+  const updatedInfluencer = await knex('influencers').where({ id: influencerId }).first();
+  res.json(updatedInfluencer);
+}));
+
+// PATCH /api/influencer/me/password - Influencer'ın şifresini günceller
+router.patch('/me/password', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const { currentPassword, newPassword } = req.body;
+
+  const influencer = await knex('influencers').where({ id: influencerId }).first();
+  if (!influencer) {
+    return res.status(404).json({ error: 'Influencer bulunamadı.' });
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, influencer.password_hash);
+  if (!isMatch) {
+    return res.status(400).json({ error: 'Mevcut şifre yanlış.' });
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+  await knex('influencers').where({ id: influencerId }).update({ password_hash: newPasswordHash });
+
+  res.json({ message: 'Şifre başarıyla güncellendi.' });
+}));
+
+// GET /api/influencer/social-accounts - Influencer'ın sosyal medya hesaplarını getirir
+router.get('/social-accounts', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const accounts = await knex('influencer_social_accounts').where({ influencer_id: influencerId });
+  res.json({ items: accounts });
+}));
+
+// POST /api/influencer/social-accounts - Influencer için yeni sosyal medya hesabı ekler
+router.post('/social-accounts', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const { platform, handleOrChannel, address, niche, role, followers, avgViews } = req.body;
+
+  const payload = {
+    influencer_id: influencerId,
+    platform,
+    username: handleOrChannel,
+    address,
+    niche,
+    role,
+    followers: followers || 0,
+    avgViews: avgViews || 0,
+  };
+
+  const [newAccountId] = await knex('influencer_social_accounts').insert(payload);
+  const newAccount = await knex('influencer_social_accounts').where({ id: newAccountId }).first();
+  res.status(201).json(newAccount);
+}));
+
+// PUT /api/influencer/social-accounts/:id - Influencer'ın sosyal medya hesabını günceller
+router.put('/social-accounts/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const { id } = req.params;
+  const { is_active } = req.body;
+
+  const account = await knex('influencer_social_accounts').where({ id, influencer_id: influencerId }).first();
+  if (!account) {
+    return res.status(404).json({ error: 'Sosyal medya hesabı bulunamadı.' });
+  }
+
+  await knex('influencer_social_accounts').where({ id }).update({ is_active });
+
+  const updatedAccount = await knex('influencer_social_accounts').where({ id }).first();
+  res.json(updatedAccount);
+}));
+
+// DELETE /api/influencer/social-accounts/:id - Influencer'ın sosyal medya hesabını siler
+router.delete('/social-accounts/:id', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const { id } = req.params;
+
+  const account = await knex('influencer_social_accounts').where({ id, influencer_id: influencerId }).first();
+  if (!account) {
+    return res.status(404).json({ error: 'Sosyal medya hesabı bulunamadı.' });
+  }
+
+  await knex('influencer_social_accounts').where({ id }).del();
+  res.status(204).send();
+}));
+
+// GET /api/influencer/payment-accounts - Influencer'ın ödeme hesaplarını getirir
+router.get('/payment-accounts', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const accounts = await knex('influencer_payment_accounts').where({ influencer_id: influencerId });
+  res.json({ items: accounts });
+}));
+
+// POST /api/influencer/payment-accounts - Influencer için yeni ödeme hesabı ekler
+router.post('/payment-accounts', authenticateToken, asyncHandler(async (req, res) => {
+  const influencerId = req.user.userId;
+  const { bank_name, account_holder_name, iban } = req.body;
+
+  // Diğer tüm hesapları pasif yap
+  await knex('influencer_payment_accounts').where({ influencer_id: influencerId }).update({ is_active: false });
+
+  const payload = {
+    influencer_id: influencerId,
+    bank_name,
+    account_holder_name,
+    iban,
+    is_active: true
+  };
+
+  const [newAccountId] = await knex('influencer_payment_accounts').insert(payload);
+  const newAccount = await knex('influencer_payment_accounts').where({ id: newAccountId }).first();
+  res.status(201).json(newAccount);
+}));
 
 
 // GET /api/influencers - Admin için influencer listeleme
@@ -161,6 +295,61 @@ router.get('/:id', asyncHandler(async (req, res) => {
     }
 
     res.json(influencer);
+}));
+
+// GET /api/influencers/:id/social-accounts - Admin için bir influencer'ın sosyal hesaplarını getirir
+router.get('/:id/social-accounts', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const accounts = await knex('influencer_social_accounts').where({ influencer_id: id });
+    res.json({ items: accounts });
+}));
+
+// PATCH /api/influencers/:id/social-accounts/:accountId - Admin için sosyal hesap güncelleme
+router.patch('/:id/social-accounts/:accountId', asyncHandler(async (req, res) => {
+    const { accountId } = req.params;
+    const updateData = req.body;
+    // Güvenlik: influencer_id ve id alanlarının güncellenmesini engelle
+    delete updateData.id;
+    delete updateData.influencer_id;
+
+    const account = await knex('influencer_social_accounts').where({ id: accountId }).first();
+    if (!account) {
+        return res.status(404).json({ error: 'Sosyal hesap bulunamadı.' });
+    }
+
+    await knex('influencer_social_accounts').where({ id: accountId }).update(updateData);
+    const updatedAccount = await knex('influencer_social_accounts').where({ id: accountId }).first();
+    res.json(updatedAccount);
+}));
+
+// DELETE /api/influencers/:id/social-accounts/:accountId - Admin için sosyal hesap silme
+router.delete('/:id/social-accounts/:accountId', asyncHandler(async (req, res) => {
+    const { accountId } = req.params;
+    const account = await knex('influencer_social_accounts').where({ id: accountId }).first();
+    if (!account) {
+        return res.status(404).json({ error: 'Sosyal hesap bulunamadı.' });
+    }
+    await knex('influencer_social_accounts').where({ id: accountId }).del();
+    res.status(204).send();
+}));
+
+
+// GET /api/influencers/:id/payment-accounts - Admin için bir influencer'ın ödeme hesaplarını getirir
+router.get('/:id/payment-accounts', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const accounts = await knex('influencer_payment_accounts').where({ influencer_id: id });
+    res.json({ items: accounts });
+}));
+
+// DELETE /api/influencers/:id/payment-accounts/:accountId - Admin için ödeme hesabı silme
+router.delete('/:id/payment-accounts/:accountId', asyncHandler(async (req, res) => {
+    const { accountId } = req.params;
+    const account = await knex('influencer_payment_accounts').where({ id: accountId }).first();
+    if (!account) {
+        return res.status(404).json({ error: 'Ödeme hesabı bulunamadı.' });
+    }
+    await knex('influencer_payment_accounts').where({ id: accountId }).del();
+    res.status(204).send();
 }));
 
 // PATCH /api/influencers/:id - Admin için influencer güncelleme

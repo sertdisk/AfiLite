@@ -10,11 +10,16 @@ import {
   patchAdminInfluencerDetail,
   getAdminPayouts,
   postAdminPayout,
-  putAdminCode
+  putAdminCode,
+  adminListInfluencerSocialAccounts,
+  adminListInfluencerPaymentAccounts,
+  adminUpdateInfluencerSocialAccount,
+  adminDeleteInfluencerSocialAccount,
+  adminDeleteInfluencerPaymentAccount
 } from '@/lib/api';
 
 // --- TİPLER ---
-type SocialAccount = { id: number; platform: string; handle: string; url?: string; is_active: boolean; };
+type SocialAccount = { id: number; platform: string; username: string; address?: string; niche?: string; role?: string; followers?: number; avgViews?: number; is_active: boolean; };
 type PaymentAccount = { id: number; bank_name: string; account_holder_name: string; iban: string; is_active: boolean; };
 type InflDetail = { id: number; full_name: string; email: string; phone?: string; status: 'pending' | 'approved' | 'rejected' | 'suspended'; niche?: string; country?: string; about?: string | null; website?: string | null; brand_name?: string; tax_type?: 'individual' | 'company'; social_accounts: SocialAccount[]; payment_accounts: PaymentAccount[]; };
 type CodeRow = { id: number; code: string; discount_pct?: number; commission_pct?: number; is_active?: boolean | number; };
@@ -177,6 +182,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
     const [form, setForm] = useState<Partial<InflDetail>>({});
     const [codes, setCodes] = useState<CodeRow[]>([]);
     const [editingCode, setEditingCode] = useState<Partial<CodeRow> | null>(null);
+    const [editingSocialAccount, setEditingSocialAccount] = useState<Partial<SocialAccount> | null>(null);
     const [sales, setSales] = useState<SaleRow[]>([]);
     const [editingSale, setEditingSale] = useState<Partial<SaleRow> | null>(null);
     const [payouts, setPayouts] = useState<PayoutRow[]>([]);
@@ -188,11 +194,18 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
         if (!inflId) return;
         setBusy(true);
         try {
-            const detailRes = await fetch(`/api/influencers/${encodeURIComponent(inflId)}`, { credentials: 'include' });
-            const detailData = await detailRes.json();
-            if (!detailRes.ok) throw new Error(detailData.message || 'Detaylar yüklenemedi');
-            // Backend'in döndürdüğü veriyi frontend'in beklediği formata dönüştür
-            const transformedDetail = {
+            const [detailData, codesRes, salesRes, payoutsRes, socialAccountsRes, paymentAccountsRes] = await Promise.all([
+                fetch(`/api/influencers/${encodeURIComponent(inflId)}`, { credentials: 'include' }).then(res => res.json()),
+                adminListInfluencerCodes(String(inflId)),
+                getAdminSales({ influencerId: Number(inflId), limit: 20 }),
+                getAdminPayouts({ influencerId: Number(inflId), limit: 20 }),
+                adminListInfluencerSocialAccounts(String(inflId)),
+                adminListInfluencerPaymentAccounts(String(inflId)),
+            ]);
+
+            if (!detailData) throw new Error('Influencer detayları yüklenemedi.');
+
+            const transformedDetail: InflDetail = {
                 id: detailData.id,
                 full_name: detailData.full_name || detailData.name,
                 email: detailData.email,
@@ -201,25 +214,19 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                 about: detailData.notes,
                 created_at: detailData.created_at,
                 updated_at: detailData.updated_at,
-                // Eksik alanlar için varsayılan değerler
-                phone: undefined,
-                niche: undefined,
-                country: undefined,
-                website: undefined,
-                tax_type: undefined,
-                social_accounts: [],
-                payment_accounts: []
+                phone: detailData.phone || undefined,
+                niche: detailData.niche || undefined,
+                country: detailData.country || undefined,
+                website: detailData.website || undefined,
+                tax_type: detailData.tax_type || undefined,
+                social_accounts: socialAccountsRes.items || [],
+                payment_accounts: paymentAccountsRes.items || []
             };
             setDetail(transformedDetail);
             setForm(transformedDetail);
 
-            const codesRes = await adminListInfluencerCodes(String(inflId));
             setCodes(codesRes.items || []);
-
-            const salesRes = await getAdminSales({ influencerId: Number(inflId), limit: 20 });
             setSales(salesRes.items || []);
-
-            const payoutsRes = await getAdminPayouts({ influencerId: Number(inflId), limit: 20 });
             setPayouts(payoutsRes.items || []);
 
         } catch (e: any) {
@@ -261,6 +268,46 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
         } catch (e: any) { setError(e.message); } finally { setBusy(false); }
     };
 
+    const handleSaveSocialAccount = async () => {
+        if (!editingSocialAccount || !editingSocialAccount.id) return;
+        setBusy(true);
+        try {
+            await adminUpdateInfluencerSocialAccount(inflId, editingSocialAccount.id, editingSocialAccount);
+            setEditingSocialAccount(null);
+            loadAll();
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handleDeleteSocialAccount = async (accountId: number) => {
+        if (!window.confirm('Bu sosyal medya hesabını silmek istediğinizden emin misiniz?')) return;
+        setBusy(true);
+        try {
+            await adminDeleteInfluencerSocialAccount(inflId, accountId);
+            loadAll();
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handleDeletePaymentAccount = async (accountId: number) => {
+        if (!window.confirm('Bu ödeme hesabını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) return;
+        setBusy(true);
+        try {
+            await adminDeleteInfluencerPaymentAccount(inflId, accountId);
+            loadAll();
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
     return (
         <main className="space-y-6 p-4 sm:p-6">
             <h1 className="text-2xl font-semibold">{detail?.full_name || 'Influencer Detayı'}</h1>
@@ -284,12 +331,67 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                                     <div><label className="block text-sm font-medium text-gray-700">Durum</label><select value={form.status ?? ''} onChange={(e) => setForm({...form, status: e.target.value as any})} className="w-full mt-1 rounded-md border-gray-300 shadow-sm" ><option value="approved">Aktif</option><option value="pending">Beklemede</option><option value="rejected">Reddedildi</option><option value="suspended">Askıda</option></select></div>
                                     <div><label className="block text-sm font-medium text-gray-700">Vergi Tipi</label><select value={form.tax_type ?? ''} onChange={(e) => setForm({...form, tax_type: e.target.value as any})} className="w-full mt-1 rounded-md border-gray-300 shadow-sm"><option value="individual">Bireysel</option><option value="company">Şirket</option></select></div>
                                 </div>
-                                <div className="md:col-span-3 pt-4 border-t"><h3 className="text-md font-semibold mb-2">Platformlar</h3><div className="space-y-1">{detail.social_accounts?.map(acc => <div key={acc.id} className="text-sm p-2 border-b"><b>{acc.platform}:</b> {acc.handle}</div>) || <div className="text-sm text-gray-500">Platform eklenmemiş.</div>}</div></div>
-                                <div className="md:col-span-3 pt-4 border-t"><h3 className="text-md font-semibold mb-2">Ödeme Hesapları</h3><div className="space-y-1">{detail.payment_accounts?.map(acc => <div key={acc.id} className={`text-sm p-2 border-b ${acc.is_active ? 'bg-green-100' : ''}`}><b>{acc.bank_name}:</b> {acc.iban} {acc.is_active && '(Aktif)'}</div>) || <div className="text-sm text-gray-500">Ödeme hesabı eklenmemiş.</div>}</div></div>
                             </div>
                         )}
                         <div className="flex items-center gap-2 pt-4 border-t mt-4">
                             {!editing ? <button onClick={() => setEditing(true)} className="rounded-md bg-gray-800 text-white px-4 py-2 text-sm hover:bg-gray-700">Profili Düzenle</button> : <><button onClick={handleSaveProfile} disabled={busy} className="rounded-md bg-emerald-600 text-white px-4 py-2 text-sm hover:bg-emerald-700 disabled:opacity-50">{busy ? 'Kaydediliyor…' : 'Kaydet'}</button><button onClick={() => { setEditing(false); setForm(detail!); }} className="rounded-md border px-4 py-2 text-sm">İptal</button></>}
+                        </div>
+                    </section>
+
+                    <section className="rounded-md border p-4 space-y-4">
+                        <h2 className="text-lg font-semibold">Platformlar</h2>
+                        <div className="space-y-2">
+                            {detail.social_accounts.length > 0 ? detail.social_accounts.map(acc => (
+                                <div key={acc.id} className="p-3 border rounded-lg bg-gray-50">
+                                    {editingSocialAccount?.id === acc.id ? (
+                                        <div className="space-y-2">
+                                            <input value={editingSocialAccount.platform} onChange={e => setEditingSocialAccount({...editingSocialAccount, platform: e.target.value})} className="w-full p-1 border rounded" />
+                                            <input value={editingSocialAccount.username} onChange={e => setEditingSocialAccount({...editingSocialAccount, username: e.target.value})} className="w-full p-1 border rounded" />
+                                            <input value={editingSocialAccount.address ?? ''} onChange={e => setEditingSocialAccount({...editingSocialAccount, address: e.target.value})} className="w-full p-1 border rounded" placeholder="Adres" />
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={handleSaveSocialAccount} className="text-xs bg-blue-600 text-white rounded px-2 py-1">Kaydet</button>
+                                                <button onClick={() => setEditingSocialAccount(null)} className="text-xs rounded px-2 py-1 ml-1">İptal</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold">{acc.platform}: {acc.username}</p>
+                                                {acc.address && <a href={acc.address} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">{acc.address}</a>}
+                                            </div>
+                                            <div>
+                                                <button onClick={() => setEditingSocialAccount(acc)} className="text-xs rounded border px-2 py-1 mr-2">Düzenle</button>
+                                                <button onClick={() => handleDeleteSocialAccount(acc.id)} className="text-xs bg-red-600 text-white rounded px-2 py-1">Sil</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                        <div><p className="text-gray-500">Niş</p><p>{acc.niche || '-'}</p></div>
+                                        <div><p className="text-gray-500">Rol</p><p>{acc.role || '-'}</p></div>
+                                        <div><p className="text-gray-500">Takipçi</p><p>{acc.followers?.toLocaleString('tr-TR') || '-'}</p></div>
+                                        <div><p className="text-gray-500">Ort. İzlenme</p><p>{acc.avgViews?.toLocaleString('tr-TR') || '-'}</p></div>
+                                    </div>
+                                </div>
+                            )) : <p className="text-sm text-gray-500">Platform eklenmemiş.</p>}
+                        </div>
+                    </section>
+
+                    <section className="rounded-md border p-4 space-y-4">
+                        <h2 className="text-lg font-semibold">Ödeme Hesapları</h2>
+                        <div className="space-y-2">
+                            {detail.payment_accounts.length > 0 ? detail.payment_accounts.map(acc => (
+                                <div key={acc.id} className={`p-3 border rounded-lg flex justify-between items-center ${acc.is_active ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                                    <div>
+                                        <p className="font-bold">{acc.bank_name}</p>
+                                        <p className="font-mono text-sm">{acc.iban}</p>
+                                        <p className="text-sm text-gray-600">{acc.account_holder_name}</p>
+                                        {acc.is_active && <span className="text-xs font-bold text-green-700">Aktif Hesap</span>}
+                                    </div>
+                                    <div>
+                                        <button onClick={() => handleDeletePaymentAccount(acc.id)} className="text-xs bg-red-600 text-white rounded px-2 py-1">Sil</button>
+                                    </div>
+                                </div>
+                            )) : <p className="text-sm text-gray-500">Ödeme hesabı eklenmemiş.</p>}
                         </div>
                     </section>
 

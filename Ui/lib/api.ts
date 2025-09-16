@@ -28,7 +28,13 @@ export async function request<T = unknown>(
     ...(opts.headers || {})
   };
 
-  let fullUrl = url.startsWith('/') ? `${process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003'}${url}` : url;
+  // Influencer paneli için API base URL'sini belirle
+  let baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';
+  if (url.startsWith('/api/influencer') || url.startsWith('/api/messages') || url.startsWith('/api/alerts') || url.startsWith('/api/codes/my') || url.startsWith('/api/balance') || url.startsWith('/api/sales/me') || url.startsWith('/api/sales/stats')) {
+    baseUrl = process.env.NEXT_PUBLIC_INFLUENCER_API_BASE_URL || 'http://localhost:5003';
+  }
+  let fullUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
+  console.log(`API Request to: ${fullUrl}`);
   
   const res = await fetch(fullUrl, {
     method: opts.method ?? 'GET',
@@ -68,6 +74,25 @@ export interface Influencer {
   created_at: string;
   brand_name?: string;
   [key: string]: any;
+}
+
+export interface SocialAccount {
+  id: number;
+  platform: string;
+  username: string;
+  url: string;
+  followers: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface PaymentAccount {
+  id: number;
+  bank_name: string;
+  iban: string;
+  account_holder_name: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface SystemAlert {
@@ -293,6 +318,29 @@ export async function adminListInfluencerCodes(influencerId: string): Promise<{ 
   return { items: result.codes }; // Adapt to { items: [...] } structure
 }
 
+export async function adminListInfluencerSocialAccounts(influencerId: string): Promise<{ items: SocialAccount[] }> {
+    return request(`/api/influencers/${influencerId}/social-accounts`);
+}
+
+export async function adminListInfluencerPaymentAccounts(influencerId: string): Promise<{ items: PaymentAccount[] }> {
+    return request(`/api/influencers/${influencerId}/payment-accounts`);
+}
+
+export async function adminUpdateInfluencerSocialAccount(influencerId: string, accountId: number, payload: Partial<SocialAccount>): Promise<SocialAccount> {
+    return request(`/api/influencers/${influencerId}/social-accounts/${accountId}`, {
+        method: 'PATCH',
+        body: payload,
+    });
+}
+
+export async function adminDeleteInfluencerSocialAccount(influencerId: string, accountId: number): Promise<void> {
+    await request(`/api/influencers/${influencerId}/social-accounts/${accountId}`, { method: 'DELETE' });
+}
+
+export async function adminDeleteInfluencerPaymentAccount(influencerId: string, accountId: number): Promise<void> {
+    await request(`/api/influencers/${influencerId}/payment-accounts/${accountId}`, { method: 'DELETE' });
+}
+
 export async function adminCreateCode(payload: { influencer_id: string; code: string; commission_pct: number, discount_percentage: number }): Promise<any> {
   // Backend expects commission_pct and discount_percentage
   const body = {
@@ -353,11 +401,11 @@ export async function getMySales(params: any): Promise<any> {
 // INFLUENCER PROFILE FUNCTIONS
 //==============================================================================
 
-export async function getInfluencerSocialAccounts(): Promise<any> {
+export async function getInfluencerSocialAccounts(): Promise<{ items: SocialAccount[] }> {
   return request('/api/influencer/social-accounts');
 }
 
-export async function getInfluencerPaymentAccounts(): Promise<any> {
+export async function getInfluencerPaymentAccounts(): Promise<{ items: PaymentAccount[] }> {
   return request('/api/influencer/payment-accounts');
 }
 

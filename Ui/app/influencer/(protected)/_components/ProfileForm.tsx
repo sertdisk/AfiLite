@@ -113,14 +113,18 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
   // Veri çekme (sosyal ve ödeme hesapları)
   useEffect(() => {
     async function fetchData() {
+      console.log('fetchData function called');
       try {
         const social = await getInfluencerSocialAccounts();
-        setSocialAccounts(social);
+        setSocialAccounts(social.items);
         const payment = await getInfluencerPaymentAccounts();
-        setPaymentAccounts(payment);
+        setPaymentAccounts(payment.items);
       } catch (err: any) {
         console.error('Veri çekme hatası:', err);
-        // Hata yönetimi eklenebilir
+        // Eğer hata 401, 403 veya 404 ise login sayfasına yönlendir
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403 || err.status === 404)) {
+          window.location.href = '/login';
+        }
       }
     }
     fetchData();
@@ -285,7 +289,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
       const newAccount = await addInfluencerPaymentAccount(paymentForm);
       // Yeni hesap eklendiğinde diğerlerini pasif yapma mantığı backend'de olduğu için burada sadece listeyi güncelliyoruz
       const updatedAccounts = await getInfluencerPaymentAccounts(); // Güncel listeyi çek
-      setPaymentAccounts(updatedAccounts);
+      setPaymentAccounts(updatedAccounts.items);
       setPaymentSuccess('Ödeme hesabı başarıyla eklendi.');
       setPaymentForm({ bank_name: '', account_holder_name: '', iban: '' }); // Formu temizle
     } catch (err: any) {
@@ -438,28 +442,48 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
 
         {/* Mevcut Hesaplar */}
         {socialAccounts.length > 0 ? (
-          <ul className="space-y-2 mb-4">
+          <ul className="space-y-4 mb-4">
             {socialAccounts.map((account) => (
-              <li key={account.id} className="flex items-center justify-between p-3 border border-white/10 rounded-md bg-white/5">
-                <div>
-                  <p className="font-medium">{account.platform}: {account.handle}</p>
-                  {account.url && <p className="text-sm text-muted">{account.url}</p>}
-                  <p className="text-xs text-muted">Durum: {account.is_active ? 'Aktif' : 'Pasif'}</p>
+              <li key={account.id} className="p-4 border border-white/10 rounded-lg bg-white/5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-bold text-lg">{account.platform}: {account.username}</p>
+                    {account.address && <a href={account.address} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-400 hover:underline">{account.address}</a>}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onSocialToggleActive(account.id, account.is_active)}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold ${account.is_active ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white transition`}
+                    >
+                      {account.is_active ? 'Pasif Yap' : 'Aktif Yap'}
+                    </button>
+                    <button
+                      onClick={() => onSocialDelete(account.id)}
+                      className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition"
+                    >
+                      Sil
+                    </button>
+                  </div>
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => onSocialToggleActive(account.id, account.is_active)}
-                    className={`px-3 py-1 rounded-md text-sm ${account.is_active ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white transition`}
-                  >
-                    {account.is_active ? 'Pasif Yap' : 'Aktif Yap'}
-                  </button>
-                  <button
-                    onClick={() => onSocialDelete(account.id)}
-                    className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm transition"
-                  >
-                    Sil
-                  </button>
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-400 font-semibold">Niş</p>
+                    <p>{account.niche || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 font-semibold">Rol</p>
+                    <p>{account.role || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 font-semibold">Takipçi</p>
+                    <p>{account.followers?.toLocaleString('tr-TR') || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 font-semibold">Ort. İzlenme</p>
+                    <p>{account.avgViews?.toLocaleString('tr-TR') || '-'}</p>
+                  </div>
                 </div>
+                 <p className="text-xs text-gray-500 mt-3">Durum: {account.is_active ? 'Aktif' : 'Pasif'}</p>
               </li>
             ))}
           </ul>

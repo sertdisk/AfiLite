@@ -130,7 +130,7 @@ router.delete('/:id', authenticateToken, async(req, res) => {
 // Influencer: Get unread alerts
 router.get('/unread', authenticateToken, async(req, res) => {
   try {
-    const userId = req.user?.id || req.user?.user_id
+    const userId = req.user?.userId
     if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' })
 
     // Get all alerts sent to this influencer that they haven't read yet.
@@ -154,7 +154,7 @@ router.get('/unread', authenticateToken, async(req, res) => {
 // Influencer: Mark alert as read
 router.post('/:id/read', authenticateToken, async(req, res) => {
   try {
-    const userId = req.user?.id || req.user?.user_id
+    const userId = req.user?.userId
     if (!userId) return res.status(401).json({ error: 'Kimlik doğrulama gerekli' })
 
     const alertId = parseInt(req.params.id)
