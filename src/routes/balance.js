@@ -38,6 +38,8 @@ router.get('/', authenticateToken, asyncHandler(async(req, res) => {
     .first()
   const totalPayouts = parseFloat(payoutResult.total_payouts) || 0
 
+  console.log(`Balance for user ${userId}: totalCommission=${totalCommission}, totalPayouts=${totalPayouts}`);
+
   // Bakiye hesapla
   const total_balance = totalCommission - totalPayouts
 

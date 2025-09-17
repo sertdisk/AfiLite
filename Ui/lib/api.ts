@@ -374,6 +374,10 @@ export async function getInfluencerSummary(): Promise<any> {
     return request('/api/influencer/summary');
 }
 
+export async function getInfluencerDashboardStats(): Promise<any> {
+    return request('/api/v1/influencer/dashboard/stats');
+}
+
 export async function createMyDiscountCode(payload: { code: string }): Promise<any> {
     return request('/api/codes/my', { method: 'POST', body: payload });
 }
@@ -401,7 +405,7 @@ export async function getMySettlements(): Promise<any> {
 
 export async function getMySales(params: any): Promise<any> {
     const query = new URLSearchParams(params).toString();
-    return request(`/api/sales?${query}`);
+    return request(`/api/sales/me?${query}`);
 }
 
 //==============================================================================

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getUnreadCount } from '@/lib/api';
+import SystemAlerts from '../_components/SystemAlerts';
 
 interface MenuItem {
   id: string;
@@ -236,6 +237,7 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
 
         {/* İçerik */}
         <main className="flex-1 p-4 lg:p-6">
+          <SystemAlerts />
           {children}
         </main>
       </div>

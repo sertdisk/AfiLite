@@ -130,7 +130,7 @@ function createApp() {
     app.use(`${base}/influencer-summary`, authenticateToken, influencerSummaryRouter)
     // Sonra genel influencer route'larını mount et
     app.use(`${base}/influencer`, authenticateToken, influencerRouter)
-    app.use(`${base}/influencer`, authenticateToken, influencerDashboardRouter)
+    app.use(`${base}/influencer/dashboard`, authenticateToken, influencerDashboardRouter)
     app.use(`${base}/influencer`, authenticateToken, influencerSettingsRouter)
     app.use(`${base}/contracts`, contractRouter)
     app.use(`${base}/codes`, authenticateToken, codesRouter)

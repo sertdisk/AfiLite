@@ -146,13 +146,11 @@ function PayoutForm({ onPayoutCreated }) {
 // Ödeme düzenleme modalı
 function EditPayoutModal({ payout, isOpen, onClose, onSave }) {
   const [note, setNote] = useState(payout?.note || '');
-  const [status, setStatus] = useState(payout?.status || 'completed');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (payout) {
       setNote(payout.note || '');
-      setStatus(payout.status || 'completed');
     }
   }, [payout]);
 
@@ -160,7 +158,7 @@ function EditPayoutModal({ payout, isOpen, onClose, onSave }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(payout.id, { note, status });
+    await onSave(payout.id, { note });
     setSaving(false);
     onClose();
   };
@@ -170,14 +168,6 @@ function EditPayoutModal({ payout, isOpen, onClose, onSave }) {
       <div className="bg-white rounded-lg p-6 w-full max-w-md card-like">
         <h2 className="text-lg font-semibold mb-4">Ödeme Düzenle (ID: {payout.id})</h2>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-muted mb-1">Durum</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-md border px-3 py-2">
-              <option value="completed">Tamamlandı</option>
-              <option value="pending">Beklemede</option>
-              <option value="failed">Başarısız</option>
-            </select>
-          </div>
           <div>
             <label className="block text-sm text-muted mb-1">Not</label>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-md border px-3 py-2" rows={3}></textarea>

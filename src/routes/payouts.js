@@ -65,7 +65,8 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =>
 
 // POST /payouts - Yeni ödeme oluştur (Admin)
 router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
-  const { influencer_id, amount, iban, note, status = 'completed' } = req.body
+  const { influencer_id, amount, iban, note } = req.body
+  const status = 'completed'
 
   if (!influencer_id || !amount || !iban) {
     const err = new Error('Influencer ID, amount ve IBAN zorunludur')
@@ -81,18 +82,18 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =
   }
 
   // Bakiye hesaplaması
-  const { total_commission } = await knex('sales')
+  const tc = await knex('sales')
     .join('discount_codes', 'sales.code', 'discount_codes.code')
     .where('discount_codes.influencer_id', influencer_id)
     .sum('sales.commission as total_commission')
     .first()
 
-  const { total_payouts } = await knex('payouts')
+  const tp = await knex('payouts')
     .where({ influencer_id: influencer_id, status: 'completed' })
     .sum('amount as total_payouts')
     .first()
 
-  const balance_before = (total_commission || 0) - (total_payouts || 0)
+  const balance_before = (parseFloat(tc.total_commission) || 0) - (parseFloat(tp.total_payouts) || 0)
   const balance_after = balance_before - Number(amount)
 
   // Ödeme oluştur
@@ -126,7 +127,7 @@ router.post('/', authenticateToken, requireAdmin, asyncHandler(async(req, res) =
 // PATCH /payouts/:id - Ödemeyi güncelle (Admin)
 router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async(req, res) => {
   const { id } = req.params
-  const { note, status } = req.body
+  const { note } = req.body
 
   const payout = await knex('payouts').where({ id }).first()
   if (!payout) {
@@ -136,9 +137,6 @@ router.patch('/:id', authenticateToken, requireAdmin, asyncHandler(async(req, re
   const updatePayload = {}
   if (note !== undefined) {
     updatePayload.note = note
-  }
-  if (status !== undefined) {
-    updatePayload.status = status
   }
 
   if (Object.keys(updatePayload).length === 0) {

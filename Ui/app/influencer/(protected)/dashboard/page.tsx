@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   getInfluencerSummary,
@@ -8,7 +8,8 @@ import {
   getMyBalance,
   getMySettlements,
   getMySales,
-  listMyCodesUnsafe
+  listMyCodesUnsafe,
+  getInfluencerDashboardStats
 } from '@/lib/api';
 import { Line } from 'react-chartjs-2';
 import {
@@ -51,6 +52,7 @@ export default function InfluencerDashboardPage() {
   const [itemsPerPage] = useState(5); // Her sayfada gösterilecek öğe sayısı
   const [currentPage, setCurrentPage] = useState(1); // Mevcut sayfa
   const [totalSalesCount, setTotalSalesCount] = useState(0); // Toplam satış sayısı
+  const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,6 +82,10 @@ export default function InfluencerDashboardPage() {
         if (settlements?.items && settlements.items.length > 0) {
           setLatestSettlement(settlements.items[0]); // En son ödeme
         }
+        
+        const dashboardStats = await getInfluencerDashboardStats();
+        if (!isMounted) return;
+        setStats(dashboardStats);
 
       } catch (e: any) {
         if (!isMounted) return;
@@ -104,49 +110,12 @@ export default function InfluencerDashboardPage() {
           offset: (currentPage - 1) * itemsPerPage
         });
         setLatestSales(sales?.items || []);
-        setTotalSalesCount(sales?.total_count ?? 0);
+        setTotalSalesCount(sales?.pagination?.total ?? 0);
       } catch (e: any) {
         console.error('Satış verileri alınamadı:', e);
       }
     })();
   }, [codes, currentPage, itemsPerPage]);
-
-
-  const weeklySalesData = useMemo(() => {
-    // Örnek performans verisi (ileride gerçek API ile değiştirilecek)
-    const labels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-    const data = [3, 5, 2, 8, 6, 4, 7];
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Haftalık Satış Adedi',
-          data,
-          borderColor: 'rgba(99, 102, 241, 1)',
-          backgroundColor: 'rgba(99, 102, 241, 0.2)',
-          tension: 0.35
-        }
-      ]
-    };
-  }, []);
-
-  function getDemoSeriesForCode(code: string) {
-    const labels = Array.from({ length: 12 }).map((_, i) => `Hafta ${i + 1}`);
-    const seed = code.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0);
-    const values = labels.map((_, i) => (Math.abs(Math.sin(seed + i)) * 10 + (i % 3) * 2 + 3).toFixed(0)).map(Number);
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Satış Adedi',
-          data: values,
-          borderColor: 'rgba(16, 185, 129, 1)',
-          backgroundColor: 'rgba(16, 185, 129, 0.2)',
-          tension: 0.35
-        }
-      ]
-    };
-  }
 
   async function handleCreateCode() {
     if (!newCodeInput) {
@@ -238,7 +207,6 @@ export default function InfluencerDashboardPage() {
           ) : (
             <div className="space-y-6">
               {codes.map((c) => {
-                const chartData = getDemoSeriesForCode(c.code);
                 const isActive = !(c.is_active === false || Number(c.is_active) === 0);
                 return (
                   <article key={c.id} id={`code-card-${c.id}`} className="p-6 border border-gray-700 rounded-xl bg-gray-900 shadow-xl">
@@ -269,16 +237,6 @@ export default function InfluencerDashboardPage() {
                         Oluşturduğunuz kod aktif hale geldiğinde, bu kod aracılığıyla yapılan her satışta, müşteriniz indirim kazanırken siz de tanımlanan oran üzerinden komisyon elde edeceksiniz. Komisyon oranlarını, kod aktif olduğunda sistem üzerinden görüntüleyebilirsiniz. Onay sürecimiz genellikle birkaç günde sonuçlanıyor. İşleminizi hızlandırmak için bizimle iletişime geçmekten çekinmeyin.
                       </p>
                     )}
-
-                    {isActive && (
-                      <div className="mt-8">
-                        <h4 className="text-xl font-semibold text-gray-200 mb-4">Performans Trendi</h4>
-                        <p className="text-sm text-gray-400 mb-4">Bu kod için satış trendi ve dönüşüm performansı.</p>
-                        <div className="bg-gray-700 p-5 rounded-lg shadow-inner">
-                          <Line data={chartData} />
-                        </div>
-                      </div>
-                    )}
                   </article>
                 );
               })}
@@ -298,7 +256,7 @@ export default function InfluencerDashboardPage() {
           </div>
 
           {/* Performans Ayrıntıları */}
-          {codes.length === 0 || !codes[0].is_active || latestSales.length === 0 ? (
+          {codes.length === 0 || !codes.find(c => c.is_active) ? (
             <div className="text-base text-gray-300 space-y-3 leading-relaxed">
               <p>Oluşturduğunuz indirim kodu ile gerçekleşen alışverişlerin detaylarını bu panel üzerinden takip edebilirsiniz.</p>
               <p>Affiliate sistemimizi, şeffaf ve sizin yararınıza olacak şekilde esnek tutmaya özen gösteriyoruz. Herhangi bir yanıltıcı bilgi kullanmadığınız sürece, indirim kodunuzu dilediğiniz içerik formatında ve kendi niş alanınızda özgürce kullanabilirsiniz. Bu konuda katı kurallarımız yok; yalnızca önerilerde bulunabiliriz.</p>
@@ -310,7 +268,7 @@ export default function InfluencerDashboardPage() {
             <div className="space-y-6">
               {latestSales.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-200 mb-3">Son Alışverişler ({codes[0].code} Kodu ile)</h3>
+                  <h3 className="text-lg font-semibold text-gray-200 mb-3">Son Alışverişler ({codes.find(c => c.is_active)?.code} Kodu ile)</h3>
                   <div id="sales-history-table" className="overflow-x-auto bg-gray-700 rounded-lg shadow-md">
                     <table className="min-w-full text-sm text-left text-gray-300">
                       <thead className="text-xs text-gray-400 uppercase bg-gray-700 border-b border-gray-600">
@@ -325,11 +283,11 @@ export default function InfluencerDashboardPage() {
                       <tbody>
                         {latestSales.map((sale) => (
                           <tr key={sale.id} className="bg-gray-800 border-b border-gray-700 hover:bg-gray-700 transition-colors duration-150">
-                            <td className="px-4 py-3">{new Date(sale.date).toLocaleDateString()}</td>
-                            <td className="px-4 py-3"><a href={sale.customer} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{sale.customer}</a></td>
-                            <td className="px-4 py-3">{sale.package_name}</td>
-                            <td className="px-4 py-3">{sale.package_amount?.toFixed(2) ?? '0.00'} TL</td>
-                            <td className="px-4 py-3">{sale.commission_amount?.toFixed(2) ?? '0.00'} TL</td>
+                            <td className="px-4 py-3">{new Date(sale.recorded_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-3"><a href={sale.customer_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{sale.customer_url}</a></td>
+                            <td className="px-4 py-3">{sale.product}</td>
+                            <td className="px-4 py-3">{sale.total_amount?.toFixed(2) ?? '0.00'} TL</td>
+                            <td className="px-4 py-3">{sale.commission?.toFixed(2) ?? '0.00'} TL</td>
                           </tr>
                         ))}
                       </tbody>
@@ -367,9 +325,8 @@ export default function InfluencerDashboardPage() {
                   <div className="bg-gray-700 p-5 rounded-lg shadow-md text-base text-gray-300 space-y-2">
                     <p><strong>Tarih:</strong> <span className="font-semibold text-white">{new Date(latestSettlement.date).toLocaleDateString()}</span></p>
                     <p><strong>Ödeme Miktarı:</strong> <span className="font-semibold text-white">{latestSettlement.amount?.toFixed(2) ?? '0.00'} TL</span></p>
-                    {/* Ödeme öncesi/sonrası bakiye bilgisi API'den gelmediği için mock değerler */}
-                    <p><strong>Ödeme Öncesi Bakiye:</strong> <span className="font-semibold text-white">{(balance + latestSettlement.amount)?.toFixed(2) ?? '0.00'} TL</span></p>
-                    <p><strong>Ödeme Sonrası Bakiye:</strong> <span className="font-semibold text-white">{balance?.toFixed(2) ?? '0.00'} TL</span></p>
+                    <p><strong>Ödeme Öncesi Bakiye:</strong> <span className="font-semibold text-white">{latestSettlement.balance_before_settlement?.toFixed(2) ?? '0.00'} TL</span></p>
+                    <p><strong>Ödeme Sonrası Bakiye:</strong> <span className="font-semibold text-white">{latestSettlement.balance_after_settlement?.toFixed(2) ?? '0.00'} TL</span></p>
                   </div>
                 </div>
               )}
@@ -383,13 +340,15 @@ export default function InfluencerDashboardPage() {
           )}
 
           {/* Genel Performans Grafiği */}
-          <div id="performance-chart" className="mt-8">
-            <h3 className="text-xl font-semibold text-gray-200 mb-4">Genel Performans Grafiği</h3>
-            <p className="text-sm text-gray-400 mb-4">Satış adedi trendini zaman içinde görüntüleyin. (Örnek Veri)</p>
-            <div className="bg-gray-700 p-5 rounded-lg shadow-inner">
-              <Line data={weeklySalesData} />
+          {stats?.salesTrend && (
+            <div id="performance-chart" className="mt-8">
+              <h3 className="text-xl font-semibold text-gray-200 mb-4">Genel Performans Grafiği (Son 30 Gün)</h3>
+              <p className="text-sm text-gray-400 mb-4">Satış adedi ve komisyon trendini zaman içinde görüntüleyin.</p>
+              <div className="bg-gray-700 p-5 rounded-lg shadow-inner">
+                <Line data={stats.salesTrend} />
+              </div>
             </div>
-          </div>
+          )}
         </section>
       </div>
     </main>

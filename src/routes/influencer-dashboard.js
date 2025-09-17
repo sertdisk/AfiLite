@@ -1,45 +1,75 @@
-/**
- * Türkçe: Bu dosya influencer kullanıcılar için dashboard endpoint'lerini içerir.
- * Güvenlik: Hata yönetimi merkezi handler'a devredildi (PII sızıntısı engeli).
- * - try/catch blokları kaldırıldı, [middleware/errorHandler.js:59-62] içindeki asyncHandler ile sarıldı.
- * - Girdi doğrulama [middleware/validation.js] bağlandı.
- */
-const router = require('express').Router()
-const knex = require('../db/sqlite')
-const { asyncHandler } = require('../middleware/errorHandler')
-const { authenticateToken } = require('../middleware/auth')
+const express = require('express');
+const router = express.Router();
+const db = require('../db/sqlite');
+const { authenticateToken } = require('../middleware/auth');
 
-// Yardımcı: user_id çöz
-function resolveUserId(req) {
-  return (req.user && (req.user.userId || req.user.user_id || req.user.id)) || null
-}
+// Influencer dashboard için satış istatistiklerini getir
+router.get('/stats', authenticateToken, async (req, res) => {
+  const influencerId = req.user.userId;
 
-/**
- * Influencer kendi özet bilgilerini alır
- * GET /api/influencer/summary
- */
-router.get('/summary', authenticateToken, asyncHandler(async(req, res) => {
-  const userId = resolveUserId(req)
-  if (!userId) {
-    const err = new Error('Kimlik doğrulama gerekli')
-    err.status = 401
-    throw err
+  try {
+    // Son 30 gündeki satışları al
+    const sales = await db('sales')
+      .join('discount_codes', 'sales.code', 'discount_codes.code')
+      .where('discount_codes.influencer_id', influencerId)
+      .where('sales.recorded_at', '>=', db.raw("date('now', '-30 days')"))
+      .select(
+        'sales.recorded_at as date',
+        'sales.commission as commission_amount'
+      )
+      .orderBy('sales.recorded_at', 'asc');
+
+    // Verileri günlere göre grupla
+    const salesByDay = sales.reduce((acc, sale) => {
+      const date = new Date(sale.date).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = { salesCount: 0, totalCommission: 0 };
+      }
+      acc[date].salesCount += 1;
+      acc[date].totalCommission += sale.commission_amount;
+      return acc;
+    }, {});
+
+    // Son 30 gün için etiket ve veri dizileri oluştur
+    const labels = [];
+    const salesCountData = [];
+    const commissionData = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
+      labels.push(dateString);
+      
+      const dayData = salesByDay[dateString];
+      salesCountData.push(dayData ? dayData.salesCount : 0);
+      commissionData.push(dayData ? dayData.totalCommission : 0);
+    }
+
+    res.json({
+      salesTrend: {
+        labels,
+        datasets: [
+          {
+            label: 'Günlük Satış Adedi',
+            data: salesCountData,
+            borderColor: 'rgba(99, 102, 241, 1)',
+            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+            tension: 0.35
+          },
+          {
+            label: 'Günlük Komisyon (TL)',
+            data: commissionData,
+            borderColor: 'rgba(16, 185, 129, 1)',
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            tension: 0.35
+          }
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('Satış istatistikleri alınırken hata:', error);
+    res.status(500).json({ message: 'Sunucu hatası' });
   }
+});
 
-  // Kullanıcının influencer kaydını getir
-  const influencer = await knex('influencers').where('id', userId).first()
-  if (!influencer) {
-    const err = new Error('Influencer kaydı bulunamadı')
-    err.status = 404
-    throw err
-  }
-
-  // Başvuru durumu ve tarih bilgilerini döndür
-  res.json({
-    status: influencer.status,
-    created_at: influencer.created_at,
-    days_since_application: Math.floor((new Date() - new Date(influencer.created_at)) / (1000 * 60 * 24))
-  })
-}))
-
-module.exports = router
+module.exports = router;
