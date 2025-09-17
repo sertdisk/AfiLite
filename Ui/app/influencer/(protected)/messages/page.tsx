@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getMyThread, getUnreadCount, markRead, sendMessage, getInfluencerMe } from '@/lib/api';
+import { getMyThread, getUnreadCount, markMyMessagesRead, sendMessage, getInfluencerMe } from '@/lib/api';
 
 export default function InfluencerMessagesPage() {
   const [thread, setThread] = useState<any[]>([]);
@@ -28,7 +28,7 @@ export default function InfluencerMessagesPage() {
       setThread(res.items);
       // admin → me gelenleri okundu yap
       try {
-        await markRead({ influencerId: res.items[0].to_user_id });
+        await markMyMessagesRead(); // influencerId artık backend tarafından belirleniyor
       } catch (e) {
         // Okunmamış mesaj sayısı için gerekli değil, yutulabilir
         console.warn('Mesaj okundu olarak işaretlenemedi:', e);

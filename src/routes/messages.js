@@ -149,6 +149,24 @@ router.post('/read', authenticateToken, asyncHandler(async (req, res) => {
     res.json({ updated: affected });
 }));
 
+// POST /messages/my/read (Influencer'ın kendi mesajlarını okundu olarak işaretlemesi)
+router.post('/my/read', authenticateToken, asyncHandler(async (req, res) => {
+    const actor = getActor(req);
+    if (actor.role !== 'influencer') return res.status(403).json({ error: 'Yetki gerekli' });
+
+    const admin = await knex('influencers').where('role', 'admin').first();
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin kullanıcısı bulunamadı' });
+    }
+
+    const affected = await knex('messages')
+        .where({ from_user_id: admin.id, to_user_id: actor.id })
+        .whereNull('read_at')
+        .update({ read_at: knex.fn.now() });
+
+    res.json({ updated: affected });
+}));
+
 // POST /messages/bulk (Toplu Mesaj Gönderme)
 router.post('/bulk', authenticateToken, asyncHandler(async (req, res) => {
   const actor = getActor(req);

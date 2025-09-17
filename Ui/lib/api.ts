@@ -80,8 +80,11 @@ export interface SocialAccount {
   id: number;
   platform: string;
   username: string;
-  url: string;
-  followers: number;
+  address?: string;
+  niche?: string;
+  role?: string;
+  followers?: number;
+  avgViews?: number;
   is_active: boolean;
   created_at: string;
 }
@@ -89,8 +92,8 @@ export interface SocialAccount {
 export interface PaymentAccount {
   id: number;
   bank_name: string;
-  iban: string;
   account_holder_name: string;
+  iban: string;
   is_active: boolean;
   created_at: string;
 }
@@ -217,6 +220,11 @@ export async function markRead(params: { influencerId: number }): Promise<{ upda
   });
 }
 
+export async function markMyMessagesRead(): Promise<{ updated: number }> {
+  return request('/api/messages/my/read', {
+    method: 'POST',
+  });
+}
 
 //==============================================================================
 // OTHER ADMIN FUNCTIONS (Restored)
@@ -356,7 +364,6 @@ export async function getAdminSales(params: any): Promise<any> {
     const query = new URLSearchParams(params).toString();
     return request(`/api/sales?${query}`);
 }
-
 
 export async function updateAdminSale(id: number, payload: any): Promise<any> {
     return request(`/api/sales/${id}`, { method: 'PATCH', body: payload });
