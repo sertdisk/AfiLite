@@ -105,7 +105,19 @@ router.get('/history', authenticateToken, asyncHandler(async(req, res) => {
   const items = await knex('payouts')
     .where({ influencer_id: userId, status: 'completed' })
     .orderBy('created_at', 'desc')
-    .select('id', 'amount', 'created_at as date', 'note', 'status') // Frontend şemasına uygun alanları seç
+    .select(
+      'id',
+      'amount',
+      'created_at as date',
+      'note',
+      'status',
+      'method',
+      'account',
+      'bank_name',
+      'account_holder_name as account_owner',
+      'balance_before as balance_before_settlement',
+      'balance_after as balance_after_settlement'
+    )
 
   res.json({ items })
 }))

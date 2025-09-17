@@ -1,15 +1,14 @@
 const knex = require('./src/db/sqlite');
 
-async function checkSchema() {
+async function checkData() {
   try {
-    const schema = await knex.raw("SELECT sql FROM sqlite_master WHERE type='table' AND name='influencer_social_accounts'");
-    console.log('Influencer Social Accounts table schema:');
-    console.log(schema[0].sql);
+    const payouts = await knex('payouts').where({ influencer_id: 82 });
+    console.log('Payouts for influencer_id 82:', payouts);
   } catch (error) {
-    console.error('Error checking schema:', error);
+    console.error('Error checking data:', error);
   } finally {
     await knex.destroy();
   }
 }
 
-checkSchema();
+checkData();
