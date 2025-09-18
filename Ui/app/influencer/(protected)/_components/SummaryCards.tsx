@@ -20,7 +20,7 @@ export default function SummaryCards({ summary }: { summary: InfluencerSummary }
         <p className="mt-1 text-lg font-semibold tracking-tight">{new Date(summary.created_at).toLocaleString()}</p>
       </div>
 
-      <div className="rounded-xl border border-app bg-panel p-4 text-app shadow card-hover">
+      <div className="rounded-xl border border-white/5 bg-gray-800/50 backdrop-blur-xl p-4 text-app shadow card-hover">
         <p className="text-xs text-muted">Gün Sayısı</p>
         <p className="mt-1 text-lg font-semibold tracking-tight">{summary.days_since_application}</p>
       </div>

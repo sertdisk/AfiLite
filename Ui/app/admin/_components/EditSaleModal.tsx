@@ -68,34 +68,34 @@ export default function EditSaleModal({ sale, isOpen, onClose, onSave }: EditSal
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Influencer Kodu</label>
-            <input type="text" name="influencer_code" value={formData.influencer_code || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input type="text" name="influencer_code" value={formData.influencer_code || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-white/5 bg-gray-800/50 backdrop-blur-xl shadow-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Müşteri</label>
-            <input type="text" name="customer_url" value={formData.customer_url || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input type="text" name="customer_url" value={formData.customer_url || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-white/5 bg-gray-800/50 backdrop-blur-xl shadow-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Ürün Bilgisi</label>
-            <input type="text" name="product_info" value={formData.product_info || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input type="text" name="product_info" value={formData.product_info || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-white/5 bg-gray-800/50 backdrop-blur-xl shadow-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Ürün Tutarı</label>
-            <input type="number" name="sale_amount" value={formData.sale_amount || 0} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input type="number" name="sale_amount" value={formData.sale_amount || 0} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-white/5 bg-gray-800/50 backdrop-blur-xl shadow-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Influencer Komisyonu</label>
-            <input type="number" name="commission_amount" value={formData.commission_amount || 0} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input type="number" name="commission_amount" value={formData.commission_amount || 0} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-white/5 bg-gray-800/50 backdrop-blur-xl shadow-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Satış Notu</label>
-            <textarea name="note" value={formData.note || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows={3}></textarea>
+            <textarea name="note" value={formData.note || ''} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-white/5 bg-gray-800/50 backdrop-blur-xl shadow-sm" rows={3}></textarea>
           </div>
           
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex justify-end gap-3 mt-6">
-            <button type="button" onClick={onClose} className="rounded-md border px-4 py-2 text-sm">İptal</button>
-            <button type="submit" disabled={busy} className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700 disabled:opacity-50">
+            <button type="button" onClick={onClose} className="rounded-md border px-4 py-2 text-sm hover:scale-[1.02] hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r from-cyan-500 to-violet-500">İptal</button>
+            <button type="submit" disabled={busy} className="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-50 hover:scale-[1.02] hover:shadow-lg transition-all duration-300">
               {busy ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>

@@ -159,7 +159,7 @@ export default function InfluencerDashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-4 sm:p-6 lg:p-8">
+    <main className="min-h-screen bg-gray-950 text-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="text-center space-y-2 mb-8" id="dashboard-header">
           <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
@@ -173,7 +173,7 @@ export default function InfluencerDashboardPage() {
           <div role="alert" className="text-sm bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-300 shadow-md">{serverError}</div>
         )}
 
-        <section id="code-management-section" className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700 space-y-6">
+        <section id="code-management-section" className="p-6 bg-gray-800/50 backdrop-blur-xl border border-white/5 rounded-xl shadow-lg space-y-6">
           {codeMessage && <div className="text-sm bg-emerald-900/30 border border-emerald-700 rounded-lg p-3 text-emerald-300 shadow-md">{codeMessage}</div>}
 
           {codes.length === 0 ? (
@@ -196,7 +196,7 @@ export default function InfluencerDashboardPage() {
                   <button
                     type="submit"
                     disabled={createBusy || newCodeInput.length < 5 || newCodeInput.length > 10}
-                    className={`px-6 py-2.5 rounded-lg font-bold text-lg ${createBusy || newCodeInput.length < 5 || newCodeInput.length > 10 ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105`}
+                    className={`px-6 py-2.5 rounded-lg font-bold text-lg ${createBusy || newCodeInput.length < 5 || newCodeInput.length > 10 ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 hover:shadow-lg hover:bg-gradient-to-r from-cyan-500 to-violet-500`}
                   >
                     {createBusy ? 'Oluşturuluyor…' : 'Kod Oluştur'}
                   </button>
@@ -249,7 +249,7 @@ export default function InfluencerDashboardPage() {
           )}
         </section>
 
-        <section id="performance-section" className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-700 space-y-6">
+        <section id="performance-section" className="p-6 bg-gray-800/50 backdrop-blur-xl border border-white/5 rounded-xl shadow-lg space-y-6">
           <h2 className="text-xl font-bold text-gray-100">Performans Alanı</h2>
           <div id="current-balance" className="text-4xl font-extrabold text-right text-blue-400">
             Bakiye: {loading ? 'Yükleniyor…' : `${balance?.toFixed(2) ?? '0.00'} TL`}
@@ -273,11 +273,11 @@ export default function InfluencerDashboardPage() {
                     <table className="min-w-full text-sm text-left text-gray-300">
                       <thead className="text-xs text-gray-400 uppercase bg-gray-700 border-b border-gray-600">
                         <tr>
-                          <th scope="col" className="px-4 py-3">Tarih</th>
-                          <th scope="col" className="px-4 py-3">Müşteri URL</th>
-                          <th scope="col" className="px-4 py-3">Ürün</th>
-                          <th scope="col" className="px-4 py-3">Tutar</th>
-                          <th scope="col" className="px-4 py-3">Komisyon</th>
+                          <th scope="col" className="px-4 py-3 text-cyan-400">Tarih</th>
+                          <th scope="col" className="px-4 py-3 text-violet-400">Müşteri URL</th>
+                          <th scope="col" className="px-4 py-3 text-cyan-400">Ürün</th>
+                          <th scope="col" className="px-4 py-3 text-violet-400">Tutar</th>
+                          <th scope="col" className="px-4 py-3 text-cyan-400">Komisyon</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -302,7 +302,7 @@ export default function InfluencerDashboardPage() {
                <button
                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                  disabled={currentPage === 1}
-                 className="px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                 className="px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 hover:scale-[1.02] hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r from-cyan-500 to-violet-500"
                >
                  &larr; Önceki
                </button>
@@ -312,7 +312,7 @@ export default function InfluencerDashboardPage() {
                <button
                  onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalSalesCount / itemsPerPage), prev + 1))}
                  disabled={currentPage === Math.ceil(totalSalesCount / itemsPerPage)}
-                 className="px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                 className="px-4 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 hover:scale-[1.02] hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r from-cyan-500 to-violet-500"
                >
                  Sonraki &rarr;
                </button>

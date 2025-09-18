@@ -224,10 +224,10 @@ input, button, select, textarea {
   /* Kenarlık ve cam efekt */
   .border-app { border-color: var(--border); }
   .glass {
-    background-color: var(--panel-glass);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border);
+    background-color: rgb(30 41 59 / 0.5);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgb(255 255 / 0.05);
   }
 
   /* Marka gradyan */
@@ -242,10 +242,10 @@ input, button, select, textarea {
     transition: box-shadow .2s ease;
   }
   .card-hover {
-    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+    transition: all .3s ease;
   }
   .card-hover:hover {
-    transform: translateY(-2px);
+    transform: scale(1.02);
     box-shadow: 0 10px 30px rgba(0,0,0,.35);
   }
 

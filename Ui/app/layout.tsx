@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr" className="dark">
       <body className="min-h-screen bg-app text-app">
         {!isAuthOrInfluencerPath && (
-          <header className="border-b bg-[#0a0e16]">
+          <header className="border-b bg-gray-950">
             <div className="mx-auto max-w-6xl px-4">
               <div className="flex items-center justify-between gap-4 py-3">
                 <div className="flex items-center gap-4">
@@ -54,8 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             href={item.href}
                             prefetch={false}
                             className={cls(
-                              'px-3 py-2 rounded-md text-sm transition-colors',
-                              active ? 'bg-[#0f172a] text-white' : 'text-[#e6e8ee] hover:bg-[#0f172a] hover:text-white'
+                              'px-3 py-2 rounded-md text-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg',
+                              active ? 'bg-gradient-to-r from-cyan-500 to-violet-500 text-white' : 'text-[#e6e8ee] hover:bg-gradient-to-r from-cyan-500 to-violet-500 hover:text-white'
                             )}
                           >
                             {item.label}
@@ -73,8 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         href={item.href}
                         prefetch={false}
                         className={cls(
-                          'px-3 py-2 rounded-md text-sm whitespace-nowrap transition-colors',
-                          active ? 'bg-[#0f172a] text-white' : 'text-[#e6e8ee] hover:bg-[#0f172a] hover:text-white'
+                          'px-3 py-2 rounded-md text-sm whitespace-nowrap transition-all duration-300 hover:scale-[1.02] hover:shadow-lg',
+                          active ? 'bg-gradient-to-r from-cyan-500 to-violet-500 text-white' : 'text-[#e6e8ee] hover:bg-gradient-to-r from-cyan-500 to-violet-500 hover:text-white'
                         )}
                       >
                         {item.label}

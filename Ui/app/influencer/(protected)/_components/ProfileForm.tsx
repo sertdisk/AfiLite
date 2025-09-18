@@ -386,7 +386,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 placeholder="Mevcut Şifreniz"
               />
             </div>
@@ -397,7 +397,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 placeholder="Yeni Şifreniz (en az 6 karakter)"
               />
             </div>
@@ -408,7 +408,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
                 type="password"
                 value={passwordForm.confirmNewPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))}
-                className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 placeholder="Yeni Şifrenizi Tekrar Girin"
               />
             </div>
@@ -417,7 +417,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
                 type="submit"
                 aria-busy={passwordSaving}
                 disabled={!isPasswordFormValid || passwordSaving}
-                className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-indigo-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
               >
                 {passwordSaving ? 'Değiştiriliyor…' : 'Şifreyi Değiştir'}
               </button>
@@ -557,7 +557,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               id="socialHandle"
               value={socialForm.handleOrChannel}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, handleOrChannel: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="@kullanici veya Kanal Adı"
             />
           </div>
@@ -568,7 +568,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               type="url"
               value={socialForm.address ?? ''}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, address: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="https://... (varsa)"
             />
           </div>
@@ -579,7 +579,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               id="socialRole"
               value={socialForm.role ?? ''}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, role: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="Örn. İçerik Üreticisi"
             />
           </div>
@@ -590,7 +590,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               id="socialNiche"
               value={socialForm.niche ?? ''}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, niche: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="Örn. Teknoloji"
             />
           </div>
@@ -604,7 +604,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               step={1}
               value={socialForm.followers}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, followers: e.target.value === '' ? '' : Number(e.target.value) }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="0"
               inputMode="numeric"
             />
@@ -619,7 +619,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               step={1}
               value={socialForm.avgViews}
               onChange={(e) => setSocialForm((prev) => ({ ...prev, avgViews: e.target.value === '' ? '' : Number(e.target.value) }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="0"
               inputMode="numeric"
             />
@@ -629,7 +629,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               type="submit"
               aria-busy={socialSaving}
               disabled={!isSocialFormValid || socialSaving}
-              className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-indigo-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
             >
               {socialSaving ? 'Ekleniyor…' : 'Hesap Ekle'}
             </button>
@@ -694,7 +694,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               id="bankName"
               value={paymentForm.bank_name}
               onChange={(e) => setPaymentForm((prev) => ({ ...prev, bank_name: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="Banka Adı"
             />
           </div>
@@ -704,7 +704,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               id="accountHolderName"
               value={paymentForm.account_holder_name}
               onChange={(e) => setPaymentForm((prev) => ({ ...prev, account_holder_name: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="Hesap Sahibi Adı Soyadı"
             />
           </div>
@@ -714,7 +714,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               id="iban"
               value={paymentForm.iban}
               onChange={(e) => setPaymentForm((prev) => ({ ...prev, iban: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               placeholder="TRXXXXXXXXXXXXXXXXXXXXXXXXXX"
             />
           </div>
@@ -723,7 +723,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               type="submit"
               aria-busy={paymentSaving}
               disabled={!isPaymentFormValid || paymentSaving}
-              className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-indigo-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
             >
               {paymentSaving ? 'Ekleniyor…' : 'Hesap Ekle'}
             </button>

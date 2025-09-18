@@ -223,7 +223,7 @@ export default function QuickSaleForm() {
                   type="button"
                   onClick={() => searchCode(formData.code)}
                   disabled={codeLoading || !formData.code.trim() || formData.code.trim().length < 2}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center min-w-[60px]"
+                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center min-w-[60px] transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
                 >
                   {codeLoading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -247,7 +247,7 @@ export default function QuickSaleForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Marka Adı
                   </label>
-                  <div className="w-full rounded-md bg-[#0b1324] border border-[#1e293b] px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
+                  <div className="w-full rounded-md bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
                     {formData.influencerInfo.brandName || '-'}
                   </div>
                 </div>
@@ -256,7 +256,7 @@ export default function QuickSaleForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Ad Soyad
                   </label>
-                  <div className="w-full rounded-md bg-[#0b1324] border border-[#1e293b] px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
+                  <div className="w-full rounded-md bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
                     {formData.influencerInfo.fullName || '-'}
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function QuickSaleForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Kayıt Maili
                   </label>
-                  <div className="w-full rounded-md bg-[#0b1324] border border-[#1e293b] px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
+                  <div className="w-full rounded-md bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
                     {formData.influencerInfo.email || '-'}
                   </div>
                 </div>
@@ -274,7 +274,7 @@ export default function QuickSaleForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Komisyon Oranı (%)
                   </label>
-                  <div className="w-full rounded-md bg-[#0b1324] border border-[#1e293b] px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
+                  <div className="w-full rounded-md bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
                     {formData.influencerInfo.commissionRate ?? '-'}
                   </div>
                 </div>
@@ -337,7 +337,7 @@ export default function QuickSaleForm() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Komisyon (₺) - Otomatik Hesaplanır
               </label>
-              <div className="w-full rounded-md bg-[#0b1324] border border-[#1e293b] px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
+              <div className="w-full rounded-md bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-app font-medium text-sm min-h-[40px] flex items-center">
                 {commission}
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function QuickSaleForm() {
           <button
             type="submit"
             disabled={loading || !formData.influencerInfo}
-            className="inline-flex items-center rounded-md bg-[#0f172a] text-white px-4 py-2 text-sm hover:bg-[#1f2937] disabled:opacity-50"
+            className="inline-flex items-center rounded-md bg-[#0f172a] text-white px-4 py-2 text-sm hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-50 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
           >
             {loading ? 'Kaydediliyor…' : 'Satışı Kaydet'}
           </button>

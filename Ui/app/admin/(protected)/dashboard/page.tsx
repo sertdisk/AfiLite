@@ -240,15 +240,15 @@ export default function AdminDashboardPage() {
 
       {/* 1) Onay bekleyen indirim kodları */}
       {codesError ? null : (pendingCodes && pendingCodes.length > 0) ? (
-        <section className="rounded-md border card-like p-4">
+        <section className="rounded-md border bg-gray-800/50 backdrop-blur-xl border border-white/5 p-4">
           <h2 className="text-lg font-semibold mb-3">Onay Bekleyen İndirim Kodları</h2>
           <table className="table-admin text-sm">
             <thead>
               <tr>
-                <th>Kod</th>
-                <th>Influencer</th>
-                <th>Oluşturulma</th>
-                <th>Komisyon (%)</th>
+                <th className="text-cyan-400">Kod</th>
+                <th className="text-violet-400">Influencer</th>
+                <th className="text-cyan-400">Oluşturulma</th>
+                <th className="text-violet-400">Komisyon (%)</th>
               </tr>
             </thead>
             <tbody>
@@ -321,7 +321,7 @@ export default function AdminDashboardPage() {
             </tbody>
           </table>
           <div className="mt-3">
-            <a href="/admin/codes" className="inline-flex nav-btn px-3 py-2 rounded-md text-sm border border-[#1e293b]">Kodlara Git</a>
+            <a href="/admin/codes" className="inline-flex nav-btn px-3 py-2 rounded-md text-sm border border-[#1e293b] hover:scale-[1.02] hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r from-cyan-500 to-violet-500">Kodlara Git</a>
           </div>
         </section>
       ) : null}
@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
       <QuickSaleForm />
 
       {/* 3) Son girilen satışlar */}
-      <section className="rounded-md border card-like p-4">
+      <section className="rounded-md border bg-gray-800/50 backdrop-blur-xl border border-white/5 p-4">
         <h2 className="text-lg font-semibold mb-3">Son Girilen Satışlar</h2>
         {salesError ? (
           <div className="text-red-500 text-sm">{salesError}</div>
@@ -347,12 +347,12 @@ export default function AdminDashboardPage() {
             <table className="table-admin text-sm">
               <thead>
                 <tr>
-                  <th>Kod</th>
-                  <th>Marka Adı</th>
-                  <th>Müşteri</th>
-                  <th>Ürün</th>
-                  <th>Tutar (₺)</th>
-                  <th>Komisyon (₺)</th>
+                  <th className="text-cyan-400">Kod</th>
+                  <th className="text-violet-400">Marka Adı</th>
+                  <th className="text-cyan-400">Müşteri</th>
+                  <th className="text-violet-400">Ürün</th>
+                  <th className="text-cyan-400">Tutar (₺)</th>
+                  <th className="text-violet-400">Komisyon (₺)</th>
                 </tr>
               </thead>
               <tbody>
@@ -379,14 +379,14 @@ export default function AdminDashboardPage() {
           </div>
         )}
         <div className="mt-3">
-          <a href="/admin/sales" className="inline-flex nav-btn px-3 py-2 rounded-md text-sm border border-[#1e293b]">
+          <a href="/admin/sales" className="inline-flex nav-btn px-3 py-2 rounded-md text-sm border border-[#1e293b] hover:scale-[1.02] hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r from-cyan-500 to-violet-500">
             Tüm Satışlara Git
           </a>
         </div>
       </section>
 
       {/* Son aktif edilen kodlar */}
-      <section className="rounded-md border card-like p-4">
+      <section className="rounded-md border bg-gray-800/50 backdrop-blur-xl border border-white/5 p-4">
         <h2 className="text-lg font-semibold mb-3">Son Aktif Edilen Kodlar</h2>
         {activeCodesError ? (
           <div className="text-red-500 text-sm">{activeCodesError}</div>
@@ -399,11 +399,11 @@ export default function AdminDashboardPage() {
             <table className="table-admin text-sm">
               <thead>
                 <tr>
-                  <th>Kod</th>
-                  <th>İndirim (%)</th>
-                  <th>Komisyon (%)</th>
-                  <th>Oluşturulma</th>
-                  <th>İşlem</th>
+                  <th className="text-cyan-400">Kod</th>
+                  <th className="text-violet-400">İndirim (%)</th>
+                  <th className="text-cyan-400">Komisyon (%)</th>
+                  <th className="text-violet-400">Oluşturulma</th>
+                  <th className="text-cyan-400">İşlem</th>
                 </tr>
               </thead>
               <tbody>
@@ -466,14 +466,14 @@ export default function AdminDashboardPage() {
           </div>
         )}
         <div className="mt-3">
-          <a href="/admin/codes" className="inline-flex nav-btn px-3 py-2 rounded-md text-sm border border-[#1e293b]">
+          <a href="/admin/codes" className="inline-flex nav-btn px-3 py-2 rounded-md text-sm border border-[#1e293b] hover:scale-[1.02] hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-r from-cyan-500 to-violet-500">
             Tüm Kodlara Git
           </a>
         </div>
       </section>
 
       {/* Genel Rapor Alanı */}
-      <section className="rounded-md border card-like p-4">
+      <section className="rounded-md border bg-gray-800/50 backdrop-blur-xl border border-white/5 p-4">
         <h2 className="text-lg font-semibold mb-3">Genel Rapor</h2>
         {reportError ? (
           <div className="text-red-500 text-sm">{reportError}</div>

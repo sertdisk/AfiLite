@@ -298,7 +298,7 @@ export default function ApplyForm() {
               type="email"
               value={form.email}
               onChange={(e) => setField('email', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="ornek@mail.com"
             />
             {errors['email'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['email']}</p>}
@@ -310,7 +310,7 @@ export default function ApplyForm() {
               type="password"
               value={form.password}
               onChange={(e) => setField('password', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Şifrenizi girin"
             />
             {errors['password'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['password']}</p>}
@@ -321,7 +321,7 @@ export default function ApplyForm() {
               id="brandName"
               value={form.brandName}
               onChange={(e) => setField('brandName', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Sosyal medyadaki marka adınız"
             />
             {errors['brandName'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['brandName']}</p>}
@@ -339,7 +339,7 @@ export default function ApplyForm() {
               id="name"
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Ad Soyad"
             />
             {errors['name'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['name']}</p>}
@@ -369,7 +369,7 @@ export default function ApplyForm() {
                   const cleaned = value.replace(/[^\d\s]/g, '');
                   setField('phone', cleaned);
                 }}
-                className="flex-1 min-w-0 rounded-r-md border border-app bg-panel px-3 h-10 text-app placeholder:text-muted focus-ring transition"
+                className="flex-1 min-w-0 rounded-r-md border border-app bg-gray-800/50 px-3 h-10 text-app placeholder:text-muted focus-ring transition"
                 placeholder="5xx xxx xx xx"
               />
             </div>
@@ -396,7 +396,7 @@ export default function ApplyForm() {
                 const cleaned = value.replace(/[^\d\s]/g, '');
                 setField('alternativePhone', cleaned);
               }}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="5xx xxx xx xx (Opsiyonel)"
             />
             {errors['alternativePhone'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['alternativePhone']}</p>}
@@ -408,7 +408,7 @@ export default function ApplyForm() {
               value={form.bio}
               onChange={(e) => setField('bio', e.target.value)}
               rows={4}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Kendinizden kısaca bahsedin (opsiyonel)"
             />
           </div>
@@ -462,7 +462,7 @@ export default function ApplyForm() {
                         }
                       }}
                       readOnly={!isOther}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder={isOther ? "Örn. Twitch" : ""}
                     />
                     {errors[`social_accounts.${idx}.platformName`] && (
@@ -478,7 +478,7 @@ export default function ApplyForm() {
                     <input
                       value={acc.handleOrChannel}
                       onChange={(e) => setSocialAccount(idx, { handleOrChannel: e.target.value })}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder="@kullanici | Kanal adı"
                     />
                     {errors[`social_accounts.${idx}.handleOrChannel`] && (
@@ -494,7 +494,7 @@ export default function ApplyForm() {
                     <input
                       value={(acc as any).address ?? ''}
                       onChange={(e) => setSocialAccount(idx, { address: e.target.value })}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder="https://... (varsa)"
                     />
                   </div>
@@ -505,7 +505,7 @@ export default function ApplyForm() {
                     <input
                       value={(acc as any).role ?? ''} // Yeni alan
                       onChange={(e) => setSocialAccount(idx, { role: e.target.value })}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder="Örn. İçerik Üreticisi"
                     />
                   </div>
@@ -516,7 +516,7 @@ export default function ApplyForm() {
                     <input
                       value={(acc as any).niche ?? ''} // Yeni alan
                       onChange={(e) => setSocialAccount(idx, { niche: e.target.value })}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder="Örn. Teknoloji"
                     />
                   </div>
@@ -530,7 +530,7 @@ export default function ApplyForm() {
                       step={1}
                       value={acc.followers}
                       onChange={(e) => setSocialAccount(idx, { followers: e.target.value === '' ? '' : Number(e.target.value) })}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder="0"
                       inputMode="numeric"
                     />
@@ -550,7 +550,7 @@ export default function ApplyForm() {
                       step={1}
                       value={acc.avgViews}
                       onChange={(e) => setSocialAccount(idx, { avgViews: e.target.value === '' ? '' : Number(e.target.value) })}
-                      className="w-full h-10 rounded-md border border-app bg-panel px-2 text-app focus-ring transition"
+                      className="w-full h-10 rounded-md border border-app bg-gray-800/50 px-2 text-app focus-ring transition"
                       placeholder="0"
                       inputMode="numeric"
                     />
@@ -621,7 +621,7 @@ export default function ApplyForm() {
               id="iban"
               value={form.iban}
               onChange={(e) => setField('iban', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="TRXX XXXX XXXX XXXX XXXX XXXX XX"
             />
             {errors['iban'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['iban']}</p>}
@@ -632,7 +632,7 @@ export default function ApplyForm() {
               id="bankName"
               value={form.bankName}
               onChange={(e) => setField('bankName', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Banka Adı"
             />
             {errors['bankName'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['bankName']}</p>}
@@ -643,7 +643,7 @@ export default function ApplyForm() {
               id="accountHolder"
               value={form.accountHolder}
               onChange={(e) => setField('accountHolder', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Hesap Sahibi Adı Soyadı / Ünvanı"
             />
             {errors['accountHolder'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['accountHolder']}</p>}
@@ -672,7 +672,7 @@ export default function ApplyForm() {
               id="commercialTitle"
               value={form.commercialTitle}
               onChange={(e) => setField('commercialTitle', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Ticari Ünvan"
             />
             {errors['commercialTitle'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['commercialTitle']}</p>}
@@ -683,7 +683,7 @@ export default function ApplyForm() {
               id="taxOffice"
               value={form.taxOffice}
               onChange={(e) => setField('taxOffice', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Vergi Dairesi"
             />
             {errors['taxOffice'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['taxOffice']}</p>}
@@ -694,7 +694,7 @@ export default function ApplyForm() {
               id="taxNumber"
               value={form.taxNumber}
               onChange={(e) => setField('taxNumber', e.target.value)}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="Vergi Numarası"
             />
             {errors['taxNumber'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['taxNumber']}</p>}
@@ -706,7 +706,7 @@ export default function ApplyForm() {
               value={form.businessAddress}
               onChange={(e) => setField('businessAddress', e.target.value)}
               rows={3}
-              className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+              className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
               placeholder="İşletme Adresi"
             />
             {errors['businessAddress'] && <p role="alert" className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{errors['businessAddress']}</p>}
@@ -724,7 +724,7 @@ export default function ApplyForm() {
             value={form.generalMessage}
             onChange={(e) => setField('generalMessage', e.target.value)}
             rows={4}
-            className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app placeholder:text-muted focus-ring transition"
+            className="w-full rounded-md border border-app bg-gray-800/50 px-3 py-2 text-app placeholder:text-muted focus-ring transition"
             placeholder="Mesajınızı buraya yazın (opsiyonel)"
           />
         </div>
@@ -752,10 +752,10 @@ export default function ApplyForm() {
           type="submit"
           aria-busy={submitting}
           disabled={!isValid || submitting}
-          className={`inline-flex items-center rounded-md px-4 py-2 focus-ring transition ${
+          className={`inline-flex items-center rounded-md px-4 py-2 focus-ring transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${
             (!isValid || submitting)
               ? 'bg-gray-700 text-gray-300 cursor-not-allowed opacity-70'
-              : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+              : 'bg-gray-800 text-gray-200 hover:bg-gradient-to-r from-cyan-500 to-violet-500'
           }`}
         >
           {submitting ? 'Gönderiliyor…' : 'Kaydol'}
