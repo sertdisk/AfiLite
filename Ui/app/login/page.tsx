@@ -98,7 +98,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-400 space-y-2">
-          <Link href="/influencer/apply" className="text-purple-400 hover:underline font-medium transition duration-300 block">
+          <Link href="/apply" className="text-purple-400 hover:underline font-medium transition duration-300 block">
             Hesabın yok mu? Kaydol
           </Link>
           <Link href="/forgot-password" className="text-gray-400 hover:underline font-medium transition duration-300 block">

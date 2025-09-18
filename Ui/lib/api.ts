@@ -475,3 +475,7 @@ export async function getUnreadAlerts(): Promise<SystemAlert[]> {
 export async function markAlertRead(alertId: number): Promise<{ message: string }> {
   return request(`/api/alerts/${alertId}/read`, { method: 'POST' });
 }
+
+export async function postInfluencerApply(payload: any): Promise<any> {
+  return request('/api/apply', { method: 'POST', body: payload });
+}
