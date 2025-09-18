@@ -114,6 +114,7 @@ function createApp() {
   const settingsRouter = require('./routes/settings')
   const influencerSettingsRouter = require('./routes/influencer-settings')
   const influencerSummaryRouter = require('./routes/influencer-summary')
+  const influencerPerformanceRouter = require('./routes/influencer-performance')
 
   // Mount routers for both /api and /api/v1
   const apiBases = ['/api', '/api/v1']
@@ -131,6 +132,7 @@ function createApp() {
     // Sonra genel influencer route'larını mount et
     app.use(`${base}/influencer`, authenticateToken, influencerRouter)
     app.use(`${base}/influencer/dashboard`, authenticateToken, influencerDashboardRouter)
+    app.use(`${base}/influencer/performance`, authenticateToken, influencerPerformanceRouter)
     app.use(`${base}/influencer`, authenticateToken, influencerSettingsRouter)
     app.use(`${base}/contracts`, contractRouter)
     app.use(`${base}/codes`, authenticateToken, codesRouter)

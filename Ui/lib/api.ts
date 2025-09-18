@@ -30,7 +30,7 @@ export async function request<T = unknown>(
 
   // Influencer paneli için API base URL'sini belirle
   let baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';
-  if (url.startsWith('/api/influencer') || url.startsWith('/api/messages') || url.startsWith('/api/alerts') || url.startsWith('/api/codes/my') || url.startsWith('/api/balance') || url.startsWith('/api/sales/me') || url.startsWith('/api/sales/stats')) {
+  if (url.startsWith('/api/influencer') || url.startsWith('/api/messages') || url.startsWith('/api/alerts') || url.startsWith('/api/codes/my') || url.startsWith('/api/balance') || url.startsWith('/api/sales/me') || url.startsWith('/api/sales/stats') || url.startsWith('/api/v1/influencer/performance/stats')) {
     baseUrl = process.env.NEXT_PUBLIC_INFLUENCER_API_BASE_URL || 'http://localhost:5003';
   }
   let fullUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
@@ -376,6 +376,11 @@ export async function getInfluencerSummary(): Promise<any> {
 
 export async function getInfluencerDashboardStats(): Promise<any> {
     return request('/api/v1/influencer/dashboard/stats');
+}
+
+export async function getInfluencerPerformanceStats(params: any): Promise<any> {
+    const query = new URLSearchParams(params).toString();
+    return request(`/api/v1/influencer/performance/stats?${query}`);
 }
 
 export async function createMyDiscountCode(payload: { code: string }): Promise<any> {

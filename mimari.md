@@ -105,6 +105,7 @@ Influencer'ların kendi bilgilerini, kodlarını, kazançlarını ve mesajların
 | `POST` | `/auth/reset-password` | Şifre sıfırlama işlemini tamamlar. | `src/routes/auth.js` |
 | **Dashboard** | |
 | `GET` | `/influencer/summary` | Influencer'ın dashboard için özet bilgilerini (durum, başvuru tarihi vb.) getirir. | `src/routes/influencer-summary.js` |
+| `GET` | `/influencer/performance/stats` | Influencer'ın satış performans istatistiklerini (grafikler için) getirir. | `src/routes/influencer-performance.js` |
 | **Kod Yönetimi** | |
 | `GET` | `/codes/my` | Influencer'ın kendine ait tüm kodları listeler. | `src/routes/codes.js` |
 | `POST` | `/codes/my` | Influencer için yeni bir kod oluşturur (genellikle ilk kod). | `src/routes/codes.js` |
@@ -138,6 +139,7 @@ Influencer'ların kendi bilgilerini, kodlarını, kazançlarını ve mesajların
 | `sendMessage` | Bir influencer'a mesaj gönderir. |
 | `getUnreadAlerts` | Influencer'ın okunmamış sistem uyarılarını getirir. |
 | `markAlertRead` | Bir uyarıyı okundu olarak işaretler. |
+| `getInfluencerPerformanceStats` | Influencer'ın satış performans istatistiklerini (grafikler için) getirir. |
 ### Frontend Rotaları ve Dosyaları (Influencer)
 
 Influencer paneli `Ui/app/influencer/(protected)/` dizini altında yer alır.
@@ -145,6 +147,7 @@ Influencer paneli `Ui/app/influencer/(protected)/` dizini altında yer alır.
 - **Giriş Sayfası**: `Ui/app/login/page.tsx`
 - **Çıkış**: `Ui/app/logout/route.ts`
 - **Ana Panel (Dashboard)**: `Ui/app/influencer/(protected)/dashboard/page.tsx`
+- **Performans**: `Ui/app/influencer/(protected)/performance/page.tsx`
 - **Profilim**: `Ui/app/influencer/(protected)/profile/page.tsx`
 - **Ödemelerim**: `Ui/app/influencer/(protected)/payouts/page.tsx`
 - **Kodlarım**: `Ui/app/influencer/(protected)/codes/page.tsx`
