@@ -76,7 +76,7 @@ export default function InfluencerMessagesPage() {
                 key={msg.id}
                 className={`p-4 rounded-xl transition-all duration-200 ${
                   msg.from_role === 'admin'
-                    ? 'bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-l-4 border-blue-500'
+                    ? 'bg-gradient-to-r from-cyan-400/50 to-violet-400/50 border-l-4 border-cyan-40'
                     : 'bg-gradient-to-r from-gray-700/50 to-gray-800/50 border-l-4 border-gray-500'
                 }`}
               >

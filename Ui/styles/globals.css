@@ -11,9 +11,7 @@
   --card-bg: #0f172a;        /* yüzey */
   --card-border: #1e293b;    /* sınırlar */
   --accent-bg: #111827;      /* hover/dolgu */
-  --thead-bg: #0b1220;       /* tablo başlık arka planı (daha koyu) */
   --thead-text: #ffffff;     /* tablo başlık yazısı (maksimum kontrast) */
-  --row-alt: #0c1426;        /* şeritli satır arka planı */
 }
 
 /* Genel gövde */
@@ -34,8 +32,8 @@ table {
   border-spacing: 0;
 }
 thead {
-  background-color: var(--thead-bg) !important;
-  color: var(--thead-text) !important;
+  /* background-color: var(--thead-bg) !important; */
+  /* color: var(--thead-text) !important; */
 }
 thead th {
   font-weight: 700 !important;
@@ -48,7 +46,7 @@ tbody td {
   border-top: 1px solid var(--card-border) !important;
 }
 tbody tr:nth-child(even) {
-  background-color: var(--row-alt) !important;
+  /* background-color: var(--row-alt) !important; */
 }
 
 /* Bileşen bazlı daha zengin tablo sınıfı (uygulandığı yerlerde) */
@@ -63,8 +61,8 @@ tbody tr:nth-child(even) {
 
 /* Header hücrelerinin uppercase veya zayıf kontrast aldığı temalarda düzeltme */
 .table-admin thead {
-  background-color: var(--thead-bg) !important;
-  color: var(--thead-text) !important;
+  /* background-color: var(--thead-bg) !important; */
+  /* color: var(--thead-text) !important; */
   text-transform: none !important;
 }
 
@@ -85,7 +83,7 @@ tbody tr:nth-child(even) {
   background-color: transparent;
 }
 .table-admin tbody tr:nth-child(even) {
-  background-color: var(--row-alt);
+  /* background-color: var(--row-alt); */
 }
 
 /* Hücre içi muted metinleri kontrastlı yap */
@@ -103,8 +101,8 @@ tbody tr:nth-child(even) {
 
 /* Gray-50 başlıkları kullanan mevcut sayfalarda görünürlüğü zorlayan utility düzeltmeleri */
 .bg-gray-50 {
-  background-color: var(--thead-bg) !important;
-  color: var(--thead-text) !important;
+  /* background-color: var(--thead-bg) !important; */
+  /* color: var(--thead-text) !important; */
 }
 .text-gray-700, .text-gray-900 {
   color: var(--app-text) !important;

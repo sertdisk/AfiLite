@@ -107,7 +107,7 @@ export default function PayoutsListPage() {
   return (
     <main className="space-y-6 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Ödemeler (Payouts)</h1>
+        <h1 className="text-2xl font-semibold text-white">Ödemeler (Payouts)</h1>
         <a
           href="/influencers"
           className="inline-flex items-center rounded-md bg-gray-800 text-white px-3 py-2 text-sm hover:bg-black"
@@ -118,7 +118,7 @@ export default function PayoutsListPage() {
 
       <form onSubmit={onApplyFilters} className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
         <div className="flex flex-col">
-          <label htmlFor="q" className="text-sm mb-1">Arama</label>
+          <label htmlFor="q" className="text-sm mb-1 text-gray-200">Arama</label>
           <input
             id="q"
             name="q"
@@ -129,7 +129,7 @@ export default function PayoutsListPage() {
           />
         </div>
         <div className="flex flex-col">
-          <label htmlFor="status" className="text-sm mb-1">Durum</label>
+          <label htmlFor="status" className="text-sm mb-1 text-gray-200">Durum</label>
           <select
             id="status"
             value={status}
@@ -146,31 +146,31 @@ export default function PayoutsListPage() {
         </button>
       </form>
 
-      <div className="border rounded-md overflow-auto">
+      <div className="border rounded-md overflow-auto border-white/5">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-800/50 backdrop-blur-xl border-white/5">
             <tr className="text-left">
-              <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">Influencer</th>
-              <th className="px-3 py-2">Tutar</th>
-              <th className="px-3 py-2">Durum</th>
-              <th className="px-3 py-2">Ref</th>
-              <th className="px-3 py-2">Oluşturulma</th>
-              <th className="px-3 py-2">İşlemler</th>
+              <th className="px-3 py-2 text-cyan-400">ID</th>
+              <th className="px-3 py-2 text-violet-400">Influencer</th>
+              <th className="px-3 py-2 text-cyan-400">Tutar</th>
+              <th className="px-3 py-2 text-violet-400">Durum</th>
+              <th className="px-3 py-2 text-cyan-400">Ref</th>
+              <th className="px-3 py-2 text-violet-400">Oluşturulma</th>
+              <th className="px-3 py-2 text-cyan-400">İşlemler</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td className="px-3 py-3 text-gray-500" colSpan={7}>Yükleniyor…</td></tr>
+              <tr><td className="px-3 py-3 text-gray-400" colSpan={7}>Yükleniyor…</td></tr>
             )}
             {!loading && error && (
               <tr><td className="px-3 py-3 text-red-600" colSpan={7}>{error}</td></tr>
             )}
             {!loading && !error && rows.length === 0 && (
-              <tr><td className="px-3 py-3 text-gray-500" colSpan={7}>Kayıt bulunamadı</td></tr>
+              <tr><td className="px-3 py-3 text-gray-400" colSpan={7}>Kayıt bulunamadı</td></tr>
             )}
             {!loading && !error && rows.map((r) => (
-              <tr key={String(r.id)} className="border-t">
+              <tr key={String(r.id)} className="border-t bg-gray-800/50 backdrop-blur-xl border-white/5 hover:scale-[1.02] hover:shadow-lg transition-all duration-300">
                 <td className="px-3 py-2">{r.id}</td>
                 <td className="px-3 py-2">{r.influencer_id}</td>
                 <td className="px-3 py-2">
@@ -191,7 +191,7 @@ export default function PayoutsListPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-400">
           {total != null ? `Toplam: ${total}` : rows.length > 0 ? `Kayıt: ${rows.length}` : ''}
         </div>
         {totalPages && totalPages > 1 && (

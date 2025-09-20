@@ -111,33 +111,33 @@ const PerformancePage = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Performans</h1>
+      <h1 className="text-2xl font-bold mb-4 text-gray-200">Performans</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border rounded-lg bg-white">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 border rounded-lg bg-gray-800/50 backdrop-blur-xl border-white/5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Kod</label>
-          <select name="code" value={filters.code} onChange={handleFilterChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+          <label className="block text-sm font-medium text-gray-200">Kod</label>
+          <select name="code" value={filters.code} onChange={handleFilterChange} className="mt-1 block w-full p-2 border border-white/5 rounded-md bg-gray-800/50 backdrop-blur-xl text-white">
             <option value="">Tümü</option>
             {codes.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Başlangıç Tarihi</label>
-          <input type="date" name="start_date" value={filters.start_date} onChange={handleFilterChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+          <label className="block text-sm font-medium text-gray-200">Başlangıç Tarihi</label>
+          <input type="date" name="start_date" value={filters.start_date} onChange={handleFilterChange} className="mt-1 block w-full p-2 border border-white/5 rounded-md bg-gray-800/50 backdrop-blur-xl text-white" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Bitiş Tarihi</label>
-          <input type="date" name="end_date" value={filters.end_date} onChange={handleFilterChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+          <label className="block text-sm font-medium text-gray-200">Bitiş Tarihi</label>
+          <input type="date" name="end_date" value={filters.end_date} onChange={handleFilterChange} className="mt-1 block w-full p-2 border border-white/5 rounded-md bg-gray-800/50 backdrop-blur-xl text-white" />
         </div>
       </div>
 
       <div className="flex justify-between items-center mb-4">
         <div>
-          <button onClick={exportToCsv} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">CSV İndir</button>
-          <button onClick={exportToXlsx} className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Excel İndir</button>
+          <button onClick={exportToCsv} className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 text-white font-bold py-2 px-4 rounded mr-2">CSV İndir</button>
+          <button onClick={exportToXlsx} className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 text-white font-bold py-2 px-4 rounded">Excel İndir</button>
         </div>
         <div>
-          <select value={pagination.limit} onChange={(e) => handleLimitChange(Number(e.target.value))} className="p-2 border border-gray-300 rounded-md">
+          <select value={pagination.limit} onChange={(e) => handleLimitChange(Number(e.target.value))} className="p-2 border border-white/5 rounded-md bg-gray-800/50 backdrop-blur-xl text-white">
             <option value={20}>20</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
@@ -145,25 +145,25 @@ const PerformancePage = () => {
         </div>
       </div>
 
-      <div className="bg-white overflow-x-auto shadow-md rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-gray-800/50 backdrop-blur-xl border-white/5 overflow-x-auto shadow-md rounded-lg">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-gray-800/50 backdrop-blur-xl border-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kod</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tutar</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Komisyon</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Kod</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Tutar</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Komisyon</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Tarih</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-gray-800/50 backdrop-blur-xl border-white/5 divide-y divide-gray-700">
             {sales.map(sale => (
-              <tr key={sale.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{sale.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{sale.code}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{sale.total_amount.toFixed(2)} TL</td>
-                <td className="px-6 py-4 whitespace-nowrap">{sale.commission.toFixed(2)} TL</td>
-                <td className="px-6 py-4 whitespace-nowrap">{new Date(sale.recorded_at).toLocaleString()}</td>
+              <tr key={sale.id} className="hover:bg-gray-700/50 transition-colors duration-150">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-200">{sale.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-200">{sale.code}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-200">{sale.total_amount.toFixed(2)} TL</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-200">{sale.commission.toFixed(2)} TL</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-200">{new Date(sale.recorded_at).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
@@ -171,17 +171,17 @@ const PerformancePage = () => {
       </div>
 
       <div className="flex justify-between items-center mt-4">
-        <span>Sayfa {pagination.page} / {pagination.pages}</span>
+        <span className="text-gray-200">Sayfa {pagination.page} / {pagination.pages}</span>
         <div>
-          <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-l">Önceki</button>
-          <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.pages} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-r">Sonraki</button>
+          <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="bg-gray-800/50 backdrop-blur-xl border-white/5 hover:bg-gray-700/50 text-white font-bold py-2 px-4 rounded-l">Önceki</button>
+          <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.pages} className="bg-gray-800/50 backdrop-blur-xl border-white/5 hover:bg-gray-700/50 text-white font-bold py-2 px-4 rounded-r">Sonraki</button>
         </div>
       </div>
 
       {stats && (
         <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Performans Grafikleri</h2>
-          <div className="bg-white p-4 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4 text-gray-200">Performans Grafikleri</h2>
+          <div className="bg-gray-800/50 backdrop-blur-xl border-white/5 p-4 rounded-lg shadow-md">
             <Line data={stats} />
           </div>
         </div>

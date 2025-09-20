@@ -146,7 +146,7 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-full bg-gray-900 text-white z-50
+        fixed lg:sticky top-0 left-0 h-full bg-gray-800/50 backdrop-blur-xl border-white/5 text-white z-50
         transform transition-all duration-300 ease-in-out
         ${isMenuExpanded ? 'w-64' : 'w-16'}
         lg:translate-x-0 lg:static
@@ -186,7 +186,7 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
                         flex items-center p-3 rounded-lg transition-colors
                         ${pathname === item.href
                           ? 'bg-indigo-600 text-white'
-                          : 'hover:bg-gray-800 text-gray-300'
+                          : 'hover:bg-gray-800 text-gray-200'
                         }
                       `}
                     >
@@ -210,7 +210,7 @@ export default function InfluencerLayout({ children }: { children: React.ReactNo
                         flex items-center p-3 rounded-lg transition-colors
                         ${pathname === item.href
                           ? 'bg-indigo-600 text-white'
-                          : 'hover:bg-gray-800 text-gray-300'
+                          : 'hover:bg-gray-800 text-gray-200'
                         }
                       `}
                       onClick={() => setIsMenuExpanded(false)}

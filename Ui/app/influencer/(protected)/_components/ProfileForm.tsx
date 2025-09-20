@@ -302,113 +302,113 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
   return (
     <div className="space-y-8">
       {/* Genel Profil Bilgileri */}
-      <section className="rounded-xl border border-app bg-panel p-6 shadow-xl card-hover">
-        <h2 className="text-xl font-semibold mb-4">Hesap Bilgileri</h2>
+      <section className="rounded-xl border border-white/5 bg-gray-800/50 backdrop-blur-xl p-6 shadow-xl card-hover">
+        <h2 className="text-xl font-semibold mb-4 text-gray-200">Hesap Bilgileri</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1 text-muted">E-posta</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{initial.email}</p>
+              <label className="block text-sm mb-1 text-gray-200">E-posta</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{initial.email}</p>
             </div>
             <div>
-              <label className="block text-sm mb-1 text-muted">Markanız</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{profileForm.brandName}</p>
+              <label className="block text-sm mb-1 text-gray-200">Markanız</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{profileForm.brandName}</p>
             </div>
           </div>
         </div>
 
-        <h2 className="text-xl font-semibold mb-4 mt-6">İletişim Bilgileri</h2>
+        <h2 className="text-xl font-semibold mb-4 mt-6 text-gray-200">İletişim Bilgileri</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1 text-muted">İsim Soyisim</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{profileForm.name}</p>
+              <label className="block text-sm mb-1 text-gray-200">İsim Soyisim</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{profileForm.name}</p>
             </div>
             <div>
-              <label className="block text-sm mb-1 text-muted">Telefon Numarası</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{initial.phone || '—'}</p>
+              <label className="block text-sm mb-1 text-gray-200">Telefon Numarası</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{initial.phone || '—'}</p>
             </div>
             <div>
-              <label className="block text-sm mb-1 text-muted">Ülke Kodu</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{/* initial.countryCode */ '—'}</p>
+              <label className="block text-sm mb-1 text-gray-200">Ülke Kodu</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{/* initial.countryCode */ '—'}</p>
             </div>
             <div>
-              <label className="block text-sm mb-1 text-muted">WhatsApp Aktif</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{/* initial.isWhatsappActive */ '—'}</p>
+              <label className="block text-sm mb-1 text-gray-200">WhatsApp Aktif</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{/* initial.isWhatsappActive */ '—'}</p>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm mb-1 text-muted">Biyografi</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{profileForm.bio || '—'}</p>
+              <label className="block text-sm mb-1 text-gray-200">Biyografi</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{profileForm.bio || '—'}</p>
             </div>
             <div>
-              <label className="block text-sm mb-1 text-muted">Alternatif Telefon Numarası</label>
-              <p className="w-full rounded-md border border-app bg-panel px-3 py-2 text-app">{/* initial.alternativePhone */ '—'}</p>
+              <label className="block text-sm mb-1 text-gray-200">Alternatif Telefon Numarası</label>
+              <p className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200">{/* initial.alternativePhone */ '—'}</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Şifre Değiştirme */}
-      <section className="rounded-xl border border-app bg-panel p-6 shadow-xl card-hover">
-        <h2 className="text-xl font-semibold mb-4">Şifre Değiştir</h2>
+      <section className="rounded-xl border border-white/5 bg-gray-800/50 backdrop-blur-xl p-6 shadow-xl card-hover">
+        <h2 className="text-xl font-semibold mb-4 text-gray-200">Şifre Değiştir</h2>
         <button
           type="button"
           onClick={() => setIsPasswordSectionOpen(!isPasswordSectionOpen)}
-          className="w-full text-left flex justify-between items-center p-2 rounded-md hover:bg-white/5 transition"
+          className="w-full text-left flex justify-between items-center p-2 rounded-md hover:bg-gray-700/50 transition"
         >
-          <span>Şifre Değiştir</span>
+          <span className="text-gray-200">Şifre Değiştir</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className={`h-5 w-5 transition-transform duration-200 ${isPasswordSectionOpen ? 'rotate-180' : ''}`}
+            className={`h-5 w-5 transition-transform duration-200 text-gray-200 ${isPasswordSectionOpen ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7" />
           </svg>
         </button>
         {isPasswordSectionOpen && (
           <form onSubmit={onPasswordSubmit} className="space-y-4 mt-4">
             {passwordServerError && (
-              <div role="alert" className="text-sm text-red-300 bg-red-900/30 border border-red-800/50 rounded p-2">
+              <div role="alert" className="text-sm text-red-400 bg-red-900/30 border border-red-800/50 rounded p-2">
                 {passwordServerError}
               </div>
             )}
             {passwordSuccess && (
-              <div role="status" className="text-sm text-emerald-300 bg-emerald-900/20 border border-emerald-800/40 rounded p-2">
+              <div role="status" className="text-sm text-emerald-400 bg-emerald-900/20 border border-emerald-800/40 rounded p-2">
                 {passwordSuccess}
               </div>
             )}
             <div>
-              <label htmlFor="currentPassword" className="block text-sm mb-1">Mevcut Şifre</label>
+              <label htmlFor="currentPassword" className="block text-sm mb-1 text-gray-200">Mevcut Şifre</label>
               <input
                 id="currentPassword"
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
                 placeholder="Mevcut Şifreniz"
               />
             </div>
             <div>
-              <label htmlFor="newPassword" className="block text-sm mb-1">Yeni Şifre</label>
+              <label htmlFor="newPassword" className="block text-sm mb-1 text-gray-200">Yeni Şifre</label>
               <input
                 id="newPassword"
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
                 placeholder="Yeni Şifreniz (en az 6 karakter)"
               />
             </div>
             <div>
-              <label htmlFor="confirmNewPassword" className="block text-sm mb-1">Yeni Şifre Tekrar</label>
+              <label htmlFor="confirmNewPassword" className="block text-sm mb-1 text-gray-200">Yeni Şifre Tekrar</label>
               <input
                 id="confirmNewPassword"
                 type="password"
                 value={passwordForm.confirmNewPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))}
-                className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                className="w-full rounded-md border border-white/5 bg-gray-800/50 backdrop-blur-xl px-3 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
                 placeholder="Yeni Şifrenizi Tekrar Girin"
               />
             </div>
@@ -417,7 +417,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
                 type="submit"
                 aria-busy={passwordSaving}
                 disabled={!isPasswordFormValid || passwordSaving}
-                className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                className="inline-flex items-center rounded-md bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2 text-white hover:from-cyan-600 hover:to-violet-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
               >
                 {passwordSaving ? 'Değiştiriliyor…' : 'Şifreyi Değiştir'}
               </button>
@@ -640,15 +640,15 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
       </section>
 
       {/* Ödeme Bilgileri */}
-      <section className="rounded-xl border border-app bg-panel p-6 shadow-xl card-hover">
-        <h2 className="text-xl font-semibold mb-4">Ödeme Bilgileri</h2>
+      <section className="rounded-xl border border-white/5 bg-gray-800/50 backdrop-blur-xl p-6 shadow-xl card-hover">
+        <h2 className="text-xl font-semibold mb-4 text-gray-200">Ödeme Bilgileri</h2>
         {paymentServerError && (
-          <div role="alert" className="text-sm text-red-300 bg-red-900/30 border border-red-800/50 rounded p-2 mb-4">
+          <div role="alert" className="text-sm text-red-400 bg-red-900/30 border border-red-800/50 rounded p-2 mb-4">
             {paymentServerError}
           </div>
         )}
         {paymentSuccess && (
-          <div role="status" className="text-sm text-emerald-300 bg-emerald-900/20 border border-emerald-800/40 rounded p-2 mb-4">
+          <div role="status" className="text-sm text-emerald-400 bg-emerald-900/20 border border-emerald-800/40 rounded p-2 mb-4">
             {paymentSuccess}
           </div>
         )}
@@ -657,15 +657,15 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
         {paymentAccounts.length > 0 ? (
           <ul className="space-y-2 mb-4">
             {paymentAccounts.map((account) => (
-              <li key={account.id} className={`p-3 border rounded-md ${account.is_active ? 'border-emerald-500 bg-emerald-900/20' : 'border-white/10 bg-white/5'}`}>
-                <p className="font-medium">{account.bank_name} - {account.account_holder_name}</p>
-                <p className="text-sm text-muted">IBAN: {account.iban}</p>
-                <p className="text-xs text-muted">Durum: {account.is_active ? 'Aktif' : 'Pasif'}</p>
+              <li key={account.id} className={`p-3 border rounded-md ${account.is_active ? 'border-emerald-500 bg-emerald-900/20' : 'border-white/5 bg-gray-800/50 backdrop-blur-xl'}`}>
+                <p className="font-medium text-gray-200">{account.bank_name} - {account.account_holder_name}</p>
+                <p className="text-sm text-gray-400">IBAN: {account.iban}</p>
+                <p className="text-xs text-gray-400">Durum: {account.is_active ? 'Aktif' : 'Pasif'}</p>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted mb-4">Henüz eklenmiş ödeme hesabı bulunmamaktadır.</p>
+          <p className="text-sm text-gray-400 mb-4">Henüz eklenmiş ödeme hesabı bulunmamaktadır.</p>
         )}
 
         {/* Yeni Hesap Ekle Formu */}
@@ -673,48 +673,48 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
           <button
             type="button"
             onClick={() => setIsPaymentAddSectionOpen(!isPaymentAddSectionOpen)}
-            className="w-full text-left flex justify-between items-center p-2 rounded-md hover:bg-white/5 transition"
+            className="w-full text-left flex justify-between items-center p-2 rounded-md hover:bg-gray-700/50 transition"
           >
-            <span>Yeni Ödeme Hesabı Ekle</span>
+            <span className="text-gray-200">Yeni Ödeme Hesabı Ekle</span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-5 w-5 transition-transform duration-200 ${isPaymentAddSectionOpen ? 'rotate-180' : ''}`}
+              className={`h-5 w-5 transition-transform duration-200 text-gray-200 ${isPaymentAddSectionOpen ? 'rotate-180' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7" />
             </svg>
           </button>
           {isPaymentAddSectionOpen && (
             <form onSubmit={onPaymentAddSubmit} className="space-y-4 mt-4">
           <div>
-            <label htmlFor="bankName" className="block text-sm mb-1">Banka Adı</label>
+            <label htmlFor="bankName" className="block text-sm mb-1 text-gray-200">Banka Adı</label>
             <input
               id="bankName"
               value={paymentForm.bank_name}
               onChange={(e) => setPaymentForm((prev) => ({ ...prev, bank_name: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/5 bg-gray-80/50 backdrop-blur-xl px-3 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
               placeholder="Banka Adı"
             />
           </div>
           <div>
-            <label htmlFor="accountHolderName" className="block text-sm mb-1">Hesap Sahibi Adı</label>
+            <label htmlFor="accountHolderName" className="block text-sm mb-1 text-gray-200">Hesap Sahibi Adı</label>
             <input
               id="accountHolderName"
               value={paymentForm.account_holder_name}
               onChange={(e) => setPaymentForm((prev) => ({ ...prev, account_holder_name: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/5 bg-gray-80/50 backdrop-blur-xl px-3 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
               placeholder="Hesap Sahibi Adı Soyadı"
             />
           </div>
           <div>
-            <label htmlFor="iban" className="block text-sm mb-1">IBAN</label>
+            <label htmlFor="iban" className="block text-sm mb-1 text-gray-200">IBAN</label>
             <input
               id="iban"
               value={paymentForm.iban}
               onChange={(e) => setPaymentForm((prev) => ({ ...prev, iban: e.target.value }))}
-              className="w-full rounded-md border border-white/10 bg-gray-800/50 backdrop-blur-xl border border-white/5 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+              className="w-full rounded-md border border-white/5 bg-gray-80/50 backdrop-blur-xl px-3 py-2 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
               placeholder="TRXXXXXXXXXXXXXXXXXXXXXXXXXX"
             />
           </div>
@@ -723,7 +723,7 @@ export default function ProfileForm({ initial, platformMessage }: { initial: Inf
               type="submit"
               aria-busy={paymentSaving}
               disabled={!isPaymentFormValid || paymentSaving}
-              className="inline-flex items-center rounded-md bg-indigo-500 px-4 py-2 text-white hover:bg-gradient-to-r from-cyan-500 to-violet-500 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+              className="inline-flex items-center rounded-md bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2 text-white hover:from-cyan-600 hover:to-violet-600 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
             >
               {paymentSaving ? 'Ekleniyor…' : 'Hesap Ekle'}
             </button>

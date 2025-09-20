@@ -96,7 +96,7 @@ export default function SalesListPage() {
   return (
     <main className="space-y-6 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Satışlar</h1>
+        <h1 className="text-2xl font-semibold text-white">Satışlar</h1>
         <a
           href="/sales/stats"
           className="inline-flex items-center rounded-md bg-gray-800 text-white px-3 py-2 text-sm hover:bg-black"
@@ -107,7 +107,7 @@ export default function SalesListPage() {
 
       <form onSubmit={onApplyFilters} className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
         <div className="flex flex-col">
-          <label htmlFor="q" className="text-sm mb-1">Arama</label>
+          <label htmlFor="q" className="text-sm mb-1 text-gray-200">Arama</label>
           <input
             id="q"
             name="q"
@@ -122,31 +122,31 @@ export default function SalesListPage() {
         </button>
       </form>
 
-      <div className="border rounded-md overflow-auto">
+      <div className="border rounded-md overflow-auto border-white/5">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-800/50 backdrop-blur-xl border-white/5">
             <tr className="text-left">
-              <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">Code</th>
-              <th className="px-3 py-2">Influencer</th>
-              <th className="px-3 py-2">Total</th>
-              <th className="px-3 py-2">Commission</th>
-              <th className="px-3 py-2">Created</th>
-              <th className="px-3 py-2">Actions</th>
+              <th className="px-3 py-2 text-cyan-400">ID</th>
+              <th className="px-3 py-2 text-violet-400">Code</th>
+              <th className="px-3 py-2 text-cyan-400">Influencer</th>
+              <th className="px-3 py-2 text-violet-400">Total</th>
+              <th className="px-3 py-2 text-cyan-400">Commission</th>
+              <th className="px-3 py-2 text-violet-400">Created</th>
+              <th className="px-3 py-2 text-cyan-400">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td className="px-3 py-3 text-gray-500" colSpan={7}>Yükleniyor…</td></tr>
+              <tr><td className="px-3 py-3 text-gray-400" colSpan={7}>Yükleniyor…</td></tr>
             )}
             {!loading && error && (
-              <tr><td className="px-3 py-3 text-red-600" colSpan={7}>{error}</td></tr>
+              <tr><td className="px-3 py-3 text-red-400" colSpan={7}>{error}</td></tr>
             )}
             {!loading && !error && rows.length === 0 && (
-              <tr><td className="px-3 py-3 text-gray-500" colSpan={7}>Kayıt bulunamadı</td></tr>
+              <tr><td className="px-3 py-3 text-gray-400" colSpan={7}>Kayıt bulunamadı</td></tr>
             )}
             {!loading && !error && rows.map((r) => (
-              <tr key={r.id} className="border-t">
+              <tr key={r.id} className="border-t bg-gray-800/50 backdrop-blur-xl border-white/5 hover:scale-[1.02] hover:shadow-lg transition-all duration-300">
                 <td className="px-3 py-2">{r.id}</td>
                 <td className="px-3 py-2">{r.code}</td>
                 <td className="px-3 py-2">{r.influencer_brand_name || r.influencer_name || r.influencer_id}</td>
@@ -164,7 +164,7 @@ export default function SalesListPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-400">
           {total != null ? `Toplam: ${total}` : rows.length > 0 ? `Kayıt: ${rows.length}` : ''}
         </div>
         {totalPages && totalPages > 1 && (
