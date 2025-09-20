@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     // 401 mesajı — kullanıcıyı login akışına yönlendirmek için link veriyoruz
     return (
       <main className="p-6">
-        <div className="mx-auto max-w-xl rounded-md border bg-white p-6">
+        <div className="mx-auto max-w-xl rounded-md border bg-gray-800 p-6">
           <h1 className="text-xl font-semibold mb-2">Admin yetkisi gerekli</h1>
           <p className="text-sm text-gray-600 mb-4">
             Bu alanı görüntülemek için admin olarak oturum açmalısınız.

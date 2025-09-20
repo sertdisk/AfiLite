@@ -535,7 +535,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
         {/* Yeni eklenen toplam bilgiler */}
-        <div className="mt-6 border rounded-md p-4 bg-gray-50">
+        <div className="mt-6 border rounded-md p-4 bg-gray-800">
           <h3 className="font-semibold text-lg mb-3">Toplam Bilgiler</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="border rounded-md p-3">

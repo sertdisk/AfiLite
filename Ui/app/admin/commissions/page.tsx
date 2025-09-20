@@ -199,8 +199,8 @@ export default function AdminCommissionsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Komisyonlar</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => exportFile('csv')} className="rounded-md border px-3 py-2 text-sm hover:bg-white/10">CSV Dışa Aktar</button>
-          <button onClick={() => exportFile('xlsx')} className="rounded-md border px-3 py-2 text-sm hover:bg-white/10">Excel (XLSX) Dışa Aktar</button>
+          <button onClick={() => exportFile('csv')} className="rounded-md border px-3 py-2 text-sm hover:bg-gray-800">CSV Dışa Aktar</button>
+          <button onClick={() => exportFile('xlsx')} className="rounded-md border px-3 py-2 text-sm hover:bg-gray-800">Excel (XLSX) Dışa Aktar</button>
         </div>
       </div>
 
@@ -260,9 +260,9 @@ export default function AdminCommissionsPage() {
       </section>
 
       {/* Liste */}
-      <div className="overflow-x-auto rounded-md border bg-white">
+      <div className="overflow-x-auto rounded-md border bg-gray-800">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-gray-700">
+          <thead className="bg-gray-800 text-gray-700">
             <tr>
               <th className="px-4 py-2 text-left">ID</th>
               <th className="px-4 py-2 text-left">Influencer</th>

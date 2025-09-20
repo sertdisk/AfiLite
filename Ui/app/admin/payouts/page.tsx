@@ -47,7 +47,7 @@ function InfluencerSearch({ onInfluencerSelect, initialQuery = '' }) {
       />
       {loading && <div className="p-2 text-sm text-gray-500">Aranıyor...</div>}
       {results.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
+        <ul className="absolute z-10 w-full bg-gray-800 border rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
           {results.map((inf) => (
             <li 
               key={inf.id}
@@ -56,7 +56,7 @@ function InfluencerSearch({ onInfluencerSelect, initialQuery = '' }) {
                 setQuery(inf.name);
                 setResults([]);
               }}
-              className="p-2 hover:bg-gray-100 cursor-pointer"
+              className="p-2 hover:bg-gray-800 cursor-pointer"
             >
               {inf.name} ({inf.email})
             </li>
@@ -165,7 +165,7 @@ function EditPayoutModal({ payout, isOpen, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md card-like">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md card-like">
         <h2 className="text-lg font-semibold mb-4">Ödeme Düzenle (ID: {payout.id})</h2>
         <div className="space-y-4">
           <div>
@@ -278,8 +278,8 @@ export default function AdminPayoutsPage() {
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Ödeme Listesi</h2>
             <div className="flex items-center gap-2">
-                <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">CSV Export</button>
-                <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">Excel Export</button>
+                <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800">CSV Export</button>
+                <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800">Excel Export</button>
             </div>
         </div>
 
@@ -296,7 +296,7 @@ export default function AdminPayoutsPage() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-700">
+            <thead className="bg-gray-800 text-gray-700">
               <tr>
                 <th className="px-4 py-2 text-left">Tarih</th>
                 <th className="px-4 py-2 text-left">Influencer</th>
@@ -315,7 +315,7 @@ export default function AdminPayoutsPage() {
                 <tr><td colSpan={8} className="text-center py-10">Filtreye uygun ödeme bulunamadı.</td></tr>
               ) : (
                 payouts.map(payout => (
-                  <tr key={payout.id} className="hover:bg-gray-50">
+                  <tr key={payout.id} className="hover:bg-gray-800">
                     <td className="px-4 py-2">{new Date(payout.created_at).toLocaleDateString('tr-TR')}</td>
                     <td className="px-4 py-2">{payout.influencer_name}</td>
                     <td className="px-4 py-2 font-mono">{payout.iban}</td>

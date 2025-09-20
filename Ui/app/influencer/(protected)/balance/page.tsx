@@ -12,6 +12,8 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
 
@@ -54,6 +56,49 @@ export default function InfluencerBalancePage() {
   const [totalSettlementsCount, setTotalSettlementsCount] = useState(0);
   const [totalPaidAmount, setTotalPaidAmount] = useState(0);
 
+  // Dışa aktarma işlevleri
+  const exportToCsv = () => {
+    const headers = ['ID', 'Tarih', 'Hesap/IBAN', 'Banka', 'Hesap Sahibi', 'Önceki Bakiye', 'Ödeme Miktarı', 'Sonraki Bakiye'];
+    const rows = settlements.map(st => [
+      st.id,
+      new Date(st.date).toLocaleDateString(),
+      st.account,
+      st.bank_name ?? 'Bilgi Yok',
+      st.account_owner ?? 'Bilgi Yok',
+      st.balance_before_settlement?.toFixed(2) ?? '0.00',
+      st.amount.toFixed(2),
+      st.balance_after_settlement?.toFixed(2) ?? '0.00'
+    ]);
+
+    let csvContent = "data:text/csv;charset=utf-8,"
+      + headers.join(",") + "\n"
+      + rows.map(e => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "odeme_gecmisi.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToXlsx = () => {
+    const worksheet = XLSX.utils.json_to_sheet(settlements.map(st => ({
+      ID: st.id,
+      Tarih: new Date(st.date).toLocaleDateString(),
+      'Hesap/IBAN': st.account,
+      Banka: st.bank_name ?? 'Bilgi Yok',
+      'Hesap Sahibi': st.account_owner ?? 'Bilgi Yok',
+      'Önceki Bakiye': st.balance_before_settlement?.toFixed(2) ?? '0.00',
+      'Ödeme Miktarı': st.amount.toFixed(2),
+      'Sonraki Bakiye': st.balance_after_settlement?.toFixed(2) ?? '0.00'
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ödeme Geçmişi");
+    XLSX.writeFile(workbook, "odeme_gecmisi.xlsx");
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -75,7 +120,7 @@ export default function InfluencerBalancePage() {
         // Şimdilik sadece mevcut sayfadaki ödemelerin toplamını alıyoruz, bu doğru değil.
         // Backend'den toplam ödeme miktarı gelmeli veya tüm ödemeler çekilip toplanmalı.
         const allSettlementsForTotal = await getMySettlements(); // Tüm ödemeleri çek
-        const calculatedTotalPaid = allSettlementsForTotal.items.reduce((sum, item) => sum + item.amount, 0);
+        const calculatedTotalPaid = allSettlementsForTotal.items.reduce((sum: number, item: any) => sum + item.amount, 0);
         setTotalPaidAmount(calculatedTotalPaid);
 
       } catch (e: any) {
@@ -137,15 +182,21 @@ export default function InfluencerBalancePage() {
         <section id="settlement-history-section" className="p-6 bg-gray-800/50 backdrop-blur-xl border border-white/5 rounded-xl shadow-lg space-y-6">
           <h2 className="text-xl font-bold text-gray-200">Ödeme Geçmişi</h2>
           
-          {/* Arama Kutusu */}
-          <div className="flex justify-end">
-            <input
-              type="text"
-              placeholder="Ödeme ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full max-w-sm px-4 py-2 rounded-lg border border-white/5 bg-gray-800/50 backdrop-blur-xl text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors duration-200"
-            />
+          {/* Dışa Aktarma Butonları ve Arama Kutusu */}
+          <div className="flex justify-between items-center">
+            <div>
+              <button onClick={exportToCsv} className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">CSV İndir</button>
+              <button onClick={exportToXlsx} className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Excel İndir</button>
+            </div>
+            <div>
+              <input
+                type="text"
+                placeholder="Ödeme ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full max-w-sm px-4 py-2 rounded-lg border border-white/5 bg-gray-800/50 backdrop-blur-xl text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors duration-200"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto bg-gray-800/50 backdrop-blur-xl border-white/5 rounded-lg shadow-md">
@@ -189,24 +240,24 @@ export default function InfluencerBalancePage() {
 
           {/* Sayfalama Kontrolleri */}
           {totalSettlementsCount > itemsPerPage && (
-            <div className="flex justify-center items-center space-x-4 mt-6">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg bg-gray-800/50 backdrop-blur-xl border-white/5 text-white hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                &larr; Önceki
-              </button>
-              <span className="text-gray-300">
-                Sayfa {currentPage} / {Math.ceil(totalSettlementsCount / itemsPerPage)}
-              </span>
-              <button
-                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalSettlementsCount / itemsPerPage), prev + 1))}
-                disabled={currentPage === Math.ceil(totalSettlementsCount / itemsPerPage)}
-                className="px-4 py-2 rounded-lg bg-gray-800/50 backdrop-blur-xl border-white/5 text-white hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                Sonraki &rarr;
-              </button>
+            <div className="flex justify-between items-center mt-4">
+              <span className="text-gray-200">Sayfa {currentPage} / {Math.ceil(totalSettlementsCount / itemsPerPage)}</span>
+              <div>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="bg-gray-800/50 backdrop-blur-xl border-white/5 hover:bg-gray-700/50 text-white font-bold py-2 px-4 rounded-l"
+                >
+                  &larr; Önceki
+                </button>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalSettlementsCount / itemsPerPage), prev + 1))}
+                  disabled={currentPage === Math.ceil(totalSettlementsCount / itemsPerPage)}
+                  className="bg-gray-800/50 backdrop-blur-xl border-white/5 hover:bg-gray-700/50 text-white font-bold py-2 px-4 rounded-r"
+                >
+                  Sonraki &rarr;
+                </button>
+              </div>
             </div>
           )}
         </section>

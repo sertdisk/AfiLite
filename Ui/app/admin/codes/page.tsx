@@ -148,8 +148,8 @@ export default function AdminCodesPage() {
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold">Kod Listesi</h2>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">CSV Export</button>
-                        <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">Excel Export</button>
+                        <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800">CSV Export</button>
+                        <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800">Excel Export</button>
                     </div>
                 </div>
 
@@ -166,7 +166,7 @@ export default function AdminCodesPage() {
 
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-700">
+                        <thead className="bg-gray-800 text-gray-700">
                             <tr>
                                 <th className="px-4 py-2 text-left">Kod</th>
                                 <th className="px-4 py-2 text-left">Influencer</th>
@@ -184,19 +184,19 @@ export default function AdminCodesPage() {
                                 <tr><td colSpan={7} className="text-center py-10">Filtreye uygun kod bulunamadı.</td></tr>
                             ) : (
                                 codes.map(code => (
-                                    <tr key={code.id} className={`hover:bg-gray-50 ${editingCodeId === code.id ? 'bg-blue-50' : ''}`}>
+                                    <tr key={code.id} className={`hover:bg-gray-800 ${editingCodeId === code.id ? 'bg-blue-800' : ''}`}>
                                         <td className="px-4 py-2 font-mono">{code.code}</td>
                                         <td className="px-4 py-2">{code.influencer_name} <span className="text-gray-500">({code.brand_name})</span></td>
                                         <td className="px-4 py-2 text-right">
                                             {editingCodeId === code.id ? (
-                                                <input type="number" value={editedData.discount_pct} onChange={e => setEditedData({...editedData, discount_pct: Number(e.target.value)})} className="w-20 p-1 border rounded-md text-right bg-white" />
+                                                <input type="number" value={editedData.discount_pct} onChange={e => setEditedData({...editedData, discount_pct: Number(e.target.value)})} className="w-20 p-1 border rounded-md text-right bg-gray-800" />
                                             ) : (
                                                 code.discount_pct
                                             )}
                                         </td>
                                         <td className="px-4 py-2 text-right">
                                             {editingCodeId === code.id ? (
-                                                <input type="number" value={editedData.commission_pct} onChange={e => setEditedData({...editedData, commission_pct: Number(e.target.value)})} className="w-20 p-1 border rounded-md text-right bg-white" />
+                                                <input type="number" value={editedData.commission_pct} onChange={e => setEditedData({...editedData, commission_pct: Number(e.target.value)})} className="w-20 p-1 border rounded-md text-right bg-gray-800" />
                                             ) : (
                                                 code.commission_pct
                                             )}
@@ -205,7 +205,7 @@ export default function AdminCodesPage() {
                                             {editingCodeId === code.id ? (
                                                 <input type="checkbox" checked={!!editedData.is_active} onChange={e => setEditedData({...editedData, is_active: e.target.checked})} />
                                             ) : (
-                                                <span className={`px-2 py-1 text-xs rounded-full ${code.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                                <span className={`px-2 py-1 text-xs rounded-full ${code.is_active ? 'bg-green-800 text-green-200' : 'bg-gray-700 text-gray-200'}`}>
                                                     {code.is_active ? 'Aktif' : 'Beklemede'}
                                                 </span>
                                             )}

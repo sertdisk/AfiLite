@@ -171,15 +171,15 @@ export default function AdminInfluencersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Influencerlar</h1>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={() => exportData('csv')}
-            className="text-sm rounded-md border px-3 py-2 hover:bg-white/10"
+            className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800"
           >
             CSV Export
           </button>
-          <button 
+          <button
             onClick={() => exportData('xlsx')}
-            className="text-sm rounded-md border px-3 py-2 hover:bg-white/10"
+            className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800"
           >
             Excel Export
           </button>
@@ -258,9 +258,9 @@ export default function AdminInfluencersPage() {
 
       {/* Liste */}
       {!error && (
-        <div className="overflow-x-auto rounded-md border bg-white">
+        <div className="overflow-x-auto rounded-md border bg-gray-800">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-700">
+            <thead className="bg-gray-800 text-gray-700">
               <tr>
                 <th className="px-4 py-2 text-left">Kayıt Tarihi</th>
                 <th className="px-4 py-2 text-left">Influencer Kodu</th>
@@ -278,7 +278,7 @@ export default function AdminInfluencersPage() {
               ) : rows.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-500">Sonuç yok</td></tr>
               ) : rows.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
+                <tr key={r.id} className="hover:bg-gray-800">
                   <td className="px-4 py-2">
                     {r.created_at ? new Date(r.created_at).toLocaleDateString('tr-TR') : '—'}
                   </td>
@@ -289,10 +289,10 @@ export default function AdminInfluencersPage() {
                           <span 
                             key={index} 
                             className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
-                              code.is_active 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-gray-200 text-gray-700'
-                            }`}
+                                                          code.is_active
+                                                            ? 'bg-green-800 text-green-200'
+                                                            : 'bg-gray-700 text-gray-200'
+                                                        }`}
                           >
                             {code.is_active ? 'Aktif' : 'Pasif'}
                           </span>
@@ -307,10 +307,10 @@ export default function AdminInfluencersPage() {
                           <span 
                             key={index} 
                             className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
-                              code.is_active 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-gray-200 text-gray-700'
-                            }`}
+                                                          code.is_active
+                                                            ? 'bg-green-800 text-green-200'
+                                                            : 'bg-gray-700 text-gray-200'
+                                                        }`}
                           >
                             {code.is_active ? 'Aktif' : 'Pasif'}
                           </span>

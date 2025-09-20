@@ -176,8 +176,8 @@ export default function AdminSalesPage() {
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Satış Listesi</h2>
             <div className="flex items-center gap-2">
-                <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">CSV Export</button>
-                <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-white/10">Excel Export</button>
+                <button onClick={() => handleExport('csv')} className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800">CSV Export</button>
+                <button onClick={() => handleExport('xlsx')} className="text-sm rounded-md border px-3 py-2 hover:bg-gray-800">Excel Export</button>
             </div>
         </div>
 
@@ -198,7 +198,7 @@ export default function AdminSalesPage() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-700">
+            <thead className="bg-gray-800 text-gray-700">
               <tr>
                 <th className="px-4 py-2 text-left">Tarih</th>
                 <th className="px-4 py-2 text-left">Influencer Kodu</th>
@@ -218,7 +218,7 @@ export default function AdminSalesPage() {
                 <tr><td colSpan={8} className="text-center py-10">Filtreye uygun satış bulunamadı.</td></tr>
               ) : (
                 sales.map(sale => (
-                  <tr key={sale.id} className="hover:bg-gray-50">
+                  <tr key={sale.id} className="hover:bg-gray-800">
                     <td className="px-4 py-2">{new Date(sale.created_at).toLocaleDateString('tr-TR')}</td>
                     <td className="px-4 py-2 font-mono">{sale.influencer_code}</td>
                     <td className="px-4 py-2">{sale.influencer_brand_name}</td>

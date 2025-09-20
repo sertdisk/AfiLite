@@ -404,8 +404,9 @@ export async function getMyBalance(): Promise<any> {
     return request('/api/balance');
 }
 
-export async function getMySettlements(): Promise<any> {
-    return request('/api/balance/history');
+export async function getMySettlements(params?: { limit?: number; offset?: number; query?: string }): Promise<any> {
+    const query = new URLSearchParams(params as any).toString();
+    return request(`/api/balance/history${query ? `?${query}` : ''}`);
 }
 
 export async function getMySales(params: any): Promise<any> {

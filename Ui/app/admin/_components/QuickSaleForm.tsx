@@ -62,7 +62,7 @@ export default function QuickSaleForm({ onSaleAdded }: QuickSaleFormProps) {
   }
 
   return (
-    <div className="rounded-md border bg-white p-4 shadow-sm">
+    <div className="rounded-md border bg-gray-800 p-4 shadow-sm">
       <h2 className="text-lg font-semibold mb-3">Hızlı Satış Gir</h2>
       <form onSubmit={handleQuickSaleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-1">

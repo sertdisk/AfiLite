@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 type PayoutRow = {
   id: number | string;
   influencer_id: number;
   amount: number;
   currency?: string;
-  status: 'pending' | 'approved' | 'paid' | 'rejected';
+ status: 'pending' | 'approved' | 'paid' | 'rejected';
   reference?: string;
   created_at?: string;
   updated_at?: string;
@@ -92,6 +94,88 @@ export default function PayoutsListPage() {
     }
   }
 
+  // Tüm verileri almak için genişletilmiş fonksiyon
+  async function fetchAllData() {
+    try {
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (status) params.set('status', status);
+      params.set('page', '1');
+      params.set('limit', '10000'); // Tüm verileri almak için yüksek bir limit
+
+      const res = await fetch(`/api/payouts?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      const text = await res.text();
+      if (!res.ok) {
+        let msg = text;
+        try {
+          const maybe = JSON.parse(text || '{}');
+          msg = maybe?.message || maybe?.error || msg;
+        } catch (error) { console.error(error); }
+        throw new Error(msg || 'Ödemeler alınamadı.');
+      }
+
+      let json: ListResponse = [];
+      try { json = JSON.parse(text || '[]'); } catch (error) { console.error(error); }
+
+      if (Array.isArray(json)) {
+        return json || [];
+      } else {
+        return (json as any).payouts || [];
+      }
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  const exportToCsv = async () => {
+    try {
+      const allData = await fetchAllData();
+      
+      const headers = ['ID', 'Influencer ID', 'Tutar', 'Para Birimi', 'Durum', 'Referans', 'Oluşturulma Tarihi'];
+      const rows = allData.map((payout: any) => [
+        payout.id,
+        payout.influencer_id,
+        payout.amount,
+        payout.currency || '',
+        payout.status,
+        payout.reference || '',
+        payout.created_at ? new Date(payout.created_at).toLocaleString() : ''
+      ]);
+
+      let csvContent = "data:text/csv;charset=utf-8," 
+        + headers.join(",") + "\n"
+        + rows.map((e: any) => e.join(",")).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "odemeler.csv");
+      document.body.appendChild(link); 
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      setError('CSV dışa aktarma başarısız oldu: ' + (error as Error).message);
+    }
+  };
+
+  const exportToXlsx = async () => {
+    try {
+      const allData = await fetchAllData();
+      
+      const worksheet = XLSX.utils.json_to_sheet(allData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Ödemeler");
+      XLSX.writeFile(workbook, "odemeler.xlsx");
+    } catch (error) {
+      setError('Excel dışa aktarma başarısız oldu: ' + (error as Error).message);
+    }
+  };
+
   useEffect(() => {
     const ctrl = new AbortController();
     fetchList(ctrl);
@@ -108,12 +192,16 @@ export default function PayoutsListPage() {
     <main className="space-y-6 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-white">Ödemeler (Payouts)</h1>
-        <a
-          href="/influencers"
-          className="inline-flex items-center rounded-md bg-gray-800 text-white px-3 py-2 text-sm hover:bg-black"
-        >
-          Influencer Listesi
-        </a>
+        <div className="flex gap-2">
+          <button onClick={exportToCsv} className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">CSV İndir</button>
+          <button onClick={exportToXlsx} className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Excel İndir</button>
+          <a
+            href="/influencers"
+            className="inline-flex items-center rounded-md bg-gray-800 text-white px-3 py-2 text-sm hover:bg-black"
+          >
+            Influencer Listesi
+          </a>
+        </div>
       </div>
 
       <form onSubmit={onApplyFilters} className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
@@ -152,9 +240,9 @@ export default function PayoutsListPage() {
             <tr className="text-left">
               <th className="px-3 py-2 text-cyan-400">ID</th>
               <th className="px-3 py-2 text-violet-400">Influencer</th>
-              <th className="px-3 py-2 text-cyan-400">Tutar</th>
+              <th className="px-3 py-2 text-cyan-40">Tutar</th>
               <th className="px-3 py-2 text-violet-400">Durum</th>
-              <th className="px-3 py-2 text-cyan-400">Ref</th>
+              <th className="px-3 py-2 text-cyan-40">Ref</th>
               <th className="px-3 py-2 text-violet-400">Oluşturulma</th>
               <th className="px-3 py-2 text-cyan-400">İşlemler</th>
             </tr>

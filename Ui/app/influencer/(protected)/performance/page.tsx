@@ -133,8 +133,8 @@ const PerformancePage = () => {
 
       <div className="flex justify-between items-center mb-4">
         <div>
-          <button onClick={exportToCsv} className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 text-white font-bold py-2 px-4 rounded mr-2">CSV İndir</button>
-          <button onClick={exportToXlsx} className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 text-white font-bold py-2 px-4 rounded">Excel İndir</button>
+          <button onClick={exportToCsv} className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">CSV İndir</button>
+          <button onClick={exportToXlsx} className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Excel İndir</button>
         </div>
         <div>
           <select value={pagination.limit} onChange={(e) => handleLimitChange(Number(e.target.value))} className="p-2 border border-white/5 rounded-md bg-gray-800/50 backdrop-blur-xl text-white">

@@ -201,7 +201,7 @@ export default function QuickSaleForm() {
       
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Bölüm: Influencer Kodu ve Bilgileri */}
-        <div className="p-4 bg-gray-50 rounded-md">
+        <div className="p-4 bg-gray-800 rounded-md">
           <h3 className="text-md font-medium mb-3">Kod ve Influencer Bilgileri</h3>
           
           <div className="grid gap-4 sm:grid-cols-2">
@@ -284,7 +284,7 @@ export default function QuickSaleForm() {
         </div>
         
         {/* 2. Bölüm: Satış Bilgileri */}
-        <div className="p-4 bg-gray-50 rounded-md">
+        <div className="p-4 bg-gray-800 rounded-md">
           <h3 className="text-md font-medium mb-3">Satış Bilgileri</h3>
           
           <div className="grid gap-4 sm:grid-cols-2">

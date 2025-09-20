@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-full max-w-sm bg-white rounded-lg shadow p-6">
+      <div className="w-full max-w-sm bg-gray-800 rounded-lg shadow p-6">
         <h1 className="text-xl font-semibold mb-4">Yönetim Paneline Giriş</h1>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>

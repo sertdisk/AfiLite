@@ -56,7 +56,7 @@ function AddCodeSection({ influencerId, onCodeAdded }: { influencerId: number; o
         <div className="mt-4">
             <button type="button" onClick={() => setIsOpen(!isOpen)} className="text-sm rounded-md bg-gray-800 text-white px-3 py-2 hover:bg-gray-700">{isOpen ? 'Formu Kapat' : 'Yeni Kod Ekle'}</button>
             {isOpen && (
-                <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 border rounded-md bg-gray-50">
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 border rounded-md bg-gray-800">
                     {error && <div className="rounded-md border border-red-200 bg-red-50 text-red-700 p-3 text-sm">{error}</div>}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div><label className="block text-sm text-gray-600 mb-1">Kod (Opsiyonel)</label><input value={code} onChange={(e) => setCode(e.target.value)} className="w-full rounded-md border px-3 py-2" placeholder="Otomatik" /></div>
@@ -106,7 +106,7 @@ function QuickSaleForm({ influencerId, codes, onSaleAdded, onCancel }: { influen
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 border rounded-md bg-gray-50">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 border rounded-md bg-gray-800">
             {error && <div className="rounded-md border border-red-200 bg-red-50 text-red-700 p-3 text-sm">{error}</div>}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Kod</label><select value={code} onChange={(e) => setCode(e.target.value)} className="w-full rounded-md border-gray-300 shadow-sm" required><option value="">— Kod Seç —</option>{(codes || []).filter(c => c.is_active).map(c => (<option key={c.id} value={c.code}>{c.code}</option>))}</select></div>
@@ -156,7 +156,7 @@ function AddPayoutSection({ influencerId, influencerIban, onPayoutAdded }: { inf
         <div className="mt-4">
             <button type="button" onClick={() => setIsOpen(!isOpen)} className="text-sm rounded-md bg-gray-800 text-white px-3 py-2 hover:bg-gray-700">{isOpen ? 'Formu Kapat' : 'Yeni Ödeme Oluştur'}</button>
             {isOpen && (
-                <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 border rounded-md bg-gray-50">
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 border rounded-md bg-gray-800">
                     {error && <div className="rounded-md border border-red-200 bg-red-50 text-red-700 p-3 text-sm">{error}</div>}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="sm:col-span-2"><label className="block text-sm text-gray-600 mb-1">IBAN</label><input value={iban} onChange={e => setIban(e.target.value)} className="w-full rounded-md border px-3 py-2" placeholder="TR..." required /></div>
@@ -342,7 +342,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                         <h2 className="text-lg font-semibold">Platformlar</h2>
                         <div className="space-y-2">
                             {detail.social_accounts.length > 0 ? detail.social_accounts.map(acc => (
-                                <div key={acc.id} className="p-3 border rounded-lg bg-gray-50">
+                                <div key={acc.id} className="p-3 border rounded-lg bg-gray-800">
                                     {editingSocialAccount?.id === acc.id ? (
                                         <div className="space-y-2">
                                             <input value={editingSocialAccount.platform} onChange={e => setEditingSocialAccount({...editingSocialAccount, platform: e.target.value})} className="w-full p-1 border rounded" />
@@ -380,7 +380,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                         <h2 className="text-lg font-semibold">Ödeme Hesapları</h2>
                         <div className="space-y-2">
                             {detail.payment_accounts.length > 0 ? detail.payment_accounts.map(acc => (
-                                <div key={acc.id} className={`p-3 border rounded-lg flex justify-between items-center ${acc.is_active ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                                <div key={acc.id} className={`p-3 border rounded-lg flex justify-between items-center ${acc.is_active ? 'bg-green-800 border-green-200' : 'bg-gray-800'}`}>
                                     <div>
                                         <p className="font-bold">{acc.bank_name}</p>
                                         <p className="font-mono text-sm">{acc.iban}</p>
@@ -399,7 +399,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                         <h2 className="text-lg font-semibold">İndirim Kodları</h2>
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left">Kod</th><th className="px-3 py-2 text-left">İndirim %</th><th className="px-3 py-2 text-left">Komisyon %</th><th className="px-3 py-2 text-left">Durum</th><th className="px-3 py-2 text-left">İşlem</th></tr></thead>
+                                <thead className="bg-gray-800"><tr><th className="px-3 py-2 text-left">Kod</th><th className="px-3 py-2 text-left">İndirim %</th><th className="px-3 py-2 text-left">Komisyon %</th><th className="px-3 py-2 text-left">Durum</th><th className="px-3 py-2 text-left">İşlem</th></tr></thead>
                                 <tbody className="divide-y">{codes.map(c => <tr key={c.id}>{editingCode?.id === c.id ? <><td><input value={editingCode.code} readOnly className="w-full bg-gray-100 px-3 py-2" /></td><td><input type="number" value={editingCode.discount_pct} onChange={e => setEditingCode({...editingCode, discount_pct: Number(e.target.value)})} className="w-20 rounded-md border-gray-300 shadow-sm px-3 py-2" /></td><td><input type="number" value={editingCode.commission_pct} onChange={e => setEditingCode({...editingCode, commission_pct: Number(e.target.value)})} className="w-20 rounded-md border-gray-300 shadow-sm px-3 py-2" /></td><td>{c.is_active ? 'Aktif' : 'Pasif'}</td><td><button onClick={handleSaveCode} className="text-xs bg-blue-600 text-white rounded px-2 py-1">Kaydet</button><button onClick={() => setEditingCode(null)} className="text-xs rounded px-2 py-1 ml-1">İptal</button></td></> : <><td>{c.code}</td><td>{c.discount_pct}%</td><td>{c.commission_pct}%</td><td>{c.is_active ? 'Aktif' : 'Pasif'}</td><td><button onClick={() => setEditingCode(c)} className="text-xs rounded border px-2 py-1">Düzenle</button></td></>}</tr>)}</tbody>
                             </table>
                         </div>
@@ -411,7 +411,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                         {showSaleForm && <QuickSaleForm influencerId={Number(inflId)} codes={codes} onSaleAdded={loadAll} onCancel={() => setShowSaleForm(false)} />}
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left">Tarih</th><th className="px-3 py-2 text-left">Kod</th><th className="px-3 py-2 text-left">Müşteri</th><th className="px-3 py-2 text-left">Ürün</th><th className="px-3 py-2 text-right">Tutar</th><th className="px-3 py-2 text-right">Komisyon</th><th className="px-3 py-2 text-left">Not</th><th className="px-3 py-2 text-left">İşlem</th></tr></thead>
+                                <thead className="bg-gray-800"><tr><th className="px-3 py-2 text-left">Tarih</th><th className="px-3 py-2 text-left">Kod</th><th className="px-3 py-2 text-left">Müşteri</th><th className="px-3 py-2 text-left">Ürün</th><th className="px-3 py-2 text-right">Tutar</th><th className="px-3 py-2 text-right">Komisyon</th><th className="px-3 py-2 text-left">Not</th><th className="px-3 py-2 text-left">İşlem</th></tr></thead>
                                 <tbody className="divide-y">{sales.map(s => <tr key={s.id}>{editingSale?.id === s.id ? <><td>{s.recorded_at ? new Date(s.recorded_at).toLocaleDateString() : ''}</td><td><input value={editingSale.code} readOnly className="w-full bg-gray-100"/></td><td><input value={editingSale.customer_url ?? ''} onChange={e => setEditingSale({...editingSale, customer_url: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><input value={editingSale.product ?? ''} onChange={e => setEditingSale({...editingSale, product: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><input type="number" value={editingSale.total_amount ?? ''} onChange={e => setEditingSale({...editingSale, total_amount: Number(e.target.value)})} className="w-full rounded-md border-gray-300" /></td><td className="text-right">{s.commission != null ? `${s.commission.toFixed(2)} TRY` : '-'}</td><td><input value={editingSale.note ?? ''} onChange={e => setEditingSale({...editingSale, note: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><button onClick={handleSaveSale} className="text-xs bg-blue-600 text-white rounded px-2 py-1">Kaydet</button><button onClick={() => setEditingSale(null)} className="text-xs rounded px-2 py-1 ml-1">İptal</button></td></> : <><td>{s.recorded_at ? new Date(s.recorded_at).toLocaleDateString() : ''}</td><td>{s.code}</td><td>{s.customer_url || '-'}</td><td>{s.product || '-'}</td><td className="text-right">{s.total_amount != null ? `${s.total_amount.toFixed(2)} TRY` : '-'}</td><td className="text-right">{s.commission != null ? `${s.commission.toFixed(2)} TRY` : '-'}</td><td>{s.note || '-'}</td><td><button onClick={() => setEditingSale(s)} className="text-xs rounded border px-2 py-1">Düzenle</button></td></>}</tr>)}</tbody>
                             </table>
                         </div>
@@ -421,7 +421,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                         <h2 className="text-lg font-semibold">Ödemeler</h2>
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
-                                <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left">Tarih</th><th className="px-3 py-2 text-left">IBAN</th><th className="px-3 py-2 text-right">Tutar</th><th className="px-3 py-2 text-right">Önceki Bakiye</th><th className="px-3 py-2 text-right">Sonraki Bakiye</th><th className="px-3 py-2 text-left">Durum</th><th className="px-3 py-2 text-left">Not</th></tr></thead>
+                                <thead className="bg-gray-800"><tr><th className="px-3 py-2 text-left">Tarih</th><th className="px-3 py-2 text-left">IBAN</th><th className="px-3 py-2 text-right">Tutar</th><th className="px-3 py-2 text-right">Önceki Bakiye</th><th className="px-3 py-2 text-right">Sonraki Bakiye</th><th className="px-3 py-2 text-left">Durum</th><th className="px-3 py-2 text-left">Not</th></tr></thead>
                                 <tbody className="divide-y">{payouts.map(p => <tr key={p.id}><td className="px-3 py-2">{new Date(p.created_at).toLocaleDateString()}</td><td className="font-mono">{p.iban}</td><td className="text-right">{p.amount.toFixed(2)} TRY</td><td className="text-right">{p.balance_before?.toFixed(2)} TRY</td><td className="text-right">{p.balance_after?.toFixed(2)} TRY</td><td>{p.status}</td><td>{p.note || '-'}</td></tr>)}</tbody>
                             </table>
                         </div>
