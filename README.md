@@ -1,8 +1,10 @@
 # AfiLite
-AfiLite, dijital ürünlerin influencer/affiliate ortakları aracılığıyla satışını ve komisyon ödemelerini yöneten minimal bir web servisidir. Node.js + Express + SQLite üçlüsü kullanır; Windows, Linux veya tek bir makinede başsız çalışabilir.
+AfiLite, dijital ürünlerin influencer/affiliate ortakları aracılığıyla satışını ve komisyon ödemelerini yöneten minimal bir web servisidir. Node.js + Express + SQLite üçlüsü kullanır; Windows, Linux veya tek bir makinede başlı veya başsız çalışabilir.
 
 
 🌟 AfiLite (aktif olarak geliştirilmektedir)
+Kullanımdan doğan sorumluluk tamamen size aittir.
+
 🚀 Dijital Satışlarda Yeni Nesil Çözüm
 
 AfiLite, markaların satışlarını artırırken influencerların gelir elde etmesini kolaylaştıran indirim kodu tabanlı bir satış ortaklığı platformudur.
