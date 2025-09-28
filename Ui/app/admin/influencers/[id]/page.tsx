@@ -15,7 +15,8 @@ import {
   adminListInfluencerPaymentAccounts,
   adminUpdateInfluencerSocialAccount,
   adminDeleteInfluencerSocialAccount,
-  adminDeleteInfluencerPaymentAccount
+  adminDeleteInfluencerPaymentAccount,
+  getAdminInfluencerBalance
 } from '@/lib/api';
 
 // --- TİPLER ---
@@ -25,6 +26,7 @@ type InflDetail = { id: number; full_name: string; email: string; phone?: string
 type CodeRow = { id: number; code: string; discount_pct?: number; commission_pct?: number; is_active?: boolean | number; };
 type SaleRow = { id: number; recorded_at?: string | null; code: string; customer_url?: string | null; product?: string | null; total_amount?: number | null; commission?: number | null; note?: string | null; };
 type PayoutRow = { id: number; amount: number; status: string; created_at: string; note?: string; iban?: string; balance_before?: number; balance_after?: number; };
+type BalanceSummary = { balance: number; total_commission: number; paid_commission: number; unpaid_commission: number; total_sales: number; last_payout_date?: string | null; };
 
 // --- YARDIMCI BİLEŞENLER ---
 
@@ -81,11 +83,41 @@ function QuickSaleForm({ influencerId, codes, onSaleAdded, onCancel }: { influen
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [commission, setCommission] = useState<number | null>(null);
+    const [commissionRate, setCommissionRate] = useState<number | null>(null);
 
     useEffect(() => {
         const active = (codes || []).filter(c => c.is_active);
         if (active.length > 0 && !code) setCode(String(active[0].code));
     }, [codes, code]);
+
+    // Seçili koda ait komisyon oranını bul ve komisyonu hesapla
+    useEffect(() => {
+        if (code) {
+            const selectedCode = codes.find(c => c.code === code);
+            if (selectedCode && selectedCode.commission_pct !== undefined) {
+                setCommissionRate(selectedCode.commission_pct);
+            } else {
+                setCommissionRate(null);
+            }
+        } else {
+            setCommissionRate(null);
+        }
+    }, [code, codes]);
+
+    useEffect(() => {
+        if (code && amount && commissionRate !== null) {
+            const amountNum = Number(amount);
+            if (!isNaN(amountNum) && amountNum > 0) {
+                const calculatedCommission = (amountNum * commissionRate) / 100;
+                setCommission(calculatedCommission);
+            } else {
+                setCommission(null);
+            }
+        } else {
+            setCommission(null);
+        }
+    }, [code, amount, commissionRate]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -95,7 +127,7 @@ function QuickSaleForm({ influencerId, codes, onSaleAdded, onCancel }: { influen
             const amountNum = Number(amount);
             if (!code) throw new Error('Kod seçiniz');
             if (!Number.isFinite(amountNum) || amountNum <= 0) throw new Error('Geçerli tutar giriniz');
-            await postAdminSale({ code, amount: amountNum, customer_url: customer, product, note });
+            await postAdminSale({ code, total_amount: amountNum, customer_url: customer, product, note });
             onSaleAdded();
             onCancel();
         } catch (err: any) {
@@ -114,6 +146,28 @@ function QuickSaleForm({ influencerId, codes, onSaleAdded, onCancel }: { influen
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Müşteri</label><input value={customer} onChange={e => setCustomer(e.target.value)} className="w-full rounded-md border-gray-300 shadow-sm" placeholder="(Opsiyonel)" /></div>
                 <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Ürün</label><input value={product} onChange={e => setProduct(e.target.value)} className="w-full rounded-md border-gray-300 shadow-sm" placeholder="(Opsiyonel)" /></div>
                 <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Not</label><input value={note} onChange={e => setNote(e.target.value)} className="w-full rounded-md border-gray-300 shadow-sm" placeholder="(Opsiyonel)" /></div>
+                <div className="sm:col-span-4 bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <div className="text-xs text-gray-600">Komisyon Oranı</div>
+                            <div className="font-medium">
+                                {commissionRate !== null ? `${commissionRate}%` : '-'}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-gray-600">Tutar</div>
+                            <div className="font-medium">
+                                {amount ? `${Number(amount).toFixed(2)} TRY` : '-'}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs text-gray-600">Tahmini Komisyon</div>
+                            <div className="font-medium text-green-600">
+                                {commission !== null ? `${commission.toFixed(2)} TRY` : '-'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div className="flex items-center gap-2">
                 <button type="submit" disabled={saving} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50">{saving ? 'Ekleniyor…' : 'Satış Ekle'}</button>
@@ -187,6 +241,7 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
     const [editingSale, setEditingSale] = useState<Partial<SaleRow> | null>(null);
     const [payouts, setPayouts] = useState<PayoutRow[]>([]);
     const [showSaleForm, setShowSaleForm] = useState(false);
+    const [balance, setBalance] = useState<BalanceSummary | null>(null);
 
     const inflId = params.id;
 
@@ -194,14 +249,32 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
         if (!inflId) return;
         setBusy(true);
         try {
-            const [detailData, codesRes, salesRes, payoutsRes, socialAccountsRes, paymentAccountsRes] = await Promise.all([
+            const [detailData, codesRes, salesRes, payoutsRes, socialAccountsRes, paymentAccountsRes, balanceRes] = await Promise.all([
                 fetch(`/api/influencers/${encodeURIComponent(inflId)}`, { credentials: 'include' }).then(res => res.json()),
                 adminListInfluencerCodes(String(inflId)),
                 getAdminSales({ influencerId: Number(inflId), limit: 20 }),
                 getAdminPayouts({ influencerId: Number(inflId), limit: 20 }),
                 adminListInfluencerSocialAccounts(String(inflId)),
                 adminListInfluencerPaymentAccounts(String(inflId)),
+                getAdminInfluencerBalance(Number(inflId)),
             ]);
+
+            console.log('[DEBUG] Sales data:', salesRes);
+            console.log('[DEBUG] Influencer ID:', inflId);
+
+            // API yanıtlarını kontrol et
+            if (!salesRes || !salesRes.items) {
+                console.error('Satış verileri alınamadı:', salesRes);
+                throw new Error('Satış verileri alınamadı');
+            }
+            if (!balanceRes) {
+                console.error('Bakiye verileri alınamadı:', balanceRes);
+                throw new Error('Bakiye verileri alınamadı');
+            }
+
+            console.log('Satış verileri:', salesRes.items);
+            console.log('Bakiye verileri:', balanceRes);
+            console.log('Ödeme verileri:', payoutsRes);
 
             if (!detailData) throw new Error('Influencer detayları yüklenemedi.');
 
@@ -212,8 +285,6 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                 brand_name: detailData.brand_name || undefined,
                 status: detailData.status,
                 about: detailData.notes,
-                created_at: detailData.created_at,
-                updated_at: detailData.updated_at,
                 phone: detailData.phone || undefined,
                 niche: detailData.niche || undefined,
                 country: detailData.country || undefined,
@@ -225,9 +296,14 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
             setDetail(transformedDetail);
             setForm(transformedDetail);
 
+            console.log('[DEBUG] Setting codes:', codesRes.items || []);
             setCodes(codesRes.items || []);
+            console.log('[DEBUG] Setting sales:', salesRes.items || []);
             setSales(salesRes.items || []);
+            console.log('[DEBUG] Setting payouts:', payoutsRes.items || []);
             setPayouts(payoutsRes.items || []);
+            console.log('[DEBUG] Setting balance:', balanceRes);
+            setBalance(balanceRes);
 
         } catch (e: any) {
             setError(e.message);
@@ -337,7 +413,59 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                             {!editing ? <button onClick={() => setEditing(true)} className="rounded-md bg-gray-800 text-white px-4 py-2 text-sm hover:bg-gray-700">Profili Düzenle</button> : <><button onClick={handleSaveProfile} disabled={busy} className="rounded-md bg-emerald-600 text-white px-4 py-2 text-sm hover:bg-emerald-700 disabled:opacity-50">{busy ? 'Kaydediliyor…' : 'Kaydet'}</button><button onClick={() => { setEditing(false); setForm(detail!); }} className="rounded-md border px-4 py-2 text-sm">İptal</button></>}
                         </div>
                     </section>
-
+    
+                    {/* Bakiye Bilgileri Bölümü */}
+                    <section className="rounded-md border p-4 space-y-4 bg-gradient-to-r from-blue-900/20 to-indigo-900/20">
+                        <h2 className="text-lg font-semibold">Bakiye ve Performans Bilgileri</h2>
+                        {balance ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-gray-800 p-4 rounded-md">
+                                    <p className="text-sm text-gray-400">Mevcut Bakiye</p>
+                                    <p className="text-xl font-bold text-green-400">{balance.balance?.toFixed(2) || '0.00'} TRY</p>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-md">
+                                    <p className="text-sm text-gray-40">Toplam Komisyon</p>
+                                    <p className="text-xl font-bold">{balance.total_commission?.toFixed(2) || '0.00'} TRY</p>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-md">
+                                    <p className="text-sm text-gray-400">Ödenmiş Komisyon</p>
+                                    <p className="text-xl font-bold text-green-400">{balance.paid_commission?.toFixed(2) || '0.00'} TRY</p>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-md">
+                                    <p className="text-sm text-gray-400">Ödenmemiş Komisyon</p>
+                                    <p className="text-xl font-bold text-yellow-400">{balance.unpaid_commission?.toFixed(2) || '0.00'} TRY</p>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-md md:col-span-2">
+                                    <p className="text-sm text-gray-400">Toplam Satış</p>
+                                    <p className="text-xl font-bold">{balance.total_sales || 0} adet</p>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-md md:col-span-2">
+                                    <p className="text-sm text-gray-400">Son Ödeme Tarihi</p>
+                                    <p className="text-xl font-bold">{balance.last_settlement_at ? new Date(balance.last_settlement_at).toLocaleDateString('tr-TR') : payouts && payouts.length > 0 ? 'Ödeme bekliyor' : 'Henüz ödeme yapılmamış'}</p>
+                                </div>
+                                <div className="bg-gray-800 p-4 rounded-md lg:col-span-4">
+                                    <p className="text-sm text-gray-400">Bakiye Hareketleri</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                                        <div className="text-center">
+                                            <p className="text-xs text-gray-500">Toplam Kazanç</p>
+                                            <p className="font-bold">{balance.total_commission?.toFixed(2) || '0.00'} TRY</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-xs text-gray-500">Ödenen</p>
+                                            <p className="font-bold text-green-400">{balance.paid_commission?.toFixed(2) || '0.00'} TRY</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-xs text-gray-500">Ödenmemiş</p>
+                                            <p className="font-bold text-yellow-400">{balance.unpaid_commission?.toFixed(2) || '0.00'} TRY</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-gray-500">Bakiye bilgileri yükleniyor...</p>
+                        )}
+                    </section>
+    
                     <section className="rounded-md border p-4 space-y-4">
                         <h2 className="text-lg font-semibold">Platformlar</h2>
                         <div className="space-y-2">
@@ -412,7 +540,13 @@ export default function AdminInfluencerDetailPage({ params }: { params: { id: st
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
                                 <thead className="bg-gray-800"><tr><th className="px-3 py-2 text-left">Tarih</th><th className="px-3 py-2 text-left">Kod</th><th className="px-3 py-2 text-left">Müşteri</th><th className="px-3 py-2 text-left">Ürün</th><th className="px-3 py-2 text-right">Tutar</th><th className="px-3 py-2 text-right">Komisyon</th><th className="px-3 py-2 text-left">Not</th><th className="px-3 py-2 text-left">İşlem</th></tr></thead>
-                                <tbody className="divide-y">{sales.map(s => <tr key={s.id}>{editingSale?.id === s.id ? <><td>{s.recorded_at ? new Date(s.recorded_at).toLocaleDateString() : ''}</td><td><input value={editingSale.code} readOnly className="w-full bg-gray-100"/></td><td><input value={editingSale.customer_url ?? ''} onChange={e => setEditingSale({...editingSale, customer_url: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><input value={editingSale.product ?? ''} onChange={e => setEditingSale({...editingSale, product: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><input type="number" value={editingSale.total_amount ?? ''} onChange={e => setEditingSale({...editingSale, total_amount: Number(e.target.value)})} className="w-full rounded-md border-gray-300" /></td><td className="text-right">{s.commission != null ? `${s.commission.toFixed(2)} TRY` : '-'}</td><td><input value={editingSale.note ?? ''} onChange={e => setEditingSale({...editingSale, note: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><button onClick={handleSaveSale} className="text-xs bg-blue-600 text-white rounded px-2 py-1">Kaydet</button><button onClick={() => setEditingSale(null)} className="text-xs rounded px-2 py-1 ml-1">İptal</button></td></> : <><td>{s.recorded_at ? new Date(s.recorded_at).toLocaleDateString() : ''}</td><td>{s.code}</td><td>{s.customer_url || '-'}</td><td>{s.product || '-'}</td><td className="text-right">{s.total_amount != null ? `${s.total_amount.toFixed(2)} TRY` : '-'}</td><td className="text-right">{s.commission != null ? `${s.commission.toFixed(2)} TRY` : '-'}</td><td>{s.note || '-'}</td><td><button onClick={() => setEditingSale(s)} className="text-xs rounded border px-2 py-1">Düzenle</button></td></>}</tr>)}</tbody>
+                                <tbody className="divide-y">
+                                    {sales.length > 0 ?
+                                        sales.map(s => <tr key={s.id}>{editingSale?.id === s.id ? <><td>{s.recorded_at ? new Date(s.recorded_at).toLocaleDateString() : ''}</td><td><input value={editingSale.code} readOnly className="w-full bg-gray-100"/></td><td><input value={editingSale.customer_url ?? ''} onChange={e => setEditingSale({...editingSale, customer_url: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><input value={editingSale.product ?? ''} onChange={e => setEditingSale({...editingSale, product: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><input type="number" value={editingSale.total_amount ?? ''} onChange={e => setEditingSale({...editingSale, total_amount: Number(e.target.value)})} className="w-full rounded-md border-gray-300" /></td><td className="text-right">{s.commission != null ? `${s.commission.toFixed(2)} TRY` : '-'}</td><td><input value={editingSale.note ?? ''} onChange={e => setEditingSale({...editingSale, note: e.target.value})} className="w-full rounded-md border-gray-300" /></td><td><button onClick={handleSaveSale} className="text-xs bg-blue-600 text-white rounded px-2 py-1">Kaydet</button><button onClick={() => setEditingSale(null)} className="text-xs rounded px-2 py-1 ml-1">İptal</button></td></> : <><td>{s.recorded_at ? new Date(s.recorded_at).toLocaleDateString() : ''}</td><td>{s.code}</td><td>{s.customer_url || '-'}</td><td>{s.product || '-'}</td><td className="text-right">{s.total_amount != null ? `${s.total_amount.toFixed(2)} TRY` : '-'}</td><td className="text-right">{s.commission != null ? `${s.commission.toFixed(2)} TRY` : '-'}</td><td>{s.note || '-'}</td><td><button onClick={() => setEditingSale(s)} className="text-xs rounded border px-2 py-1">Düzenle</button></td></>}</tr>)
+                                        :
+                                        <tr><td colSpan={8} className="text-center py-4 text-gray-500">Henüz satış yapılmamış</td></tr>
+                                    }
+                                </tbody>
                             </table>
                         </div>
                     </section>

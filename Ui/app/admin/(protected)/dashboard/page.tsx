@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
   const [activeCodesError, setActiveCodesError] = useState<string | null>(null);
 
   // Genel rapor verileri için state'ler
-  const [reportData, setReportData] = useState({
+ const [reportData, setReportData] = useState({
     activeCodesCount: 0,
     pendingCodesCount: 0,
     activeInfluencersCount: 0,
@@ -55,6 +55,7 @@ export default function AdminDashboardPage() {
     totalSalesCount: 0,
     totalProductAmount: 0,
     totalEarnedCommission: 0,
+    paidSalesAmount: 0,
   });
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -213,11 +214,12 @@ export default function AdminDashboardPage() {
             activeInfluencersCount: balanceSummary.activeInfluencersCount || 0,
             commissionSinceLastPayout: balanceSummary.commissionSinceLastPayout || 0,
             salesAmountSinceLastPayout: balanceSummary.salesAmountSinceLastPayout || 0,
-            totalCommissionPaid: balanceSummary.totalPayouts || 0,
+            totalCommissionPaid: balanceSummary.totalCommissionPaid || 0,
             totalSalesAmount: balanceSummary.totalSalesAmount || 0,
             totalSalesCount: balanceSummary.totalSalesCount || 0,
             totalProductAmount: balanceSummary.totalSalesAmount || 0,
             totalEarnedCommission: balanceSummary.totalCommission || 0,
+            paidSalesAmount: balanceSummary.paidSalesAmount || 0,
           });
         }
       } catch (error) {
@@ -528,7 +530,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Ürün Tutarı:</span>
-                  <span className="font-medium">₺ {Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(reportData.totalSalesAmount - reportData.salesAmountSinceLastPayout)}</span>
+                  <span className="font-medium">₺ {Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(reportData.paidSalesAmount) || 0)}</span>
                 </div>
               </div>
             </div>

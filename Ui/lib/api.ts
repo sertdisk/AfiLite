@@ -28,12 +28,30 @@ export async function request<T = unknown>(
     ...(opts.headers || {})
   };
 
-  // Influencer paneli için API base URL'sini belirle
-  let baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';
+  // Admin ve influencer paneli için API base URL'sini belirle
+  // Next.js proxy rotalarını kullanmak için base URL'e gerek yok
+ let baseUrl = '';
+  
+  // Influencer özel rotalar için
   if (url.startsWith('/api/influencer') || url.startsWith('/api/messages') || url.startsWith('/api/alerts') || url.startsWith('/api/codes/my') || url.startsWith('/api/balance') || url.startsWith('/api/sales/me') || url.startsWith('/api/sales/stats') || url.startsWith('/api/v1/influencer/performance/stats')) {
     baseUrl = process.env.NEXT_PUBLIC_INFLUENCER_API_BASE_URL || 'http://localhost:5003';
   }
-  let fullUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
+  // Admin özel rotalar için (Next.js proxy rotalarını kullan)
+  else if (url.startsWith('/api/admin/')) {
+    // Admin rotaları için Next.js proxy rotalarını kullan, backend'e doğrudan gitme
+    baseUrl = ''; // Next.js proxy rotalarını kullanmak için base URL'e gerek yok
+  }
+  // Diğer rotalar için (admin olmayan ama /api/ ile başlayanlar)
+  else if (url.startsWith('/api/')) {
+    // Bu rotalar için de Next.js proxy'leri kullan (örneğin: /api/sales, /api/codes, vs.)
+    baseUrl = '';
+  }
+  // Base URL olmayan durumlar için (dış API'ler gibi)
+  else {
+    baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_BASE_URL || 'http://localhost:5003';
+  }
+  
+  let fullUrl = url.startsWith('/') && baseUrl ? `${baseUrl}${url}` : url;
   console.log(`API Request to: ${fullUrl}`);
   
   const res = await fetch(fullUrl, {
@@ -139,6 +157,7 @@ export interface AdminBalanceSummary {
     totalPayouts: number;
     totalSalesCount: number;
     paidSalesAmount: number;
+    totalCommissionPaid: number;
 }
 
 export interface AdminSalesStats {
@@ -252,7 +271,7 @@ export async function postAdminSale(payload: any): Promise<any> {
 }
 
 export async function getAdminRecentSales(limit: number = 20): Promise<any[]> {
-  const response = await request<{ items: any[] }>(`/api/sales?limit=${limit}`);
+  const response = await request<{ items: any[] }>(`/api/admin/sales?limit=${limit}`);
   return response.items || [];
 }
 

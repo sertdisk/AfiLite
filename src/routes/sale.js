@@ -146,7 +146,7 @@ router.get('/sales/me', authenticateToken, asyncHandler(async(req, res) => {
       'discount_codes.commission_pct'
     )
     .whereIn('sales.code', codes)
-    .orderBy(knex.raw('datetime(sales.recorded_at)'), 'desc')
+    .orderBy('sales.recorded_at', 'desc')
 
   if (code) {
     query = query.where('sales.code', code.toUpperCase())
@@ -190,6 +190,11 @@ router.get('/sales/me', authenticateToken, asyncHandler(async(req, res) => {
 router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
   const { code, start_date, end_date, page = 1, limit = 50, influencerId } = req.query // influencerId eklendi
 
+  console.log('[DEBUG] Admin sales query params:', { code, start_date, end_date, page, limit, influencerId });
+
+  // Kullanıcının admin olup olmadığını kontrol et
+ const isAdmin = req.user && req.user.role === 'admin';
+
   let query = knex('sales')
     .join('discount_codes', 'sales.code', 'discount_codes.code')
     .join('influencers', 'discount_codes.influencer_id', 'influencers.id')
@@ -209,6 +214,23 @@ router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
     )
     .orderBy('sales.recorded_at', 'desc')
 
+  // Influencer kullanıcılar sadece kendi satışlarını görebilir
+  if (!isAdmin) {
+    // Kullanıcının kendi kodlarını bul
+    const userDiscountCodes = await knex('discount_codes')
+      .where('influencer_id', req.user.userId || req.user.user_id || req.user.id)
+      .select('code');
+    
+    const userCodes = userDiscountCodes.map(c => c.code);
+    
+    if (userCodes.length > 0) {
+      query = query.whereIn('sales.code', userCodes);
+    } else {
+      // Kullanıcının hiç kodu yoksa boş sonuç döndür
+      query = query.where('sales.id', -1); // Hiçbir satış döndürmeyecek bir koşul
+    }
+  }
+
   if (code) {
     query = query.where('sales.code', code.toUpperCase())
   }
@@ -217,31 +239,65 @@ router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
     query = query.where('sales.recorded_at', '>=', new Date(start_date))
   }
 
-  if (end_date) {
+ if (end_date) {
     query = query.where('sales.recorded_at', '<=', new Date(end_date))
   }
 
-  if (influencerId) { // influencerId filtresi eklendi
+ // Sadece admin kullanıcılar başka bir influencer'in satışlarını filtreleyebilir
+  if (influencerId) { // influencerId filtresi admin olup olmadığına bakmaksızın uygulanır
     query = query.where('discount_codes.influencer_id', influencerId)
   }
 
   const offset = (page - 1) * limit
 
-  // Önce toplam sayıyı filrelere göre al
-  const totalQuery = knex('sales').count('* as count')
-  if (code) totalQuery.where('code', code.toUpperCase())
-  if (start_date) totalQuery.where('recorded_at', '>=', new Date(start_date))
-  if (end_date) totalQuery.where('recorded_at', '<=', new Date(end_date))
-  if (influencerId) { // influencerId filtresi eklendi
-    totalQuery.join('discount_codes', 'sales.code', 'discount_codes.code')
-      .where('discount_codes.influencer_id', influencerId)
+ // Önce toplam sayıyı filrelere göre al
+ let totalQuery = knex('sales')
+    .join('discount_codes', 'sales.code', 'discount_codes.code');
+  
+  if (!isAdmin) {
+    // Influencer kullanıcılar için sadece kendi satışlarını say
+    const userDiscountCodes = await knex('discount_codes')
+      .where('influencer_id', req.user.userId || req.user.user_id || req.user.id)
+      .select('code');
+    
+    const userCodes = userDiscountCodes.map(c => c.code);
+    
+    if (userCodes.length > 0) {
+      totalQuery = totalQuery.whereIn('sales.code', userCodes);
+    } else {
+      totalQuery = totalQuery.where('sales.id', -1);
+    }
   }
 
-  const [{ count }] = await totalQuery
+  if (code) totalQuery.where('sales.code', code.toUpperCase())
+  if (start_date) totalQuery.where('sales.recorded_at', '>=', new Date(start_date))
+  if (end_date) totalQuery.where('sales.recorded_at', '<=', new Date(end_date))
+  // Sadece admin kullanıcılar başka bir influencer'in satışlarını filtreleyebilir
+  if (influencerId) { // influencerId filtresi admin olup olmadığına bakmaksızın uygulanır
+    totalQuery.where('discount_codes.influencer_id', influencerId)
+  }
+
+  // --- DEBUG LOG ---
+  console.log('[DEBUG] totalQuery SQL:', totalQuery.toString());
+  
+  const totalResult = await totalQuery.count('* as count');
+  const count = totalResult[0].count;
+
+  // --- DEBUG LOG ---
+  console.log('[DEBUG] Total count:', count);
 
   // Sonra veriyi sayfalama ile al
-  query = query.limit(limit).offset(offset)
-  const sales = await query
+ query = query.limit(limit).offset(offset)
+ const sales = await query
+
+   // --- DEBUG LOG ---
+  console.log('[DEBUG] Sales result:', sales);
+
+  console.log('[DEBUG] Admin sales query result - first 3 items:', sales.slice(0, 3).map(s => ({
+    id: s.id,
+    recorded_at: s.recorded_at,
+    formatted_date: new Date(s.recorded_at).toISOString()
+  })));
 
   res.json({
     items: sales, // `items` olarak değiştirildi, frontend ile uyum için
@@ -382,7 +438,7 @@ router.get('/sales/export', authenticateToken, requireAdmin, asyncHandler(async(
       'discount_codes.discount_pct',
       'discount_codes.commission_pct'
     )
-    .orderBy(knex.raw('datetime(sales.recorded_at)'), 'desc')
+    .orderBy('sales.recorded_at', 'desc')
 
   if (code) {
     query = query.where('sales.code', code.toUpperCase())

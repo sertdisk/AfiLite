@@ -135,17 +135,21 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
   // Gerçek hesaplama: toplam komisyon - toplam ödemeler
 
   // Toplam komisyonu hesapla
-  const commissionResult = await knex('sales')
+ const commissionResult = await knex('sales')
     .sum('commission as total_commission')
     .first()
-  const totalCommission = parseFloat(commissionResult?.total_commission) || 0
+  const totalCommission = (commissionResult && commissionResult.total_commission !== null && commissionResult.total_commission !== undefined)
+    ? Number(commissionResult.total_commission) || 0
+    : 0;
 
   // Toplam ödemeleri hesapla
   const payoutResult = await knex('payouts')
     .sum('amount as total_payouts')
     .where('status', 'completed') // Sadece tamamlanmış ödemeleri hesaba kat
     .first()
-  const totalPayouts = parseFloat(payoutResult?.total_payouts) || 0
+  const totalPayouts = (payoutResult && payoutResult.total_payouts !== null && payoutResult.total_payouts !== undefined)
+    ? Number(payoutResult.total_payouts) || 0
+    : 0;
 
   // Bakiye hesapla
   const balance = totalCommission - totalPayouts
@@ -181,28 +185,60 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
   const totalSalesAmountResult = await knex('sales')
     .sum('total_amount as total_sales_amount')
     .first()
-  const totalSalesAmount = parseFloat(totalSalesAmountResult?.total_sales_amount) || 0
+  const totalSalesAmount = (totalSalesAmountResult && totalSalesAmountResult.total_sales_amount !== null && totalSalesAmountResult.total_sales_amount !== undefined)
+    ? Number(totalSalesAmountResult.total_sales_amount) || 0
+    : 0;
 
-  let commissionSinceLastPayout = 0
-  let salesAmountSinceLastPayout = 0
+  // Ödemesi yapılmamış komisyon (toplam komisyon - ödenmiş komisyon)
+  const unpaidCommission = totalCommission - totalPayouts;
 
-  if (last_settlement_at) {
-    // Eğer ödeme yapılmışsa, son ödemeden sonraki satışlar ödeme yapılmamış olarak kabul edilir
-    const commissionSinceResult = await knex('sales')
-      .where('recorded_at', '>', last_settlement_at)
-      .sum('commission as commission_since')
-      .first()
-    commissionSinceLastPayout = parseFloat(commissionSinceResult?.commission_since) || 0
+  console.log('[DEBUG] Admin balance summary - raw values:', {
+    totalSalesAmount: totalSalesAmountResult?.total_sales_amount,
+    totalCommission: commissionResult?.total_commission,
+    totalPayouts: payoutResult?.total_payouts
+ });
+  console.log('[DEBUG] Admin balance summary - processed values:', {
+    totalSalesAmount,
+    totalCommission,
+    totalPayouts,
+    unpaidCommission
+  });
 
-    const salesAmountSinceResult = await knex('sales')
-      .where('recorded_at', '>', last_settlement_at)
-      .sum('total_amount as sales_amount_since')
-      .first()
-    salesAmountSinceLastPayout = parseFloat(salesAmountSinceResult?.sales_amount_since) || 0
+  // Ödemesi yapılmış komisyonun karşılık geldiği satış tutarı (yaklaşık hesaplama)
+  let paidSalesAmount = 0;
+  if (totalCommission > 0 && totalSalesAmount > 0 && !isNaN(totalCommission) && !isNaN(totalSalesAmount)) {
+    const commissionRate = totalSalesAmount / totalCommission;
+    paidSalesAmount = totalPayouts * commissionRate;
+    console.log('[DEBUG] Admin balance summary - commission rate calculation:', {
+      commissionRate,
+      totalPayouts,
+      paidSalesAmount
+    });
+    // Sayısal olmayan sonuçları kontrol et
+    if (isNaN(paidSalesAmount) || !isFinite(paidSalesAmount)) {
+      console.log('[DEBUG] Admin balance summary - paidSalesAmount is NaN or Infinite, setting to 0');
+      paidSalesAmount = 0;
+    }
   } else {
-    // Eğer hiç ödeme yapılmamışsa, tüm komisyon ve satış tutarları ödenmemiş olarak kabul edilir
-    commissionSinceLastPayout = totalCommission
-    salesAmountSinceLastPayout = totalSalesAmount
+    console.log('[DEBUG] Admin balance summary - commission rate calculation skipped:', {
+      totalCommission,
+      totalSalesAmount,
+      condition1: totalCommission > 0,
+      condition2: totalSalesAmount > 0,
+      condition3: !isNaN(totalCommission),
+      condition4: !isNaN(totalSalesAmount)
+    });
+  }
+
+  // Ödemesi yapılmamış komisyonun karşılık geldiği satış tutarı (yaklaşık hesaplama)
+  let unpaidSalesAmount = 0;
+ if (totalCommission > 0 && totalSalesAmount > 0 && !isNaN(totalCommission) && !isNaN(totalSalesAmount)) {
+    const commissionRate = totalSalesAmount / totalCommission;
+    unpaidSalesAmount = unpaidCommission * commissionRate;
+    // Sayısal olmayan sonuçları kontrol et
+    if (isNaN(unpaidSalesAmount) || !isFinite(unpaidSalesAmount)) {
+      unpaidSalesAmount = 0;
+    }
   }
 
   // Toplam satış sayısı
@@ -219,11 +255,12 @@ router.get('/admin-summary/summary', authenticateToken, requireAdmin, asyncHandl
     activeInfluencersCount,
     totalCommission,
     totalSalesAmount,
-    commissionSinceLastPayout,
-    salesAmountSinceLastPayout,
+    totalCommissionPaid: totalPayouts,
+    paidSalesAmount,
+    commissionSinceLastPayout: unpaidCommission,
+    salesAmountSinceLastPayout: unpaidSalesAmount,
     totalPayouts,
     totalSalesCount,
-
   })
 }))
 
@@ -258,10 +295,18 @@ router.get('/influencer/:influencerId/summary', authenticateToken, requireAdmin,
     .first()
   const totalPayouts = parseFloat(payoutResult.total_payouts) || 0
 
+  // Toplam satış sayısını hesapla
+  const totalSalesResult = await knex('sales')
+    .join('discount_codes', 'sales.code', 'discount_codes.code')
+    .where('discount_codes.influencer_id', influencerId)
+    .count('sales.id as total_sales_count')
+    .first()
+  const totalSales = parseInt(totalSalesResult?.total_sales_count) || 0
+
   // Bakiye hesapla
   const balance = totalCommission - totalPayouts
 
-  // Son ödeme tarihini al
+  // Son ödeme tarihini al (sadece completed olanlar)
   const lastPayout = await knex('payouts')
     .where('influencer_id', influencerId)
     .where('status', 'completed')
@@ -269,11 +314,20 @@ router.get('/influencer/:influencerId/summary', authenticateToken, requireAdmin,
     .first()
   const last_settlement_at = lastPayout ? lastPayout.created_at : null
 
+  // Son ödeme girişim tarihi (tüm status'ler dahil)
+  const lastPayoutAttempt = await knex('payouts')
+    .where('influencer_id', influencerId)
+    .orderBy('created_at', 'desc')
+    .first()
+  const last_attempt_date = lastPayoutAttempt ? lastPayoutAttempt.created_at : null
+
   res.json({
     balance,
     last_settlement_at,
     total_commission: totalCommission,
-    total_payouts: totalPayouts
+    paid_commission: totalPayouts,
+    unpaid_commission: totalCommission - totalPayouts,
+    total_sales: totalSales
   })
 }))
 

@@ -2,6 +2,12 @@
 
 Bu doküman, AfiLite projesinin dosya/dizin yapısını, Admin ve Influencer alanları için kullanılan backend API rotalarını ve frontend (UI) dosyalarını özetlemektedir. yazılım geliştiriciye çalışmalarında neyin nerede oldugü, nasıl çalıştığı hakkında rehberlik etmesi için hazırlanmıştır.
 
+# düzenleme manifestosu
+
+Bu belge, projeyi inceleyen yazılım ekibi veya yapay zekaya; proje yapısı hakkında ihtiyaç duyduğu tüm gerekli bilgileri sunmak için düzenlenir. Proje üzerinde çalışan yada çalışacaklara neyin nerede olduğu bilgileri ile rehberlik eder. örn: dosya/dizin yapısı, api yapısı, endpointler vb.
+-Yapılan değişiklikler listesi değildir. Ancak yapılan işlem/işlemler sonucunda mimaride değişiklik oldu ise, son çalışan hali ile güncellenir.
+-son yapılan işlemler listesi değildir.
+
 
 ## Genel Bakış
 
@@ -15,7 +21,7 @@ Bu doküman, AfiLite projesinin dosya/dizin yapısını, Admin ve Influencer ala
 ## Veritabanı Şeması Notları
 
 - **`influencers` Tablosu**: Influencer'ın tam adını tutan sütun `full_name`'dir. Rota dosyalarında (`*.js`) sorgular bu sütunu kullanmalıdır. API yanıtlarında bu alan `name` olarak alias (takma ad) ile gönderilebilir, ancak veritabanı sorguları doğrudan `full_name`'i hedeflemelidir.
-- **Migration Dosyaları**: `src/db/migrations` altında `20240802100000_init.js` ve `20240804120000_influencers.js` gibi birden fazla `influencers` tablosu oluşturma girişimi bulunmaktadır. Bu durum kafa karışıklığına yol açabilir. Mevcut durumda, `20240802100000_init.js` dosyasındaki şema (`full_name` içeren) geçerli olarak kabul edilmektedir. Yeni geliştirmelerde bu tutarlılığın korunması önemlidir.
+- **Migration Dosyaları**: `src/db/migrations` altında `2024080210000_init.js` ve `20240804120000_influencers.js` gibi birden fazla `influencers` tablosu oluşturma girişimi bulunmaktadır. Bu durum kafa karışıklığına yol açabilir. Mevcut durumda, `20240802100000_init.js` dosyasındaki şema (`full_name` içeren) geçerli olarak kabul edilmektedir. Yeni geliştirmelerde bu tutarlılığın korunması önemlidir.
 
 ---
 
@@ -37,7 +43,7 @@ Admin paneli, tüm sistemi yönetme yetkisine sahip olan kullanıcılar içindir
 | `PATCH` | `/influencers/:id` | Bir influencer'ın bilgilerini (ad, email, durum, notlar vb.) günceller. | `src/routes/influencer.js` |
 | **Başvuru Yönetimi** | |
 | `GET` | `/apply` | Tüm influencer başvurularını listeler. | `src/routes/apply.js` |
-| `GET` | `/apply/:id` | Tek bir başvurunun detayını getirir. | `src/routes/apply.js` |
+| `GET` | `/apply/:id` | Tek bir başvurun detayını getirir. | `src/routes/apply.js` |
 | `PATCH` | `/apply/:id/status` | Bir başvurunun durumunu günceller (pending, approved, rejected). | `src/routes/apply.js` |
 | **Kod Yönetimi** | |
 | `GET` | `/codes` | Tüm indirim kodlarını, ilişkili influencer bilgileriyle listeler. | `src/routes/codes.js` |
@@ -98,7 +104,7 @@ Influencer'ların kendi bilgilerini, kodlarını, kazançlarını ve mesajların
 ### Backend API Rotaları (Influencer)
 
 | Metot | Rota | Açıklama | Kaynak Dosya |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | **Auth** | |
 | `POST` | `/api/v1/auth/login` | Onaylanmış influencer için giriş yapar ve token oluşturur. | `src/routes/auth.js` |
 | `POST` | `/auth/forgot-password` | Şifre sıfırlama talebi başlatır. | `src/routes/auth.js` |
@@ -178,6 +184,9 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 - `src/routes/codes.js` dosyasında sıralama düzeltmeleri yapıldı
 - `src/routes/sale.js` dosyasında sıralama düzeltmeleri yapıldı
 - `src/routes/payouts.js` dosyasında sıralama düzeltmeleri yapıldı
+- `src/routes/sale.js` dosyasında satış listesi sıralama düzeltmesi yapıldı (datetime fonksiyonu kullanılarak)
+- `src/routes/balance.js` dosyasında satış listesi sıralama düzeltmesi yapıldı (datetime fonksiyonu kullanılarak)
+- `src/routes/commissions.js` dosyasında komisyon listesi sıralama düzeltmesi yapıldı (datetime fonksiyonu kullanılarak)
 ### Rotalardaki Değişiklikler
 
 - Influencer paneli için yeni sosyal medya ve ödeme hesabı yönetimi rotaları eklendi
@@ -198,3 +207,73 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 - **Ana Sayfa / Başvuru Formu**: `Ui/app/page.tsx` ve `Ui/app/apply/page.tsx`
 - **Şifremi Unuttum**: `Ui/app/forgot-password/page.tsx`
 - **Şifre Sıfırlama**: `Ui/app/reset-password/page.tsx`
+
+## Yapılan Düzeltmeler
+
+- id'si 21 ve 42 olan influencer'lara ait ödeme kayıtlarının silinmesi işlemi
+- Bu işlemin neden yapıldığı: Influencer'ların bulunmaması nedeniyle sakat ödeme kayıtları oluşmuş olması
+- İşlem sonucunda dashboard'daki "Ödemesi yapılmış komisyon" değeri 1350 TL'den 1120 TL'ye düşmüştür
+
+## Dosya/Dizin Yapısındaki Değişiklikler
+
+- Yeni oluşturulan betik dosyaları:
+ - check_influencer_status.js
+ - check_payouts_status.js
+ - delete_orphaned_payouts.js
+ - login_admin.js
+ - test_accounts.js
+  - get-admin-summary.js
+
+## Rotalardaki Değişiklikler
+
+## 4. API İstekleri ve Proxy Yapılandırması
+
+### Frontend API İstekleri
+- `Ui/lib/api.ts` dosyasındaki `request` fonksiyonu güncellendi
+- `/api/admin/` ile başlayan URL'ler artık Next.js proxy rotalarını kullanacak şekilde değiştirildi
+- Bu sayede `/api/admin/sales` gibi istekler doğrudan backend'e değil, Next.js uygulamasındaki proxy rotasına yönlendiriliyor
+
+### Backend Satış Erişimi
+- `src/routes/sale.js` dosyasındaki `/api/sales` rotası güncellendi
+- Admin kullanıcılar için tüm satışlara erişim sağlandı
+- Influencer kullanıcılar için sadece kendi kodlarıyla yapılan satışlara erişim sağlandı
+- Bu değişiklik, influencer'ların diğer influencer'ların satışlarını görmesini engelliyor
+## 5. Ödeme ve Komisyon Hesaplamaları
+
+### Admin Panel Bakiye Özet Hesaplamaları
+- `src/routes/balance.js` dosyasındaki `/balance/admin-summary/summary` endpoint'i güncellendi
+- "Ödemesi yapılmış" alanlar: Influencerlere yapılan ödemelerin toplamı ve bu ödemelerin karşıladığı satış tutarları olarak değiştirildi
+- "Ödemesi yapılmamış" alanlar: Influencerların kazandığı ancak henüz ödenmemiş komisyonlar ve bu komisyonlara karşılık gelen ürün tutarları olarak değiştirildi
+- Bu değişiklikle admin panelinde doğru ödeme ve komisyon bilgileri görüntülenmektedir
+- Herhangi bir rota değişikliği yapılmadı, sadece veri düzeltmesi yapıldı
+
+## 6. Yeni Eklenen Özellikler
+
+### Influencer Detayı Hızlı Satış Formu Komisyon Alanı
+- `Ui/app/admin/influencers/[id]/page.tsx` dosyasındaki `QuickSaleForm` bileşenine komisyon alanı eklendi
+- Formda artık seçilen koda göre komisyon oranı, satış tutarı ve tahmini komisyon miktarı kullanıcıya daha belirgin şekilde gösteriliyor
+- Komisyon hesaplaması gerçek zamanlı olarak yapılmaktadır
+- Komisyon oranı, satış tutarı ve tahmini komisyon miktarı ayrı ayrı gösterilmektedir
+- Görsel tasarım, kullanıcıya daha iyi bir deneyim sunmak için iyileştirilmiştir
+
+## 7. Influencer Detayı Sayfası Geliştirmeleri
+
+### Satış Listeleme Sorununun Giderilmesi
+- `Ui/app/admin/influencers/[id]/page.tsx` dosyasında satışların doğru şekilde listelenmesi sağlandı
+- API'den dönen satış verilerinin işlenmesi iyileştirildi
+- Satış yoksa kullanıcıya "Henüz satış yapılmamış" mesajı gösterilir
+- API hata durumları için daha i iyi kontrol mekanizmaları eklendi
+
+### Bakiye Bilgileri Bölümü Ekleme
+- Influencer detay sayfasına bakiye ve performans bilgileri bölümü eklendi
+- `Ui/app/admin/influencers/[id]/page.tsx` dosyasına `getAdminInfluencerBalance` fonksiyonu entegre edildi
+- Mevcut bakiye, toplam komisyon, ödenmiş komisyon, ödenmemiş komisyon, toplam satış ve son ödeme tarihi bilgileri gösterilir
+- Bakiye hareketlerini gösteren ekstra bir bölüm eklendi
+- Bakiye bilgileri `BalanceSummary` tipi ile tanımlandı ve doğru şekilde işlendi
+
+## 8. Satış Filtreleme Güncellemesi
+
+### Influencer ID Filtresi
+- `src/routes/sale.js` dosyasında `/api/sales` endpoint'inde yapılan değişiklikle, artık admin kullanıcılar sadece kendi influencer ID'lerine göre satış filtrelemesi yapabiliyor.
+- Influencer ID filtresi artık admin olup olmadığına bakmaksızın uygulanıyor.
+- Bu değişiklik, admin panelinde influencer detay sayfasında yapılan satış listeleme işlemlerini düzeltiyor.
