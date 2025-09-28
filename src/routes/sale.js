@@ -7,6 +7,7 @@
  */
 const router = require('express').Router()
 const knex = require('../db/sqlite')
+const { toSqliteDatetime } = require('../util/date');
 // JWT koruması yalnızca GET uçları için kullanılacak
 const { authenticateToken, requireAdmin } = require('../middleware/auth')
 const { asyncHandler } = require('../middleware/errorHandler')
@@ -71,7 +72,7 @@ router.post('/sale', saleShortLimiter, saleLongLimiter, validateSale, asyncHandl
     commission,
     customer_url: customerUrl,
     product: product,
-    recorded_at: new Date()
+    recorded_at: toSqliteDatetime(new Date())
   })
 
   // Satış detaylarını getir
@@ -277,21 +278,11 @@ router.get('/sales', authenticateToken, asyncHandler(async(req, res) => {
     totalQuery.where('discount_codes.influencer_id', influencerId)
   }
 
-  // --- DEBUG LOG ---
-  console.log('[DEBUG] totalQuery SQL:', totalQuery.toString());
-  
-  const totalResult = await totalQuery.count('* as count');
-  const count = totalResult[0].count;
-
-  // --- DEBUG LOG ---
-  console.log('[DEBUG] Total count:', count);
+  const [{ count }] = await totalQuery.count('* as count')
 
   // Sonra veriyi sayfalama ile al
  query = query.limit(limit).offset(offset)
  const sales = await query
-
-   // --- DEBUG LOG ---
-  console.log('[DEBUG] Sales result:', sales);
 
   console.log('[DEBUG] Admin sales query result - first 3 items:', sales.slice(0, 3).map(s => ({
     id: s.id,

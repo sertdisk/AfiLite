@@ -4,6 +4,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
+const { toSqliteDatetime } = require('../util/date');
 
 
 // Admin için arama ucu: GET /influencers/search?q=
@@ -204,20 +205,28 @@ router.post('/payment-accounts', authenticateToken, asyncHandler(async (req, res
 
 // GET /api/influencers - Admin için influencer listeleme
 router.get('/', asyncHandler(async (req, res) => {
-    const { page = 1, limit = 20, search, start_date, end_date } = req.query;
+    const { page = 1, limit = 20, search, start_date, end_date, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
     const offset = (page - 1) * limit;
 
-    let influencersQuery = knex('influencers')
+    const validSortBy = ['created_at', 'full_name', 'brand_name', 'balance'];
+    const validSortOrder = ['asc', 'desc'];
+
+    const orderBy = validSortBy.includes(sortBy) ? sortBy : 'created_at';
+    const order = validSortOrder.includes(sortOrder) ? sortOrder : 'desc';
+
+    const influencersQuery = knex('influencers')
         .select(
-            'id',
-            'full_name as name',
-            'email',
-            'brand_name',
-            'status',
-            'created_at'
+            'influencers.id',
+            'influencers.full_name as name',
+            'influencers.email',
+            'influencers.brand_name',
+            'influencers.status',
+            'influencers.created_at',
+            knex.raw('(COALESCE(commissions.total_commission, 0) - COALESCE(payouts.total_paid, 0)) as balance')
         )
+        .leftJoin(knex.raw('(SELECT discount_codes.influencer_id, SUM(sales.commission) as total_commission FROM sales JOIN discount_codes ON sales.code = discount_codes.code GROUP BY discount_codes.influencer_id) as commissions'), 'influencers.id', 'commissions.influencer_id')
+        .leftJoin(knex.raw('(SELECT influencer_id, SUM(amount) as total_paid FROM payouts WHERE status = \'completed\' GROUP BY influencer_id) as payouts'), 'influencers.id', 'payouts.influencer_id')
         .where('role', 'influencer')
-        .orderBy(knex.raw('datetime(created_at)'), 'desc')
         .limit(limit)
         .offset(offset);
 
@@ -242,14 +251,16 @@ router.get('/', asyncHandler(async (req, res) => {
     }
 
     if (start_date) {
-        influencersQuery.where('created_at', '>=', start_date);
-        countQuery.where('created_at', '>=', start_date);
+        influencersQuery.where('influencers.created_at', '>=', start_date);
+        countQuery.where('influencers.created_at', '>=', start_date);
     }
 
     if (end_date) {
-        influencersQuery.where('created_at', '<=', end_date);
-        countQuery.where('created_at', '<=', end_date);
+        influencersQuery.where('influencers.created_at', '<=', end_date);
+        countQuery.where('influencers.created_at', '<=', end_date);
     }
+
+    influencersQuery.orderBy(orderBy, order);
 
     const influencers = await influencersQuery;
     const totalResult = await countQuery.count('id as count').first();
@@ -376,7 +387,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
         return res.status(400).json({ error: 'Güncellenecek veri bulunamadı.' });
     }
     
-    updatePayload.updated_at = new Date();
+    updatePayload.updated_at = toSqliteDatetime(new Date());
 
     await knex('influencers')
         .where({ id })

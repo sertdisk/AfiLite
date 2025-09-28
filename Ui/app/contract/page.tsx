@@ -39,10 +39,22 @@ export default function ContractPage() {
   }
 
   return (
-    <div className="container mx-auto p-8 bg-white shadow-lg rounded-lg">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Güncel Sözleşme (Versiyon: v{contract.version})</h1>
-      <div className="prose max-w-none text-gray-700 leading-relaxed text-base p-4">
-        <div dangerouslySetInnerHTML={{ __html: contract.content }} />
+    <div className="max-w-4xl mx-auto p-4">
+      <div className="bg-gray-100 dark:bg-gray-900 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Güncel Sözleşme</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Versiyon: v{contract.version} • 
+            Oluşturulma Tarihi: {new Date(contract.created_at).toLocaleDateString('tr-TR')}
+          </p>
+        </div>
+        <div className="p-6">
+          <div className="prose dark:prose-invert max-w-none">
+            <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+              {contract.content}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

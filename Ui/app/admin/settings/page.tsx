@@ -2,6 +2,25 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 
+// Modal Component
+const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl">
+        <div className="flex justify-between items-center border-b pb-3">
+          <h3 className="text-xl font-semibold">{title}</h3>
+          <button onClick={onClose} className="text-black font-bold text-xl">&times;</button>
+        </div>
+        <div className="mt-4 max-h-96 overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function AdminSettingsPage() {
   // Komisyon oran ayarlama için state'ler
   const [commissionSettings, setCommissionSettings] = useState({
@@ -15,8 +34,10 @@ export default function AdminSettingsPage() {
   const [contractContent, setContractContent] = useState('');
   const [isCreatingContract, setIsCreatingContract] = useState(false);
   const [contractCreateResult, setContractCreateResult] = useState<{message?: string, error?: string} | null>(null);
-  const [contracts, setContracts] = useState<Array<{id: number, version: number, is_active: boolean, created_at: string}>>([]);
+  const [contracts, setContracts] = useState<Array<{id: number, version: number, content: string, is_active: boolean, created_at: string}>>([]);
   const [loadingContracts, setLoadingContracts] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<{id: number, version: number, content: string, is_active: boolean, created_at: string} | null>(null);
 
   // Sözleşmeleri getir
   const fetchContracts = async () => {
@@ -106,6 +127,11 @@ export default function AdminSettingsPage() {
       setIsCreatingContract(false);
     }
   };
+
+  const openContractModal = (contract: any) => {
+    setSelectedContract(contract);
+    setIsModalOpen(true);
+  }
 
   return (
     <main className="space-y-6 p-4 sm:p-6">
@@ -212,6 +238,7 @@ export default function AdminSettingsPage() {
                     <th className="text-left py-2 px-3">Versiyon</th>
                     <th className="text-left py-2 px-3">Durum</th>
                     <th className="text-left py-2 px-3">Oluşturulma Tarihi</th>
+                    <th className="text-left py-2 px-3">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -228,6 +255,9 @@ export default function AdminSettingsPage() {
                       <td className="py-2 px-3">
                         {new Date(contract.created_at).toLocaleDateString('tr-TR')}
                       </td>
+                      <td className="py-2 px-3">
+                        <button onClick={() => openContractModal(contract)} className="text-blue-600 hover:underline">Görüntüle</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -236,6 +266,9 @@ export default function AdminSettingsPage() {
           )}
         </div>
       </div>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Sözleşme Versiyon v${selectedContract?.version}`}>
+        <div className="whitespace-pre-wrap">{selectedContract?.content}</div>
+      </Modal>
     </main>
   );
 }

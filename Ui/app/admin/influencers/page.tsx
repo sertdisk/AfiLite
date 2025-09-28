@@ -2,30 +2,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { getAdminInfluencerBalance, getAdminInfluencers } from '@/lib/api';
-
-// Bakiye hücre bileşeni
-function BalanceCell({ influencerId }: { influencerId: number }) {
-  const [val, setVal] = useState<string>('—');
-  useEffect(() => {
-    let abort = false;
-    async function fetchSummary() {
-      try {
-        const summary = await getAdminInfluencerBalance(influencerId);
-        if (!abort) {
-          const balance = Number(summary?.balance ?? summary?.total_balance ?? 0);
-          setVal(new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(balance));
-        }
-      } catch (error) { 
-        console.error(error);
-        if (!abort) setVal('Hata');
-      }
-    }
-    fetchSummary();
-    return () => { abort = true; };
-  }, [influencerId]);
-  return <span className="font-medium text-gray-800">{val}</span>;
-}
+import { getAdminInfluencers } from '@/lib/api';
 
 // Influencer satır tipi
 type InfluencerRow = {
@@ -39,6 +16,7 @@ type InfluencerRow = {
     is_active: boolean;
   }[];
   created_at?: string;
+  balance?: number;
 };
 
 // Sayfalı veri tipi
@@ -51,6 +29,8 @@ export default function AdminInfluencersPage() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // Yüklenme durumları
   const [busy, setBusy] = useState(false);
@@ -63,7 +43,7 @@ export default function AdminInfluencersPage() {
     setBusy(true);
     setError(null);
     try {
-      const params: any = { page, limit };
+      const params: any = { page, limit, sortBy, sortOrder };
       if (search.trim()) params.search = search.trim();
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
@@ -90,7 +70,8 @@ export default function AdminInfluencersPage() {
           code: String(code?.code || ''),
           is_active: !!code?.is_active
         })) : [],
-        created_at: r?.created_at
+        created_at: r?.created_at,
+        balance: r?.balance
       })));
       
       setTotal(Number.isFinite(data?.pagination?.total) ? Number(data.pagination.total) : null);
@@ -102,7 +83,7 @@ export default function AdminInfluencersPage() {
   }
 
   // İlk yükleme ve filtre değişikliklerinde listeyi getir
-  useEffect(() => { fetchList(); }, [page, limit, search, startDate, endDate]);
+  useEffect(() => { fetchList(); }, [page, limit, search, startDate, endDate, sortBy, sortOrder]);
 
   // Filtreleri uygula
   function onApplyFilters(e: React.FormEvent) {
@@ -165,6 +146,15 @@ export default function AdminInfluencersPage() {
       alert(e?.message || 'Export işlemi başarısız oldu');
     }
   }
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('desc');
+    }
+  };
 
   return (
     <main className="space-y-6 p-4 sm:p-6">
@@ -262,13 +252,13 @@ export default function AdminInfluencersPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-800 text-gray-700">
               <tr>
-                <th className="px-4 py-2 text-left">Kayıt Tarihi</th>
+                <th className="px-4 py-2 text-left cursor-pointer" onClick={() => handleSort('created_at')}>Kayıt Tarihi</th>
                 <th className="px-4 py-2 text-left">Influencer Kodu</th>
                 <th className="px-4 py-2 text-left">Kod Durumu</th>
-                <th className="px-4 py-2 text-left">Marka Adı</th>
-                <th className="px-4 py-2 text-left">Ad Soyad</th>
+                <th className="px-4 py-2 text-left cursor-pointer" onClick={() => handleSort('brand_name')}>Marka Adı</th>
+                <th className="px-4 py-2 text-left cursor-pointer" onClick={() => handleSort('full_name')}>Ad Soyad</th>
                 <th className="px-4 py-2 text-left">E-posta</th>
-                <th className="px-4 py-2 text-left">Bakiye</th>
+                <th className="px-4 py-2 text-left cursor-pointer" onClick={() => handleSort('balance')}>Bakiye</th>
                 <th className="px-4 py-2 text-left">İşlem</th>
               </tr>
             </thead>
@@ -321,8 +311,8 @@ export default function AdminInfluencersPage() {
                   <td className="px-4 py-2">{r.brand_name || '—'}</td>
                   <td className="px-4 py-2">{r.name}</td>
                   <td className="px-4 py-2">{r.email}</td>
-                  <td className="px-4 py-2">
-                    <BalanceCell influencerId={r.id} />
+                  <td className="px-4 py-2 text-gray-200">
+                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(r.balance || 0)}
                   </td>
                   <td className="px-4 py-2">
                     <a href={`/admin/influencers/${r.id}`} className="text-blue-600 hover:text-blue-800">Detay</a>

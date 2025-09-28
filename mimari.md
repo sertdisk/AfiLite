@@ -23,6 +23,12 @@ Bu belge, projeyi inceleyen yazılım ekibi veya yapay zekaya; proje yapısı ha
 - **`influencers` Tablosu**: Influencer'ın tam adını tutan sütun `full_name`'dir. Rota dosyalarında (`*.js`) sorgular bu sütunu kullanmalıdır. API yanıtlarında bu alan `name` olarak alias (takma ad) ile gönderilebilir, ancak veritabanı sorguları doğrudan `full_name`'i hedeflemelidir.
 - **Migration Dosyaları**: `src/db/migrations` altında `2024080210000_init.js` ve `20240804120000_influencers.js` gibi birden fazla `influencers` tablosu oluşturma girişimi bulunmaktadır. Bu durum kafa karışıklığına yol açabilir. Mevcut durumda, `20240802100000_init.js` dosyasındaki şema (`full_name` içeren) geçerli olarak kabul edilmektedir. Yeni geliştirmelerde bu tutarlılığın korunması önemlidir.
 
+### Tarih (Date/Time) Formatı Standardı
+
+-   **Format**: Tüm tarih ve zaman bilgileri veritabanında `YYYY-MM-DD HH:MM:SS` formatında (ISO 8601'e yakın) saklanmalıdır.
+-   **Gerekçe**: Bu standart format, hem insanlar tarafından kolayca okunabilir hem de veritabanı tarafından doğru bir şekilde sıralanabilir. Farklı formatların (örneğin, `DD.MM.YYYY` veya milisaniye timestamp) kullanılması, sıralama hatalarına ve veri tutarsızlıklarına yol açtığı için bu standarda geçilmiştir.
+-   **Uygulama**: Kod içerisinde `new Date()` ile oluşturulan tarih nesneleri, Knex.js tarafından otomatik olarak bu formata uygun şekilde işlenir. Manuel veya betiklerle yapılan eklemelerde bu formata dikkat edilmelidir.
+
 ---
 
 ## 1. Admin Alanı
@@ -171,34 +177,8 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 | Metot | Rota | Açıklama | Kaynak Dosya |
 | --- | --- | --- | --- |
 | `POST` | `/apply` | Yeni bir influencer başvurusu alır. | `src/routes/apply.js` |
-### Dosya/Dizin Yapısındaki Değişiklikler
 
-- `Ui/lib/api.ts` dosyasına yeni fonksiyonlar eklendi
-- `src/routes/influencer-settings.js` dosyasına yeni endpoint'ler eklendi
-- `Ui/lib/api.ts` dosyasına `markAlertRead` fonksiyonu eklendi
-- `Ui/lib/api.ts` dosyasına `updateInfluencerSocialAccount` fonksiyonu eklendi
-- `Ui/lib/api.ts` dosyasına `deleteInfluencerSocialAccount` fonksiyonu eklendi
-- `Ui/lib/api.ts` dosyasına `addInfluencerPaymentAccount` fonksiyonu eklendi
-- `Ui/lib/api.ts` dosyasına `sendMessage` fonksiyonu eklendi
-- `Ui/lib/api.ts` dosyasına `getUnreadAlerts` fonksiyonu eklendi
-- `src/routes/codes.js` dosyasında sıralama düzeltmeleri yapıldı
-- `src/routes/sale.js` dosyasında sıralama düzeltmeleri yapıldı
-- `src/routes/payouts.js` dosyasında sıralama düzeltmeleri yapıldı
-- `src/routes/sale.js` dosyasında satış listesi sıralama düzeltmesi yapıldı (datetime fonksiyonu kullanılarak)
-- `src/routes/balance.js` dosyasında satış listesi sıralama düzeltmesi yapıldı (datetime fonksiyonu kullanılarak)
-- `src/routes/commissions.js` dosyasında komisyon listesi sıralama düzeltmesi yapıldı (datetime fonksiyonu kullanılarak)
-### Rotalardaki Değişiklikler
-
-- Influencer paneli için yeni sosyal medya ve ödeme hesabı yönetimi rotaları eklendi
 | `POST` | `/sale` | Bir indirim kodu kullanarak yeni bir satış kaydı oluşturur. | `src/routes/sale.js` |
-| `POST` | `/alerts/:id/read` | Bir uyarıyı okundu olarak işaretler. | `src/routes/alerts.js` |
-- Admin paneli için `/alerts/:id/read` rotası kullanıma açıldı
-### 10 Kurala Uygunluk İçin Yapılan Değişiklikler
-
-- API fonksiyonları ve endpoint'ler 10 kuralına uygun olarak güncellendi
-- API fonksiyonları ve endpoint'ler 10 kuralına uygun olarak güncellendi (markAlertRead fonksiyonu dahil)
-- Yeni eklenen API fonksiyonları (updateInfluencerSocialAccount, deleteInfluencerSocialAccount, addInfluencerPaymentAccount, sendMessage, getUnreadAlerts) 10 kuralına uygun olarak geliştirildi
-- Admin panelindeki listeler için sıralama düzeltmeleri yapıldı (kodlar, ödemeler ve satışlar listesi)
 | `GET` | `/codes/search/:code` | Bir indirim kodunun geçerli ve aktif olup olmadığını kontrol eder. | `src/routes/codes.js` |
 | `GET` | `/contracts/active` | Sistemdeki mevcut aktif sözleşmeyi getirir. | `src/routes/contract.js` |
 
@@ -208,72 +188,15 @@ Bu rotalar kimlik doğrulaması gerektirmez ve herkes tarafından erişilebilir.
 - **Şifremi Unuttum**: `Ui/app/forgot-password/page.tsx`
 - **Şifre Sıfırlama**: `Ui/app/reset-password/page.tsx`
 
-## Yapılan Düzeltmeler
+## Hata Düzeltmeleri
 
-- id'si 21 ve 42 olan influencer'lara ait ödeme kayıtlarının silinmesi işlemi
-- Bu işlemin neden yapıldığı: Influencer'ların bulunmaması nedeniyle sakat ödeme kayıtları oluşmuş olması
-- İşlem sonucunda dashboard'daki "Ödemesi yapılmış komisyon" değeri 1350 TL'den 1120 TL'ye düşmüştür
+### Admin Panelinde Satışların Listelenmemesi ve Yanlış Sıralanması
 
-## Dosya/Dizin Yapısındaki Değişiklikler
-
-- Yeni oluşturulan betik dosyaları:
- - check_influencer_status.js
- - check_payouts_status.js
- - delete_orphaned_payouts.js
- - login_admin.js
- - test_accounts.js
-  - get-admin-summary.js
-
-## Rotalardaki Değişiklikler
-
-## 4. API İstekleri ve Proxy Yapılandırması
-
-### Frontend API İstekleri
-- `Ui/lib/api.ts` dosyasındaki `request` fonksiyonu güncellendi
-- `/api/admin/` ile başlayan URL'ler artık Next.js proxy rotalarını kullanacak şekilde değiştirildi
-- Bu sayede `/api/admin/sales` gibi istekler doğrudan backend'e değil, Next.js uygulamasındaki proxy rotasına yönlendiriliyor
-
-### Backend Satış Erişimi
-- `src/routes/sale.js` dosyasındaki `/api/sales` rotası güncellendi
-- Admin kullanıcılar için tüm satışlara erişim sağlandı
-- Influencer kullanıcılar için sadece kendi kodlarıyla yapılan satışlara erişim sağlandı
-- Bu değişiklik, influencer'ların diğer influencer'ların satışlarını görmesini engelliyor
-## 5. Ödeme ve Komisyon Hesaplamaları
-
-### Admin Panel Bakiye Özet Hesaplamaları
-- `src/routes/balance.js` dosyasındaki `/balance/admin-summary/summary` endpoint'i güncellendi
-- "Ödemesi yapılmış" alanlar: Influencerlere yapılan ödemelerin toplamı ve bu ödemelerin karşıladığı satış tutarları olarak değiştirildi
-- "Ödemesi yapılmamış" alanlar: Influencerların kazandığı ancak henüz ödenmemiş komisyonlar ve bu komisyonlara karşılık gelen ürün tutarları olarak değiştirildi
-- Bu değişiklikle admin panelinde doğru ödeme ve komisyon bilgileri görüntülenmektedir
-- Herhangi bir rota değişikliği yapılmadı, sadece veri düzeltmesi yapıldı
-
-## 6. Yeni Eklenen Özellikler
-
-### Influencer Detayı Hızlı Satış Formu Komisyon Alanı
-- `Ui/app/admin/influencers/[id]/page.tsx` dosyasındaki `QuickSaleForm` bileşenine komisyon alanı eklendi
-- Formda artık seçilen koda göre komisyon oranı, satış tutarı ve tahmini komisyon miktarı kullanıcıya daha belirgin şekilde gösteriliyor
-- Komisyon hesaplaması gerçek zamanlı olarak yapılmaktadır
-- Komisyon oranı, satış tutarı ve tahmini komisyon miktarı ayrı ayrı gösterilmektedir
-- Görsel tasarım, kullanıcıya daha iyi bir deneyim sunmak için iyileştirilmiştir
-
-## 7. Influencer Detayı Sayfası Geliştirmeleri
-
-### Satış Listeleme Sorununun Giderilmesi
-- `Ui/app/admin/influencers/[id]/page.tsx` dosyasında satışların doğru şekilde listelenmesi sağlandı
-- API'den dönen satış verilerinin işlenmesi iyileştirildi
-- Satış yoksa kullanıcıya "Henüz satış yapılmamış" mesajı gösterilir
-- API hata durumları için daha i iyi kontrol mekanizmaları eklendi
-
-### Bakiye Bilgileri Bölümü Ekleme
-- Influencer detay sayfasına bakiye ve performans bilgileri bölümü eklendi
-- `Ui/app/admin/influencers/[id]/page.tsx` dosyasına `getAdminInfluencerBalance` fonksiyonu entegre edildi
-- Mevcut bakiye, toplam komisyon, ödenmiş komisyon, ödenmemiş komisyon, toplam satış ve son ödeme tarihi bilgileri gösterilir
-- Bakiye hareketlerini gösteren ekstra bir bölüm eklendi
-- Bakiye bilgileri `BalanceSummary` tipi ile tanımlandı ve doğru şekilde işlendi
-
-## 8. Satış Filtreleme Güncellemesi
-
-### Influencer ID Filtresi
-- `src/routes/sale.js` dosyasında `/api/sales` endpoint'inde yapılan değişiklikle, artık admin kullanıcılar sadece kendi influencer ID'lerine göre satış filtrelemesi yapabiliyor.
-- Influencer ID filtresi artık admin olup olmadığına bakmaksızın uygulanıyor.
-- Bu değişiklik, admin panelinde influencer detay sayfasında yapılan satış listeleme işlemlerini düzeltiyor.
+-   **Sorun**: Admin panelindeki influencer detay sayfasında satışlar ya hiç görünmüyor ya da yanlış sıralanıyordu.
+-   **Kök Nedenler**:
+    1.  Next.js (`Ui/app/api/sales/route.ts`) içinde bulunan hatalı bir API proxy rotası, `/api/sales` isteklerinin arka uca doğru şekilde ulaşmasını engelliyordu.
+    2.  Veritabanındaki `sales`, `influencers`, `payouts` ve `discount_codes` tablolarında `recorded_at`, `created_at` gibi tarih sütunlarında tutarsız formatlarda (milisaniye, `DD.MM.YYYY`, ISO 8601) veri bulunuyordu. Bu da sıralama sorgularının yanlış çalışmasına neden oluyordu.
+-   **Çözüm**:
+    1.  Hatalı Next.js API rotası (`Ui/app/api/sales/route.ts`) silinerek, isteklerin `next.config.js` içindeki doğru proxy kuralına yönlendirilmesi sağlandı.
+    2.  Veritabanındaki tüm tarih sütunlarındaki verileri `YYYY-MM-DD HH:MM:SS` formatına dönüştüren bir betik çalıştırıldı.
+    3.  Gelecekteki tüm tarih kayıtlarının bu standart formatta yapılması için kod gözden geçirildi.

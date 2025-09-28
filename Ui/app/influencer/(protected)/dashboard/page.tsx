@@ -140,10 +140,7 @@ export default function InfluencerDashboardPage() {
         created_at: res.code.created_at,
         approved_at: res.code.approved_at // API'den geliyorsa
       };
-      setCodes((prev) => {
-        if (prev.length >= 1) return prev; // Sadece bir kod olmasına izin veriyoruz
-        return [...prev, newCode];
-      });
+      setCodes((prev) => [...prev, newCode]);
       setNewCodeInput(''); // Inputu temizle
       // Admin onayı bekleniyorsa kullanıcıyı bilgilendir
       if (newCode.is_active === false || Number(newCode.is_active) === 0) {
@@ -240,11 +237,6 @@ export default function InfluencerDashboardPage() {
                   </article>
                 );
               })}
-              <div className="text-right mt-6">
-                <Link href="/influencer/codes" className="text-violet-400 hover:text-violet-300 underline text-base font-medium">
-                  Tüm kodlarımı görüntüle &rarr;
-                </Link>
-              </div>
             </div>
           )}
         </section>

@@ -1,5 +1,6 @@
 const express = require('express')
 const knex = require('../db/sqlite')
+const { toSqliteDatetime } = require('../util/date');
 
 const router = express.Router()
 
@@ -61,8 +62,8 @@ router.post('/', async(req, res, next) => {
       content: content.trim(),
       version: newVersion,
       is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: toSqliteDatetime(new Date()),
+      updated_at: toSqliteDatetime(new Date())
     })
 
     const newContract = await knex('contracts')

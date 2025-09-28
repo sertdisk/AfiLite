@@ -10,6 +10,7 @@ const { validateInfluencerApplication } = require('../middleware/validation')
 const { asyncHandler } = require('../middleware/errorHandler')
 const { requireAdmin } = require('../middleware/auth')
 const { influencerLimiter, influencerLongLimiter } = require('../middleware/rateLimiter')
+const { toSqliteDatetime } = require('../util/date');
 
 // Influencer başvurusu oluşturma
 router.post('/', influencerLimiter, influencerLongLimiter, validateInfluencerApplication, asyncHandler(async(req, res) => {
@@ -33,7 +34,7 @@ router.post('/', influencerLimiter, influencerLongLimiter, validateInfluencerApp
   }
 
   // Otomatik onay: yeni başvurular doğrudan approved olarak kaydedilir
-  const now = new Date()
+  const now = toSqliteDatetime(new Date());
   const [influencerId] = await knex('influencers').insert({
     full_name,
     email,
@@ -147,7 +148,7 @@ router.patch('/:id/status', requireAdmin, asyncHandler(async(req, res) => {
     .where('id', id)
     .update({
       status,
-      updated_at: new Date()
+      updated_at: toSqliteDatetime(new Date())
     })
 
   if (!updated) {

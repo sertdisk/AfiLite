@@ -10,6 +10,7 @@ const knex = require('../db/sqlite')
 const { asyncHandler } = require('../middleware/errorHandler')
 const { authenticateToken, requireAdmin } = require('../middleware/auth')
 const { validateAuthLogin } = require('../middleware/validation')
+const { toSqliteDatetime } = require('../util/date');
 
 // Şifreleme ve token ömrü sabitleri (sertleştirme)
 const BCRYPT_SALT_ROUNDS = 11 // bcrypt cost=11
@@ -169,7 +170,7 @@ router.post('/setup-admin', validateAuthLogin, asyncHandler(async(req, res) => {
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS)
 
   // Zorunlu alanlar için varsayılan değerler
-  const now = new Date()
+  const now = toSqliteDatetime(new Date());
   const adminData = {
     email,
     password_hash: passwordHash,
@@ -218,7 +219,7 @@ router.post('/api/auth/forgot-password', asyncHandler(async(req, res) => {
     .where('id', user.id)
     .update({
       reset_token: resetToken,
-      reset_token_expires_at: resetTokenExpiresAt,
+      reset_token_expires_at: toSqliteDatetime(resetTokenExpiresAt),
       updated_at: knex.fn.now()
     })
 
